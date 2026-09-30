@@ -75,7 +75,7 @@ const navItems: NavItem[] = [
 		],
 	},
 	{
-		label: "Payroll",
+		label: "Paie",
 		icon: Briefcase,
 		children: [
 			{ label: "Employés", href: "/payroll/employes", icon: UserPlus },
