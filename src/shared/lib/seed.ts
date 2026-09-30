@@ -3,7 +3,7 @@ import { users } from "@/modules/auth/schema";
 import { anneesScolaires, niveaux, classes, matieres } from "@/modules/academic/schema";
 import { typesFrais, categoriesDepenses, categoriesRecettes } from "@/modules/finance/schema";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 async function seed() {
 	console.log("🌱 Seeding database...");

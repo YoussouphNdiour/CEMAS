@@ -11,14 +11,19 @@
     "db:seed": "tsx src/shared/lib/seed.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "biome check src/",
-    "format": "biome format --write src/"
+    "format": "biome format --write src/",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:guide": "playwright test e2e/00-guide-complet.spec.ts",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:guide-html": "playwright test e2e/guide-utilisateur.spec.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.0",
     "@trpc/client": "^11.13.0",
     "@trpc/react-query": "^11.13.0",
     "@trpc/server": "^11.13.0",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.49.0",
     "next": "^16.3.8",
@@ -32,6 +37,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^26.6.3",
