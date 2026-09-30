@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cemas
+      POSTGRES_PASSWORD: cemas2025
+      POSTGRES_DB: cemas
+    volumes:
+      - cemas_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cemas -d cemas"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://cemas:cemas2025@db:5432/cemas
+    restart: unless-stopped
+    ports:
+      - "3500:3000"
+    environment:
+      DATABASE_URL: postgresql://cemas:cemas2025@db:5432/cemas
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production-use-openssl-rand}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3500}
+      AUTH_TRUST_HOST: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  cemas_pgdata:
