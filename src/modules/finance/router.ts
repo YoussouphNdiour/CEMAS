@@ -271,6 +271,9 @@ const suiviRouter = createTRPCRouter({
 					return {
 						typeFraisId: tf.id,
 						typeFraisNom: tf.nom,
+						mensuel: tf.mensuel,
+						montantDefaut: tf.montantDefaut,
+						paid: paidMonths ? paidMonths.size > 0 : false,
 						months,
 					};
 				});

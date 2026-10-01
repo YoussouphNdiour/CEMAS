@@ -96,9 +96,9 @@ async function seed() {
 	const existingFrais = await db.select().from(typesFrais);
 	if (existingFrais.length === 0) {
 		await db.insert(typesFrais).values([
-			{ nom: "Scolarité", montantDefaut: 25000, obligatoire: true },
-			{ nom: "Inscription", montantDefaut: 50000, obligatoire: true },
-			{ nom: "Tenue", montantDefaut: 15000, obligatoire: false },
+			{ nom: "Scolarité", montantDefaut: 25000, obligatoire: true, mensuel: true },
+			{ nom: "Inscription", montantDefaut: 50000, obligatoire: true, mensuel: false },
+			{ nom: "Tenue", montantDefaut: 15000, obligatoire: false, mensuel: false },
 		]);
 		console.log("✅ 3 types de frais créés");
 	}

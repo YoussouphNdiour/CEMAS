@@ -1,0 +1,1 @@
+ALTER TABLE "types_frais" ADD COLUMN "mensuel" boolean DEFAULT true NOT NULL;

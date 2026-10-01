@@ -18,6 +18,7 @@ export const typesFrais = pgTable("types_frais", {
 	nom: varchar("nom", { length: 100 }).notNull(),
 	montantDefaut: integer("montant_defaut").notNull().default(0),
 	obligatoire: boolean("obligatoire").notNull().default(true),
+	mensuel: boolean("mensuel").notNull().default(true),
 });
 
 export const grilleFrais = pgTable(
