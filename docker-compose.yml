@@ -28,6 +28,10 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production-use-openssl-rand}
       AUTH_URL: ${AUTH_URL:-http://localhost:3500}
       AUTH_TRUST_HOST: "true"
+      SMTP_HOST: ${SMTP_HOST:-indiana.o2switch.net}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-admin@cemas.online}
+      SMTP_PASS: ${SMTP_PASS:-cemas2025!}
     depends_on:
       db:
         condition: service_healthy

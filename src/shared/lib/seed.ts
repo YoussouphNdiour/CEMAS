@@ -8,16 +8,16 @@ import bcrypt from "bcryptjs";
 async function seed() {
 	console.log("🌱 Seeding database...");
 
-	// 1. Director account
-	const existing = await db.select().from(users).where(eq(users.email, "directeur@cemas.sn"));
+	// 1. Admin account
+	const existing = await db.select().from(users).where(eq(users.email, "admin@cemas.online"));
 	if (existing.length === 0) {
-		const hash = await bcrypt.hash("cemas2025", 10);
+		const hash = await bcrypt.hash("cemas2025!", 10);
 		await db.insert(users).values({
-			email: "directeur@cemas.sn",
+			email: "admin@cemas.online",
 			passwordHash: hash,
-			nom: "Directeur CEMAS",
+			nom: "Administrateur CEMAS",
 		});
-		console.log("✅ Compte directeur créé (directeur@cemas.sn / cemas2025)");
+		console.log("✅ Compte admin créé (admin@cemas.online)");
 	}
 
 	// 2. Année scolaire
