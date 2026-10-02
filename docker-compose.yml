@@ -26,7 +26,7 @@ services:
     environment:
       DATABASE_URL: postgresql://cemas:cemas2025@db:5432/cemas
       AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production-use-openssl-rand}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3500}
+      AUTH_URL: ${AUTH_URL:-https://cemas.online}
       AUTH_TRUST_HOST: "true"
       SMTP_HOST: ${SMTP_HOST:-indiana.o2switch.net}
       SMTP_PORT: ${SMTP_PORT:-465}
