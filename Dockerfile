@@ -45,6 +45,17 @@ COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/scripts/entrypoint.sh ./entrypoint.sh
 
+# Copy source files for seed script (tsx needs .ts sources)
+COPY --from=builder /app/src/shared/lib/seed.ts ./src/shared/lib/seed.ts
+COPY --from=builder /app/src/shared/lib/db.ts ./src/shared/lib/db.ts
+COPY --from=builder /app/src/shared/lib/utils.ts ./src/shared/lib/utils.ts
+COPY --from=builder /app/src/modules/auth/schema.ts ./src/modules/auth/schema.ts
+COPY --from=builder /app/src/modules/academic/schema.ts ./src/modules/academic/schema.ts
+COPY --from=builder /app/src/modules/finance/schema.ts ./src/modules/finance/schema.ts
+COPY --from=builder /app/src/modules/students/schema.ts ./src/modules/students/schema.ts
+COPY --from=builder /app/src/modules/transport/schema.ts ./src/modules/transport/schema.ts
+COPY --from=builder /app/src/modules/payroll/schema.ts ./src/modules/payroll/schema.ts
+
 EXPOSE 3000
 
 ENV PORT=3000

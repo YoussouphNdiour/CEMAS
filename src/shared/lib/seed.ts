@@ -52,12 +52,24 @@ async function seed() {
 				{ nom: "Crèche", ordre: 1 },
 				{ nom: "Préscolaire", ordre: 2 },
 				{ nom: "Élémentaire", ordre: 3 },
+				{ nom: "Moyen", ordre: 4 },
 			])
 			.returning();
 		niveauxMap = Object.fromEntries(inserted.map((n) => [n.nom, n.id]));
-		console.log("✅ 3 niveaux créés");
+		console.log("✅ 4 niveaux créés");
 	} else {
 		niveauxMap = Object.fromEntries(existingNiveaux.map((n) => [n.nom, n.id]));
+		// Add missing niveaux
+		const missingNiveaux = [
+			{ nom: "Moyen", ordre: 4 },
+		];
+		for (const n of missingNiveaux) {
+			if (!existingNiveaux.some((e) => e.nom === n.nom)) {
+				const [inserted] = await db.insert(niveaux).values(n).returning();
+				niveauxMap[inserted.nom] = inserted.id;
+				console.log(`✅ Niveau ${n.nom} ajouté`);
+			}
+		}
 	}
 
 	// 4. Classes
@@ -75,6 +87,23 @@ async function seed() {
 			{ nom: "CM2", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
 		]);
 		console.log("✅ 9 classes créées");
+	}
+
+	// 4b. Classes Moyen (add if missing)
+	if (niveauxMap["Moyen"]) {
+		const existingClassesMoyen = await db
+			.select()
+			.from(classes)
+			.where(eq(classes.niveauId, niveauxMap["Moyen"]));
+		if (existingClassesMoyen.length === 0) {
+			await db.insert(classes).values([
+				{ nom: "6ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "5ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "4ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "3ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
+			]);
+			console.log("✅ 4 classes Moyen créées (6ème-3ème)");
+		}
 	}
 
 	// 5. Matières
