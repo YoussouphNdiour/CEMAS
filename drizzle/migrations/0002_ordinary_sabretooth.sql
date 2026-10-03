@@ -1,0 +1,1 @@
+ALTER TABLE "itineraires" ADD COLUMN "montant_mensuel" integer DEFAULT 0 NOT NULL;

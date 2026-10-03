@@ -21,6 +21,7 @@ export const createItineraireSchema = z.object({
 	nom: z.string().min(1, "Le nom est requis"),
 	vehiculeId: z.string().uuid().optional(),
 	description: z.string().optional(),
+	montantMensuel: z.number().int().min(0).default(0),
 });
 
 export const updateItineraireSchema = z.object({
@@ -28,6 +29,7 @@ export const updateItineraireSchema = z.object({
 	nom: z.string().min(1).optional(),
 	vehiculeId: z.string().uuid().nullable().optional(),
 	description: z.string().optional(),
+	montantMensuel: z.number().int().min(0).optional(),
 });
 
 export const createArretSchema = z.object({

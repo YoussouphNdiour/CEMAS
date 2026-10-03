@@ -18,6 +18,7 @@ export const itineraires = pgTable("itineraires", {
 	nom: varchar("nom", { length: 100 }).notNull(),
 	vehiculeId: uuid("vehicule_id").references(() => vehicules.id),
 	description: text("description"),
+	montantMensuel: integer("montant_mensuel").notNull().default(0),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

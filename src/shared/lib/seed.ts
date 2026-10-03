@@ -99,8 +99,21 @@ async function seed() {
 			{ nom: "Scolarité", montantDefaut: 25000, obligatoire: true, mensuel: true },
 			{ nom: "Inscription", montantDefaut: 50000, obligatoire: true, mensuel: false },
 			{ nom: "Tenue", montantDefaut: 15000, obligatoire: false, mensuel: false },
+			{ nom: "Transport", montantDefaut: 15000, obligatoire: false, mensuel: true },
 		]);
-		console.log("✅ 3 types de frais créés");
+		console.log("✅ 4 types de frais créés");
+	} else {
+		// Add Transport if missing
+		const hasTransport = existingFrais.some((f) => f.nom === "Transport");
+		if (!hasTransport) {
+			await db.insert(typesFrais).values({
+				nom: "Transport",
+				montantDefaut: 15000,
+				obligatoire: false,
+				mensuel: true,
+			});
+			console.log("✅ Type de frais Transport ajouté");
+		}
 	}
 
 	// 7. Catégories de dépenses

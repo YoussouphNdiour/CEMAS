@@ -72,6 +72,7 @@ const navItems: NavItem[] = [
 			{ label: "Véhicules", href: "/transport/vehicules", icon: Truck },
 			{ label: "Itinéraires", href: "/transport/itineraires", icon: MapPin },
 			{ label: "Affectations", href: "/transport/affectations", icon: UserCheck },
+			{ label: "Suivi", href: "/transport/suivi", icon: TrendingUp },
 		],
 	},
 	{

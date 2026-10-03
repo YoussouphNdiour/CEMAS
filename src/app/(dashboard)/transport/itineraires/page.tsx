@@ -5,12 +5,14 @@ import { trpc } from "@/shared/lib/trpc-client";
 import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
 import { Plus, Pencil, Trash2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { formatCFA } from "@/shared/lib/utils";
 
 type ItineraireRow = Record<string, unknown> & {
 	id: string;
 	nom: string;
 	vehiculeId: string | null;
 	description: string | null;
+	montantMensuel: number;
 	vehiculeImmatriculation: string | null;
 	vehiculeMarque: string | null;
 	arretsCount: number;
@@ -28,6 +30,7 @@ type ItineraireFormData = {
 	nom: string;
 	vehiculeId: string;
 	description: string;
+	montantMensuel: number;
 };
 
 type ArretFormData = {
@@ -40,6 +43,7 @@ const emptyItineraireForm: ItineraireFormData = {
 	nom: "",
 	vehiculeId: "",
 	description: "",
+	montantMensuel: 0,
 };
 
 const emptyArretForm: ArretFormData = {
@@ -127,6 +131,7 @@ export default function ItinerairesPage() {
 			nom: row.nom,
 			vehiculeId: row.vehiculeId ?? "",
 			description: row.description ?? "",
+			montantMensuel: row.montantMensuel ?? 0,
 		});
 		setItineraireModalOpen(true);
 	}
@@ -145,12 +150,14 @@ export default function ItinerairesPage() {
 				nom: itineraireForm.nom,
 				vehiculeId: itineraireForm.vehiculeId || null,
 				description: itineraireForm.description || undefined,
+				montantMensuel: itineraireForm.montantMensuel,
 			});
 		} else {
 			createItineraireMutation.mutate({
 				nom: itineraireForm.nom,
 				vehiculeId: itineraireForm.vehiculeId || undefined,
 				description: itineraireForm.description || undefined,
+				montantMensuel: itineraireForm.montantMensuel,
 			});
 		}
 	}
@@ -197,14 +204,14 @@ export default function ItinerairesPage() {
 					: "-",
 		},
 		{
+			key: "montantMensuel",
+			label: "Tarif/mois",
+			render: (row) => row.montantMensuel > 0 ? formatCFA(row.montantMensuel) : "-",
+		},
+		{
 			key: "arretsCount",
 			label: "Nb arrêts",
 			sortable: true,
-		},
-		{
-			key: "description",
-			label: "Description",
-			render: (row) => row.description ?? "-",
 		},
 		{
 			key: "actions",
@@ -387,6 +394,20 @@ export default function ItinerairesPage() {
 								</option>
 							))}
 						</select>
+					</div>
+
+					<div>
+						<label className="mb-1 block text-sm font-medium text-gray-700">
+							Tarif mensuel (FCFA)
+						</label>
+						<input
+							type="number"
+							min={0}
+							value={itineraireForm.montantMensuel || ""}
+							onChange={(e) => setItineraireForm({ ...itineraireForm, montantMensuel: parseInt(e.target.value, 10) || 0 })}
+							placeholder="Ex: 15000"
+							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+						/>
 					</div>
 
 					<div>

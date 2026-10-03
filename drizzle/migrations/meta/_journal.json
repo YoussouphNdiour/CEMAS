@@ -15,6 +15,13 @@
       "when": 1790898239830,
       "tag": "0001_puzzling_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791035500844,
+      "tag": "0002_ordinary_sabretooth",
+      "breakpoints": true
     }
   ]
 }

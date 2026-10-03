@@ -15,7 +15,8 @@ import {
 	createArretSchema,
 	createAffectationSchema,
 } from "./validation";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { typesFrais, paiements } from "@/modules/finance/schema";
 
 const vehiculesRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
@@ -75,6 +76,7 @@ const itinerairesRouter = createTRPCRouter({
 				nom: itineraires.nom,
 				vehiculeId: itineraires.vehiculeId,
 				description: itineraires.description,
+				montantMensuel: itineraires.montantMensuel,
 				createdAt: itineraires.createdAt,
 				vehiculeImmatriculation: vehicules.immatriculation,
 				vehiculeMarque: vehicules.marque,
@@ -96,6 +98,7 @@ const itinerairesRouter = createTRPCRouter({
 					nom: input.nom,
 					vehiculeId: input.vehiculeId ?? null,
 					description: input.description ?? null,
+					montantMensuel: input.montantMensuel,
 				})
 				.returning();
 			return itineraire;
@@ -109,6 +112,7 @@ const itinerairesRouter = createTRPCRouter({
 			if (data.nom !== undefined) updateData.nom = data.nom;
 			if (data.vehiculeId !== undefined) updateData.vehiculeId = data.vehiculeId;
 			if (data.description !== undefined) updateData.description = data.description;
+			if (data.montantMensuel !== undefined) updateData.montantMensuel = data.montantMensuel;
 
 			const [itineraire] = await ctx.db
 				.update(itineraires)
@@ -210,9 +214,109 @@ const affectationsRouter = createTRPCRouter({
 		}),
 });
 
+const suiviTransportRouter = createTRPCRouter({
+	byItineraire: protectedProcedure
+		.input(
+			z.object({
+				itineraireId: z.string().uuid(),
+				anneeScolaireId: z.string().uuid(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			// Get the "Transport" fee type
+			const [transportType] = await ctx.db
+				.select()
+				.from(typesFrais)
+				.where(eq(typesFrais.nom, "Transport"));
+
+			if (!transportType) return { students: [], montantMensuel: 0 };
+
+			// Get itinerary info
+			const [itineraire] = await ctx.db
+				.select({ montantMensuel: itineraires.montantMensuel })
+				.from(itineraires)
+				.where(eq(itineraires.id, input.itineraireId));
+
+			// Get all students assigned to this itinerary for this year
+			const studentsList = await ctx.db
+				.select({
+					id: eleves.id,
+					prenom: eleves.prenom,
+					nom: eleves.nom,
+					matricule: eleves.matricule,
+					arretNom: arrets.nom,
+				})
+				.from(affectationsTransport)
+				.innerJoin(eleves, eq(affectationsTransport.eleveId, eleves.id))
+				.innerJoin(arrets, eq(affectationsTransport.arretId, arrets.id))
+				.where(
+					and(
+						eq(affectationsTransport.itineraireId, input.itineraireId),
+						eq(affectationsTransport.anneeScolaireId, input.anneeScolaireId),
+					),
+				)
+				.orderBy(eleves.nom, eleves.prenom);
+
+			if (studentsList.length === 0) return { students: [], montantMensuel: itineraire?.montantMensuel ?? 0 };
+
+			// Get all transport payments for these students
+			const studentIds = studentsList.map((s) => s.id);
+			const allPaiements = await ctx.db
+				.select({
+					eleveId: paiements.eleveId,
+					mois: paiements.mois,
+				})
+				.from(paiements)
+				.where(
+					and(
+						eq(paiements.anneeScolaireId, input.anneeScolaireId),
+						eq(paiements.typeFraisId, transportType.id),
+						sql`${paiements.eleveId} IN (${sql.join(
+							studentIds.map((id) => sql`${id}`),
+							sql`, `,
+						)})`,
+					),
+				);
+
+			// Build lookup: eleveId -> Set<mois>
+			const paidLookup = new Map<string, Set<number>>();
+			for (const p of allPaiements) {
+				if (!paidLookup.has(p.eleveId)) {
+					paidLookup.set(p.eleveId, new Set());
+				}
+				paidLookup.get(p.eleveId)!.add(p.mois);
+			}
+
+			const schoolMonths = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
+
+			const students = studentsList.map((student) => {
+				const paidMonths = paidLookup.get(student.id);
+				const months = schoolMonths.map((m) => ({
+					mois: m,
+					paid: paidMonths?.has(m) ?? false,
+				}));
+				return {
+					id: student.id,
+					prenom: student.prenom,
+					nom: student.nom,
+					matricule: student.matricule,
+					arretNom: student.arretNom,
+					months,
+					paidCount: paidMonths?.size ?? 0,
+				};
+			});
+
+			return {
+				students,
+				montantMensuel: itineraire?.montantMensuel ?? 0,
+			};
+		}),
+});
+
 export const transportRouter = createTRPCRouter({
 	vehicules: vehiculesRouter,
 	itineraires: itinerairesRouter,
 	arrets: arretsRouter,
 	affectations: affectationsRouter,
+	suivi: suiviTransportRouter,
 });
