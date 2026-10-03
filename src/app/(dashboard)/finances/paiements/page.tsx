@@ -5,7 +5,8 @@ import { trpc } from "@/shared/lib/trpc-client";
 import { PageHeader, DataTable, Button, MonthPicker, StatCard } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
 import { formatCFA, MOIS_LABELS, formatDate } from "@/shared/lib/utils";
-import { CreditCard, Receipt } from "lucide-react";
+import { CreditCard, Receipt, Download } from "lucide-react";
+import { generateRecuPdf } from "@/shared/lib/generate-recu-pdf";
 
 type PaiementRow = Record<string, unknown> & {
 	id: string;
@@ -28,12 +29,14 @@ export default function PaiementsPage() {
 	const { data: typesFraisList = [] } = trpc.finance.typesFrais.list.useQuery();
 
 	const [selectedMois, setSelectedMois] = useState(new Date().getMonth() + 1);
+	const [filterTypeFraisId, setFilterTypeFraisId] = useState("");
 	const [searchEleve, setSearchEleve] = useState("");
 	const [selectedEleveId, setSelectedEleveId] = useState("");
 	const [selectedTypeFraisId, setSelectedTypeFraisId] = useState("");
 	const [paymentMois, setPaymentMois] = useState(new Date().getMonth() + 1);
 	const [montant, setMontant] = useState(0);
 	const [lastRecu, setLastRecu] = useState<string | null>(null);
+	const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
 	// Search students by name
 	const { data: studentsList = [] } = trpc.students.list.useQuery(
@@ -44,11 +47,12 @@ export default function PaiementsPage() {
 		{ enabled: !!activeAnnee?.id && searchEleve.length >= 2 },
 	);
 
-	// List payments for the selected month
+	// List payments for the selected month + optional type filter
 	const { data: monthPayments = [] } = trpc.finance.paiements.listByMonth.useQuery(
 		{
 			anneeScolaireId: activeAnnee?.id ?? "",
 			mois: selectedMois,
+			typeFraisId: filterTypeFraisId || undefined,
 		},
 		{ enabled: !!activeAnnee?.id },
 	);
@@ -76,10 +80,41 @@ export default function PaiementsPage() {
 		});
 	}
 
+	async function handleDownloadRecu(paiementId: string) {
+		setDownloadingId(paiementId);
+		try {
+			const data = await utils.finance.paiements.getRecuData.fetch({ paiementId });
+			if (data) {
+				generateRecuPdf(data);
+			}
+		} finally {
+			setDownloadingId(null);
+		}
+	}
+
 	const totalMois = monthPayments.reduce((sum, p) => sum + p.montant, 0);
 
 	const columns: Column<PaiementRow>[] = [
-		{ key: "numeroRecu", label: "N° Reçu" },
+		{
+			key: "numeroRecu",
+			label: "N° Reçu",
+			render: (row) => (
+				<div className="flex items-center gap-2">
+					<span>{row.numeroRecu}</span>
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							handleDownloadRecu(row.id);
+						}}
+						disabled={downloadingId === row.id}
+						className="rounded p-1 text-primary hover:bg-primary/10 disabled:opacity-50"
+						title="Télécharger le reçu PDF"
+					>
+						<Download className="h-4 w-4" />
+					</button>
+				</div>
+			),
+		},
 		{
 			key: "eleveNom",
 			label: "Élève",
@@ -229,13 +264,30 @@ export default function PaiementsPage() {
 				</form>
 			</div>
 
-			{/* Stats + month filter */}
+			{/* Stats + month filter + type filter */}
 			<div className="mb-4 flex flex-wrap items-end gap-4">
 				<div>
 					<label className="mb-1 block text-sm font-medium text-gray-700">
 						Voir les paiements du mois
 					</label>
 					<MonthPicker value={selectedMois} onChange={setSelectedMois} />
+				</div>
+				<div>
+					<label className="mb-1 block text-sm font-medium text-gray-700">
+						Type de frais
+					</label>
+					<select
+						value={filterTypeFraisId}
+						onChange={(e) => setFilterTypeFraisId(e.target.value)}
+						className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+					>
+						<option value="">Tous les types</option>
+						{typesFraisList.map((tf) => (
+							<option key={tf.id} value={tf.id}>
+								{tf.nom}
+							</option>
+						))}
+					</select>
 				</div>
 				<StatCard
 					title={`Total ${MOIS_LABELS[selectedMois]}`}

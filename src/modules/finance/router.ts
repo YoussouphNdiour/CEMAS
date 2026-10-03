@@ -10,7 +10,7 @@ import {
 	recettes,
 } from "./schema";
 import { classes } from "@/modules/academic/schema";
-import { eleves } from "@/modules/students/schema";
+import { eleves, parents, eleveParents } from "@/modules/students/schema";
 import { generateRecuNumber } from "@/shared/lib/utils";
 import {
 	createPaiementSchema,
@@ -160,9 +160,17 @@ const paiementsRouter = createTRPCRouter({
 			z.object({
 				anneeScolaireId: z.string().uuid(),
 				mois: z.number().int().min(1).max(12),
+				typeFraisId: z.string().uuid().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const conditions = [
+				eq(paiements.anneeScolaireId, input.anneeScolaireId),
+				eq(paiements.mois, input.mois),
+			];
+			if (input.typeFraisId) {
+				conditions.push(eq(paiements.typeFraisId, input.typeFraisId));
+			}
 			return ctx.db
 				.select({
 					id: paiements.id,
@@ -181,13 +189,51 @@ const paiementsRouter = createTRPCRouter({
 				.from(paiements)
 				.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
 				.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
-				.where(
-					and(
-						eq(paiements.anneeScolaireId, input.anneeScolaireId),
-						eq(paiements.mois, input.mois),
-					),
-				)
+				.where(and(...conditions))
 				.orderBy(desc(paiements.datePaiement));
+		}),
+
+	getRecuData: protectedProcedure
+		.input(z.object({ paiementId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const [row] = await ctx.db
+				.select({
+					id: paiements.id,
+					eleveId: paiements.eleveId,
+					montant: paiements.montant,
+					mois: paiements.mois,
+					datePaiement: paiements.datePaiement,
+					numeroRecu: paiements.numeroRecu,
+					typeFraisNom: typesFrais.nom,
+					elevePrenom: eleves.prenom,
+					eleveNom: eleves.nom,
+					eleveMatricule: eleves.matricule,
+					classeNom: classes.nom,
+				})
+				.from(paiements)
+				.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
+				.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
+				.innerJoin(classes, eq(eleves.classeId, classes.id))
+				.where(eq(paiements.id, input.paiementId));
+
+			if (!row) return null;
+
+			const [parentInfo] = await ctx.db
+				.select({
+					parentPrenom: parents.prenom,
+					parentNom: parents.nom,
+					parentTel: parents.telephone,
+				})
+				.from(eleveParents)
+				.innerJoin(parents, eq(eleveParents.parentId, parents.id))
+				.where(eq(eleveParents.eleveId, row.eleveId));
+
+			return {
+				...row,
+				parentPrenom: parentInfo?.parentPrenom ?? null,
+				parentNom: parentInfo?.parentNom ?? null,
+				parentTel: parentInfo?.parentTel ?? null,
+			};
 		}),
 });
 

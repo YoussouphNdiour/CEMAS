@@ -99,20 +99,21 @@ async function seed() {
 			{ nom: "Scolarité", montantDefaut: 25000, obligatoire: true, mensuel: true },
 			{ nom: "Inscription", montantDefaut: 50000, obligatoire: true, mensuel: false },
 			{ nom: "Tenue", montantDefaut: 15000, obligatoire: false, mensuel: false },
+			{ nom: "Fourniture", montantDefaut: 10000, obligatoire: false, mensuel: false },
 			{ nom: "Transport", montantDefaut: 15000, obligatoire: false, mensuel: true },
 		]);
-		console.log("✅ 4 types de frais créés");
+		console.log("✅ 5 types de frais créés");
 	} else {
-		// Add Transport if missing
-		const hasTransport = existingFrais.some((f) => f.nom === "Transport");
-		if (!hasTransport) {
-			await db.insert(typesFrais).values({
-				nom: "Transport",
-				montantDefaut: 15000,
-				obligatoire: false,
-				mensuel: true,
-			});
-			console.log("✅ Type de frais Transport ajouté");
+		// Add missing fee types
+		const missingTypes = [
+			{ nom: "Transport", montantDefaut: 15000, obligatoire: false, mensuel: true },
+			{ nom: "Fourniture", montantDefaut: 10000, obligatoire: false, mensuel: false },
+		];
+		for (const t of missingTypes) {
+			if (!existingFrais.some((f) => f.nom === t.nom)) {
+				await db.insert(typesFrais).values(t);
+				console.log(`✅ Type de frais ${t.nom} ajouté`);
+			}
 		}
 	}
 
