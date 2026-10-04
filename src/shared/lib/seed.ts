@@ -24,20 +24,20 @@ async function seed() {
 	const existingAnnee = await db
 		.select()
 		.from(anneesScolaires)
-		.where(eq(anneesScolaires.libelle, "2025-2026"));
+		.where(eq(anneesScolaires.libelle, "2026-2027"));
 	let anneeId: string;
 	if (existingAnnee.length === 0) {
 		const [annee] = await db
 			.insert(anneesScolaires)
 			.values({
-				libelle: "2025-2026",
-				dateDebut: "2025-10-01",
-				dateFin: "2026-07-31",
+				libelle: "2026-2027",
+				dateDebut: "2026-10-01",
+				dateFin: "2027-07-31",
 				active: true,
 			})
 			.returning();
 		anneeId = annee.id;
-		console.log("✅ Année scolaire 2025-2026 créée");
+		console.log("✅ Année scolaire 2026-2027 créée");
 	} else {
 		anneeId = existingAnnee[0].id;
 	}
