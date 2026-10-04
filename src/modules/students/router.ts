@@ -17,8 +17,21 @@ export const studentsRouter = createTRPCRouter({
 		if (input.statut) {
 			conditions.push(eq(eleves.statut, input.statut));
 		}
+		if (input.search) {
+			const search = `%${input.search}%`;
+			conditions.push(
+				or(
+					ilike(eleves.prenom, search),
+					ilike(eleves.nom, search),
+					ilike(eleves.matricule, search),
+				)!,
+			);
+		}
+		if (input.niveauId) {
+			conditions.push(eq(niveaux.id, input.niveauId));
+		}
 
-		const result = await db
+		return db
 			.select({
 				id: eleves.id,
 				matricule: eleves.matricule,
@@ -36,24 +49,6 @@ export const studentsRouter = createTRPCRouter({
 			.innerJoin(niveaux, eq(classes.niveauId, niveaux.id))
 			.where(and(...conditions))
 			.orderBy(desc(eleves.createdAt));
-
-		// Apply search filter in JS (for simplicity with joined columns)
-		if (input.search) {
-			const s = input.search.toLowerCase();
-			return result.filter(
-				(r) =>
-					r.prenom.toLowerCase().includes(s) ||
-					r.nom.toLowerCase().includes(s) ||
-					r.matricule.toLowerCase().includes(s),
-			);
-		}
-
-		// Apply niveau filter
-		if (input.niveauId) {
-			return result.filter((r) => r.niveauId === input.niveauId);
-		}
-
-		return result;
 	}),
 
 	getById: protectedProcedure

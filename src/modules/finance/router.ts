@@ -336,22 +336,26 @@ const suiviRouter = createTRPCRouter({
 });
 
 const depensesRouter = createTRPCRouter({
-	list: protectedProcedure.query(async ({ ctx }) => {
-		return ctx.db
-			.select({
-				id: depenses.id,
-				categorieId: depenses.categorieId,
-				libelle: depenses.libelle,
-				montant: depenses.montant,
-				date: depenses.date,
-				note: depenses.note,
-				createdAt: depenses.createdAt,
-				categorieNom: categoriesDepenses.nom,
-			})
-			.from(depenses)
-			.innerJoin(categoriesDepenses, eq(depenses.categorieId, categoriesDepenses.id))
-			.orderBy(desc(depenses.date));
-	}),
+	list: protectedProcedure
+		.input(z.object({ anneeScolaireId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			return ctx.db
+				.select({
+					id: depenses.id,
+					categorieId: depenses.categorieId,
+					anneeScolaireId: depenses.anneeScolaireId,
+					libelle: depenses.libelle,
+					montant: depenses.montant,
+					date: depenses.date,
+					note: depenses.note,
+					createdAt: depenses.createdAt,
+					categorieNom: categoriesDepenses.nom,
+				})
+				.from(depenses)
+				.innerJoin(categoriesDepenses, eq(depenses.categorieId, categoriesDepenses.id))
+				.where(eq(depenses.anneeScolaireId, input.anneeScolaireId))
+				.orderBy(desc(depenses.date));
+		}),
 
 	create: protectedProcedure
 		.input(createDepenseSchema)
@@ -360,6 +364,7 @@ const depensesRouter = createTRPCRouter({
 				.insert(depenses)
 				.values({
 					categorieId: input.categorieId,
+					anneeScolaireId: input.anneeScolaireId,
 					libelle: input.libelle,
 					montant: input.montant,
 					date: input.date,
@@ -382,22 +387,26 @@ const depensesRouter = createTRPCRouter({
 });
 
 const recettesRouter = createTRPCRouter({
-	list: protectedProcedure.query(async ({ ctx }) => {
-		return ctx.db
-			.select({
-				id: recettes.id,
-				categorieId: recettes.categorieId,
-				libelle: recettes.libelle,
-				montant: recettes.montant,
-				date: recettes.date,
-				note: recettes.note,
-				createdAt: recettes.createdAt,
-				categorieNom: categoriesRecettes.nom,
-			})
-			.from(recettes)
-			.innerJoin(categoriesRecettes, eq(recettes.categorieId, categoriesRecettes.id))
-			.orderBy(desc(recettes.date));
-	}),
+	list: protectedProcedure
+		.input(z.object({ anneeScolaireId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			return ctx.db
+				.select({
+					id: recettes.id,
+					categorieId: recettes.categorieId,
+					anneeScolaireId: recettes.anneeScolaireId,
+					libelle: recettes.libelle,
+					montant: recettes.montant,
+					date: recettes.date,
+					note: recettes.note,
+					createdAt: recettes.createdAt,
+					categorieNom: categoriesRecettes.nom,
+				})
+				.from(recettes)
+				.innerJoin(categoriesRecettes, eq(recettes.categorieId, categoriesRecettes.id))
+				.where(eq(recettes.anneeScolaireId, input.anneeScolaireId))
+				.orderBy(desc(recettes.date));
+		}),
 
 	create: protectedProcedure
 		.input(createRecetteSchema)
@@ -406,6 +415,7 @@ const recettesRouter = createTRPCRouter({
 				.insert(recettes)
 				.values({
 					categorieId: input.categorieId,
+					anneeScolaireId: input.anneeScolaireId,
 					libelle: input.libelle,
 					montant: input.montant,
 					date: input.date,
@@ -442,13 +452,15 @@ const bilanRouter = createTRPCRouter({
 				.select({
 					total: sql<number>`COALESCE(SUM(${depenses.montant}), 0)`,
 				})
-				.from(depenses);
+				.from(depenses)
+				.where(eq(depenses.anneeScolaireId, input.anneeScolaireId));
 
 			const [recettesSum] = await ctx.db
 				.select({
 					total: sql<number>`COALESCE(SUM(${recettes.montant}), 0)`,
 				})
-				.from(recettes);
+				.from(recettes)
+				.where(eq(recettes.anneeScolaireId, input.anneeScolaireId));
 
 			const totalPaiements = Number(paiementsSum.total);
 			const totalDepenses = Number(depensesSum.total);

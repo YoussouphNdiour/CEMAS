@@ -70,6 +70,14 @@ const anneesRouter = createTRPCRouter({
 	setActive: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
+			// Cannot activate an archived year
+			const [annee] = await ctx.db
+				.select()
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.id, input.id));
+			if (annee?.archived) {
+				throw new Error("Impossible d'activer une année archivée.");
+			}
 			await ctx.db.transaction(async (tx) => {
 				// Deactivate all
 				await tx
@@ -81,6 +89,27 @@ const anneesRouter = createTRPCRouter({
 					.set({ active: true })
 					.where(eq(anneesScolaires.id, input.id));
 			});
+			return { success: true };
+		}),
+
+	archive: protectedProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const [annee] = await ctx.db
+				.select()
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.id, input.id));
+			if (!annee) throw new Error("Année scolaire non trouvée.");
+			if (annee.archived) throw new Error("Cette année est déjà archivée.");
+			if (annee.active) {
+				throw new Error("Impossible d'archiver l'année active. Activez une autre année d'abord.");
+			}
+
+			await ctx.db
+				.update(anneesScolaires)
+				.set({ archived: true, updatedAt: new Date() })
+				.where(eq(anneesScolaires.id, input.id));
+
 			return { success: true };
 		}),
 });

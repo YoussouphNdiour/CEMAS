@@ -29,7 +29,13 @@ export default function DepensesPage() {
 	});
 
 	const utils = trpc.useUtils();
-	const depensesList = trpc.finance.depenses.list.useQuery();
+	const { data: annees = [] } = trpc.academic.annees.list.useQuery();
+	const activeAnnee = annees.find((a) => a.active) ?? annees[0];
+
+	const depensesList = trpc.finance.depenses.list.useQuery(
+		{ anneeScolaireId: activeAnnee?.id ?? "" },
+		{ enabled: !!activeAnnee?.id },
+	);
 	const categories = trpc.finance.depenses.categories.useQuery();
 
 	const createMut = trpc.finance.depenses.create.useMutation({
@@ -59,8 +65,10 @@ export default function DepensesPage() {
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
+		if (!activeAnnee) return;
 		createMut.mutate({
 			categorieId: form.categorieId,
+			anneeScolaireId: activeAnnee.id,
 			libelle: form.libelle,
 			montant: parseInt(form.montant),
 			date: form.date,

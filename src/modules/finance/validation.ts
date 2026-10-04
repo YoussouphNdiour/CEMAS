@@ -10,6 +10,7 @@ export const createPaiementSchema = z.object({
 
 export const createDepenseSchema = z.object({
 	categorieId: z.string().uuid("Catégorie requise"),
+	anneeScolaireId: z.string().uuid("Année scolaire requise"),
 	libelle: z.string().min(1, "Libellé requis"),
 	montant: z.number().int().positive("Le montant doit être positif"),
 	date: z.string().min(1, "Date requise"),
@@ -18,6 +19,7 @@ export const createDepenseSchema = z.object({
 
 export const createRecetteSchema = z.object({
 	categorieId: z.string().uuid("Catégorie requise"),
+	anneeScolaireId: z.string().uuid("Année scolaire requise"),
 	libelle: z.string().min(1, "Libellé requis"),
 	montant: z.number().int().positive("Le montant doit être positif"),
 	date: z.string().min(1, "Date requise"),

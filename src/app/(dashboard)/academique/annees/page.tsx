@@ -5,7 +5,7 @@ import { trpc } from "@/shared/lib/trpc-client";
 import { Button, PageHeader, DataTable, FormModal, ConfirmDialog, StatusBadge } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
 import { formatDate } from "@/shared/lib/utils";
-import { Plus, Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle, Archive } from "lucide-react";
 
 type Annee = Record<string, unknown> & {
 	id: string;
@@ -13,6 +13,7 @@ type Annee = Record<string, unknown> & {
 	dateDebut: string;
 	dateFin: string;
 	active: boolean;
+	archived: boolean;
 	createdAt: string | null;
 	updatedAt: string | null;
 };
@@ -48,9 +49,17 @@ export default function AnneesPage() {
 		},
 	});
 
+	const archiveMutation = trpc.academic.annees.archive.useMutation({
+		onSuccess: () => {
+			utils.academic.annees.list.invalidate();
+			setArchiveTarget(null);
+		},
+	});
+
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<Annee | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<Annee | null>(null);
+	const [archiveTarget, setArchiveTarget] = useState<Annee | null>(null);
 
 	// Form state
 	const [libelle, setLibelle] = useState("");
@@ -110,7 +119,9 @@ export default function AnneesPage() {
 			key: "active",
 			label: "Statut",
 			render: (row) => (
-				<StatusBadge status={row.active ? "actif" : "inactif"} />
+				row.archived
+					? <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Archivée</span>
+					: <StatusBadge status={row.active ? "actif" : "inactif"} />
 			),
 		},
 		{
@@ -118,42 +129,63 @@ export default function AnneesPage() {
 			label: "Actions",
 			render: (row) => (
 				<div className="flex items-center gap-1">
-					{!row.active && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={(e) => {
-								e.stopPropagation();
-								setActiveMutation.mutate({ id: row.id });
-							}}
-							disabled={setActiveMutation.isPending}
-							title="Activer"
-						>
-							<CheckCircle className="h-4 w-4 text-green-600" />
-						</Button>
+					{row.archived ? (
+						<span className="text-xs text-gray-400">Lecture seule</span>
+					) : (
+						<>
+							{!row.active && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										setActiveMutation.mutate({ id: row.id });
+									}}
+									disabled={setActiveMutation.isPending}
+									title="Activer"
+								>
+									<CheckCircle className="h-4 w-4 text-green-600" />
+								</Button>
+							)}
+							{!row.active && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										setArchiveTarget(row);
+									}}
+									title="Archiver"
+								>
+									<Archive className="h-4 w-4 text-amber-600" />
+								</Button>
+							)}
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={(e) => {
+									e.stopPropagation();
+									openEdit(row);
+								}}
+								title="Modifier"
+							>
+								<Pencil className="h-4 w-4" />
+							</Button>
+							{!row.active && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										setDeleteTarget(row);
+									}}
+									title="Supprimer"
+								>
+									<Trash2 className="h-4 w-4 text-red-500" />
+								</Button>
+							)}
+						</>
 					)}
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={(e) => {
-							e.stopPropagation();
-							openEdit(row);
-						}}
-						title="Modifier"
-					>
-						<Pencil className="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={(e) => {
-							e.stopPropagation();
-							setDeleteTarget(row);
-						}}
-						title="Supprimer"
-					>
-						<Trash2 className="h-4 w-4 text-red-500" />
-					</Button>
 				</div>
 			),
 		},
@@ -252,6 +284,17 @@ export default function AnneesPage() {
 				title="Supprimer l'année scolaire"
 				message={`Voulez-vous vraiment supprimer l'année "${deleteTarget?.libelle}" ? Cette action est irréversible.`}
 				loading={deleteMutation.isPending}
+			/>
+
+			<ConfirmDialog
+				open={!!archiveTarget}
+				onClose={() => setArchiveTarget(null)}
+				onConfirm={() => {
+					if (archiveTarget) archiveMutation.mutate({ id: archiveTarget.id });
+				}}
+				title="Archiver l'année scolaire"
+				message={`Voulez-vous archiver l'année "${archiveTarget?.libelle}" ? Les données seront en lecture seule et ne pourront plus être modifiées.`}
+				loading={archiveMutation.isPending}
 			/>
 		</div>
 	);

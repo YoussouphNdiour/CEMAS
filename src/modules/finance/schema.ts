@@ -8,6 +8,7 @@ import {
 	date,
 	timestamp,
 	uniqueIndex,
+	index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { classes, anneesScolaires } from "@/modules/academic/schema";
@@ -36,7 +37,10 @@ export const grilleFrais = pgTable(
 			.references(() => anneesScolaires.id),
 		montantMensuel: integer("montant_mensuel").notNull(),
 	},
-	(t) => [uniqueIndex("grille_frais_unique_idx").on(t.classeId, t.typeFraisId, t.anneeScolaireId)],
+	(t) => [
+		uniqueIndex("grille_frais_unique_idx").on(t.classeId, t.typeFraisId, t.anneeScolaireId),
+		index("grille_frais_annee_idx").on(t.anneeScolaireId),
+	],
 );
 
 export const paiements = pgTable(
@@ -66,6 +70,8 @@ export const paiements = pgTable(
 			t.anneeScolaireId,
 			t.mois,
 		),
+		index("paiements_annee_mois_idx").on(t.anneeScolaireId, t.mois),
+		index("paiements_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId),
 	],
 );
 
@@ -79,12 +85,19 @@ export const depenses = pgTable("depenses", {
 	categorieId: uuid("categorie_id")
 		.notNull()
 		.references(() => categoriesDepenses.id),
+	anneeScolaireId: uuid("annee_scolaire_id")
+		.references(() => anneesScolaires.id),
 	libelle: varchar("libelle", { length: 200 }).notNull(),
 	montant: integer("montant").notNull(),
 	date: date("date").notNull().defaultNow(),
 	note: text("note"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+},
+(t) => [
+	index("depenses_annee_idx").on(t.anneeScolaireId),
+	index("depenses_date_idx").on(t.date),
+],
+);
 
 export const categoriesRecettes = pgTable("categories_recettes", {
 	id: uuid("id").defaultRandom().primaryKey(),
@@ -96,12 +109,19 @@ export const recettes = pgTable("recettes", {
 	categorieId: uuid("categorie_id")
 		.notNull()
 		.references(() => categoriesRecettes.id),
+	anneeScolaireId: uuid("annee_scolaire_id")
+		.references(() => anneesScolaires.id),
 	libelle: varchar("libelle", { length: 200 }).notNull(),
 	montant: integer("montant").notNull(),
 	date: date("date").notNull().defaultNow(),
 	note: text("note"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+},
+(t) => [
+	index("recettes_annee_idx").on(t.anneeScolaireId),
+	index("recettes_date_idx").on(t.date),
+],
+);
 
 // Relations
 export const paiementsRelations = relations(paiements, ({ one }) => ({
@@ -118,11 +138,19 @@ export const depensesRelations = relations(depenses, ({ one }) => ({
 		fields: [depenses.categorieId],
 		references: [categoriesDepenses.id],
 	}),
+	anneeScolaire: one(anneesScolaires, {
+		fields: [depenses.anneeScolaireId],
+		references: [anneesScolaires.id],
+	}),
 }));
 
 export const recettesRelations = relations(recettes, ({ one }) => ({
 	categorie: one(categoriesRecettes, {
 		fields: [recettes.categorieId],
 		references: [categoriesRecettes.id],
+	}),
+	anneeScolaire: one(anneesScolaires, {
+		fields: [recettes.anneeScolaireId],
+		references: [anneesScolaires.id],
 	}),
 }));

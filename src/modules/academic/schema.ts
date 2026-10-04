@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, integer, boolean, date, timestamp, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const anneesScolaires = pgTable("annees_scolaires", {
@@ -7,6 +7,7 @@ export const anneesScolaires = pgTable("annees_scolaires", {
 	dateDebut: date("date_debut").notNull(),
 	dateFin: date("date_fin").notNull(),
 	active: boolean("active").notNull().default(false),
+	archived: boolean("archived").notNull().default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -29,7 +30,12 @@ export const classes = pgTable("classes", {
 		.references(() => anneesScolaires.id),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+},
+(t) => [
+	index("classes_annee_idx").on(t.anneeScolaireId),
+	index("classes_niveau_idx").on(t.niveauId),
+],
+);
 
 export const matieres = pgTable("matieres", {
 	id: uuid("id").defaultRandom().primaryKey(),

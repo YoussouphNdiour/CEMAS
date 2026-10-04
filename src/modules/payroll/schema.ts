@@ -8,6 +8,7 @@ import {
 	date,
 	timestamp,
 	uniqueIndex,
+	index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -44,7 +45,10 @@ export const bulletinsPaie = pgTable(
 		note: text("note"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	},
-	(t) => [uniqueIndex("bulletins_paie_unique_idx").on(t.employeId, t.mois, t.annee)],
+	(t) => [
+		uniqueIndex("bulletins_paie_unique_idx").on(t.employeId, t.mois, t.annee),
+		index("bulletins_annee_mois_idx").on(t.annee, t.mois),
+	],
 );
 
 // Relations

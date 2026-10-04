@@ -29,7 +29,13 @@ export default function RecettesPage() {
 	});
 
 	const utils = trpc.useUtils();
-	const recettesList = trpc.finance.recettes.list.useQuery();
+	const { data: annees = [] } = trpc.academic.annees.list.useQuery();
+	const activeAnnee = annees.find((a) => a.active) ?? annees[0];
+
+	const recettesList = trpc.finance.recettes.list.useQuery(
+		{ anneeScolaireId: activeAnnee?.id ?? "" },
+		{ enabled: !!activeAnnee?.id },
+	);
 	const categories = trpc.finance.recettes.categories.useQuery();
 
 	const createMut = trpc.finance.recettes.create.useMutation({
@@ -59,8 +65,10 @@ export default function RecettesPage() {
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
+		if (!activeAnnee) return;
 		createMut.mutate({
 			categorieId: form.categorieId,
+			anneeScolaireId: activeAnnee.id,
 			libelle: form.libelle,
 			montant: parseInt(form.montant),
 			date: form.date,

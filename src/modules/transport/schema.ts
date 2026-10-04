@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, time, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, integer, time, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { eleves } from "@/modules/students/schema";
 import { anneesScolaires } from "@/modules/academic/schema";
@@ -30,7 +30,11 @@ export const arrets = pgTable("arrets", {
 	nom: varchar("nom", { length: 100 }).notNull(),
 	ordre: integer("ordre").notNull(),
 	heurePassage: time("heure_passage"),
-});
+},
+(t) => [
+	index("arrets_itineraire_idx").on(t.itineraireId),
+],
+);
 
 export const affectationsTransport = pgTable(
 	"affectations_transport",
@@ -49,7 +53,11 @@ export const affectationsTransport = pgTable(
 			.notNull()
 			.references(() => anneesScolaires.id),
 	},
-	(t) => [uniqueIndex("affectations_transport_unique_idx").on(t.eleveId, t.anneeScolaireId)],
+	(t) => [
+		uniqueIndex("affectations_transport_unique_idx").on(t.eleveId, t.anneeScolaireId),
+		index("affectations_itineraire_annee_idx").on(t.itineraireId, t.anneeScolaireId),
+		index("affectations_annee_idx").on(t.anneeScolaireId),
+	],
 );
 
 // Relations

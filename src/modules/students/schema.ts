@@ -8,6 +8,7 @@ import {
 	timestamp,
 	primaryKey,
 	uniqueIndex,
+	index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { classes, anneesScolaires } from "@/modules/academic/schema";
@@ -31,7 +32,12 @@ export const eleves = pgTable("eleves", {
 	statut: varchar("statut", { length: 20 }).notNull().default("actif"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+},
+(t) => [
+	index("eleves_annee_classe_idx").on(t.anneeScolaireId, t.classeId),
+	index("eleves_annee_idx").on(t.anneeScolaireId),
+],
+);
 
 export const parents = pgTable("parents", {
 	id: uuid("id").defaultRandom().primaryKey(),
@@ -76,7 +82,10 @@ export const inscriptions = pgTable(
 		statut: varchar("statut", { length: 20 }).notNull().default("en_attente"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	},
-	(t) => [uniqueIndex("inscriptions_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId)],
+	(t) => [
+		uniqueIndex("inscriptions_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId),
+		index("inscriptions_annee_idx").on(t.anneeScolaireId),
+	],
 );
 
 // Relations
