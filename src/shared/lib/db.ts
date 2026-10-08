@@ -7,6 +7,7 @@ import * as studentsSchema from "@/modules/students/schema";
 import * as financeSchema from "@/modules/finance/schema";
 import * as transportSchema from "@/modules/transport/schema";
 import * as payrollSchema from "@/modules/payroll/schema";
+import * as settingsSchema from "@/modules/settings/schema";
 
 const client = postgres(process.env.DATABASE_URL!);
 
@@ -18,5 +19,6 @@ export const db = drizzle(client, {
 		...financeSchema,
 		...transportSchema,
 		...payrollSchema,
+		...settingsSchema,
 	},
 });
