@@ -1,5 +1,5 @@
-import { pgTable, integer, varchar, text, timestamp, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { check, integer, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const parametresEcole = pgTable(
 	"parametres_ecole",

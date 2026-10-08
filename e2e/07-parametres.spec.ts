@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { login, waitForLoad } from "./helpers";
 
 const ORIGINAL = { sigle: "CEMAS", prefixe: "CEMAS" };

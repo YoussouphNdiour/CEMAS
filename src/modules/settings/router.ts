@@ -1,7 +1,7 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/shared/lib/trpc";
 import { parametresEcole } from "./schema";
-import { updateParametresSchema } from "./validation";
 import { getParametres } from "./service";
+import { updateParametresSchema } from "./validation";
 
 export const settingsRouter = createTRPCRouter({
 	get: protectedProcedure.query(({ ctx }) => getParametres(ctx.db)),

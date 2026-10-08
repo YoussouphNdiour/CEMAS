@@ -106,7 +106,9 @@ export function ParametresForm() {
 				Les préfixes s'appliquent aux nouveaux identifiants uniquement ; les identifiants existants
 				ne changent pas.
 			</p>
-			{update.error && !fieldErrors && <p className="text-sm text-danger">{update.error.message}</p>}
+			{update.error && !fieldErrors && (
+				<p className="text-sm text-danger">{update.error.message}</p>
+			)}
 			{saved && <p className="text-sm text-success">Paramètres enregistrés</p>}
 			<Button type="submit" disabled={update.isPending}>
 				{update.isPending ? "Enregistrement..." : "Enregistrer"}

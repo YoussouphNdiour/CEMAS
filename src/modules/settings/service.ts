@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { db } from "@/shared/lib/db";
-import { parametresEcole } from "./schema";
 import { PARAMETRES_DEFAUT, type Parametres } from "./defaults";
+import { parametresEcole } from "./schema";
 
 export type { Parametres };
 
