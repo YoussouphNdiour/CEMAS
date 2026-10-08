@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { ZodError, z } from "zod";
 import { auth } from "./auth";
 import { db } from "./db";
 
@@ -46,6 +47,7 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 					...shape.data,
 					// Strip raw SQL from the response
 					stack: undefined,
+					zodError: null,
 				},
 			};
 		}
@@ -54,6 +56,10 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 			data: {
 				...shape.data,
 				stack: undefined,
+				zodError:
+					error.code === "BAD_REQUEST" && error.cause instanceof ZodError
+						? z.flattenError(error.cause)
+						: null,
 			},
 		};
 	},
