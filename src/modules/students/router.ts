@@ -100,6 +100,8 @@ export const studentsRouter = createTRPCRouter({
 		}),
 
 	create: protectedProcedure.input(createStudentSchema).mutation(async ({ input }) => {
+		// Read outside the transaction: a missing settings table would abort it
+		const { prefixeMatricule } = await getParametres(db);
 		return await db.transaction(async (tx) => {
 			// Get year for matricule
 			const [annee] = await tx
@@ -109,7 +111,6 @@ export const studentsRouter = createTRPCRouter({
 			const year = annee ? parseInt(annee.libelle.split("-")[0]) : new Date().getFullYear();
 
 			// Next sequence number for the configured prefix
-			const { prefixeMatricule } = await getParametres(tx);
 			const seq = await nextSequence(
 				tx,
 				eleves,
