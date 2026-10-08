@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { MOIS_LABELS } from "./utils";
+import type { Parametres } from "@/modules/settings/service";
 
 interface RecuData {
 	numeroRecu: string;
@@ -33,7 +34,7 @@ function formatDateFr(dateStr: string): string {
 	});
 }
 
-export function generateRecuPdf(data: RecuData) {
+export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 	const doc = new jsPDF({ unit: "mm", format: "a5" });
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const margin = 15;
@@ -49,21 +50,34 @@ export function generateRecuPdf(data: RecuData) {
 	doc.setFontSize(20);
 	doc.setFont("helvetica", "bold");
 	doc.setTextColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
-	doc.text("CEMAS", pageWidth / 2, y, { align: "center" });
+	doc.text(ecole.sigle, pageWidth / 2, y, { align: "center" });
 	y += 7;
 	doc.setFontSize(9);
 	doc.setFont("helvetica", "normal");
 	doc.setTextColor(80, 80, 80);
-	doc.text("Complexe Educatif Mame Anta Sidibe", pageWidth / 2, y, { align: "center" });
+	doc.text(ecole.nom, pageWidth / 2, y, { align: "center" });
 	y += 4;
-	doc.text("Quartier Zac Ba, Thies, Senegal", pageWidth / 2, y, { align: "center" });
-	y += 6;
+	if (ecole.adresse) {
+		doc.text(ecole.adresse, pageWidth / 2, y, { align: "center" });
+		y += 4;
+	}
+	const coordonnees = [ecole.telephone1, ecole.telephone2, ecole.email].filter(Boolean).join(" | ");
+	if (coordonnees) {
+		doc.text(coordonnees, pageWidth / 2, y, { align: "center" });
+		y += 4;
+	}
+	y += 2;
 
 	// ── Contacts ──
-	doc.setFontSize(7);
-	doc.setTextColor(100, 100, 100);
-	doc.text("DG: M. Ndiour 77 300 08 31 | Dir. Elem.: M. Bass 77 521 37 19 | Dir. Presc.: Mme Cissokho 77 649 03 75", pageWidth / 2, y, { align: "center" });
-	y += 6;
+	if (ecole.contactsEntete) {
+		doc.setFontSize(7);
+		doc.setTextColor(100, 100, 100);
+		doc.text(ecole.contactsEntete, pageWidth / 2, y, {
+			align: "center",
+			maxWidth: pageWidth - 2 * margin,
+		});
+		y += 6;
+	}
 
 	// ── Divider ──
 	doc.setDrawColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);

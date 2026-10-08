@@ -22,6 +22,7 @@ type PaiementRow = Record<string, unknown> & {
 
 export default function PaiementsPage() {
 	const utils = trpc.useUtils();
+	const parametres = trpc.settings.get.useQuery();
 
 	const { data: annees = [] } = trpc.academic.annees.list.useQuery();
 	const activeAnnee = annees.find((a) => a.active) ?? annees[0];
@@ -84,8 +85,8 @@ export default function PaiementsPage() {
 		setDownloadingId(paiementId);
 		try {
 			const data = await utils.finance.paiements.getRecuData.fetch({ paiementId });
-			if (data) {
-				generateRecuPdf(data);
+			if (data && parametres.data) {
+				generateRecuPdf(data, parametres.data);
 			}
 		} finally {
 			setDownloadingId(null);

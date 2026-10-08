@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { trpc } from "@/shared/lib/trpc-client";
 import { usePathname } from "next/navigation";
 import {
 	LayoutDashboard,
@@ -97,6 +98,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 		);
 	}
 
+	const parametres = trpc.settings.get.useQuery();
+
 	function isActive(href: string) {
 		if (href === "/") return pathname === "/";
 		return pathname.startsWith(href);
@@ -126,8 +129,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 							<GraduationCap className="h-6 w-6 text-primary" />
 						</div>
 						<div>
-							<h1 className="text-lg font-bold">CEMAS</h1>
-							<p className="text-xs text-white/60">Gestion Scolaire</p>
+							<h1 className="text-lg font-bold">{parametres.data?.sigle ?? "\u00a0"}</h1>
+							<p className="text-xs text-white/60">Gestion Ecole</p>
 						</div>
 					</div>
 					<button className="lg:hidden" onClick={onClose}>

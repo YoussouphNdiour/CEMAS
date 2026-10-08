@@ -65,3 +65,10 @@ test.describe("07 - Paramètres de l'école", () => {
 		await expect(page.getByText(/TSTE2E-\d{4}-\d{4}/)).toBeVisible();
 	});
 });
+
+test("page de connexion : produit Gestion Ecole et nom de l'école", async ({ page }) => {
+	await page.goto("/login");
+	await expect(page).toHaveTitle(/Gestion Ecole/);
+	await expect(page.getByRole("heading", { name: "Gestion Ecole" })).toBeVisible();
+	await expect(page.getByText("Complexe Educatif Mame Anta Sidibe")).toBeVisible();
+});
