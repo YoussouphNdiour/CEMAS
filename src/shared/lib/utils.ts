@@ -20,12 +20,12 @@ export function generateMatricule(prefix: string, year: number, seq: number): st
 	return `${prefix}-${year}-${String(seq).padStart(4, "0")}`;
 }
 
-export function generateRecuNumber(year: number, seq: number): string {
-	return `REC-${year}-${String(seq).padStart(4, "0")}`;
+export function generateRecuNumber(prefix: string, year: number, seq: number): string {
+	return `${prefix}-${year}-${String(seq).padStart(4, "0")}`;
 }
 
-export function generateEmployeMatricule(seq: number): string {
-	return `EMP-${String(seq).padStart(3, "0")}`;
+export function generateEmployeMatricule(prefix: string, seq: number): string {
+	return `${prefix}-${String(seq).padStart(3, "0")}`;
 }
 
 export const MOIS_LABELS: Record<number, string> = {

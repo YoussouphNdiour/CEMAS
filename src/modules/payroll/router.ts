@@ -1,8 +1,10 @@
-import { eq, and, sql, count, desc } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { employes, bulletinsPaie } from "./schema";
 import { generateEmployeMatricule } from "@/shared/lib/utils";
+import { nextSequence } from "@/shared/lib/sequence";
+import { getParametres } from "@/modules/settings/service";
 import {
 	createEmployeSchema,
 	updateEmployeSchema,
@@ -39,22 +41,15 @@ const employesRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createEmployeSchema)
 		.mutation(async ({ ctx, input }) => {
-			// Find the max sequence number from existing matricules
-			const existing = await ctx.db
-				.select({ matricule: employes.matricule })
-				.from(employes)
-				.orderBy(desc(employes.matricule));
-
-			let maxSeq = 0;
-			for (const row of existing) {
-				const match = row.matricule.match(/^EMP-(\d+)$/);
-				if (match) {
-					const seq = parseInt(match[1], 10);
-					if (seq > maxSeq) maxSeq = seq;
-				}
-			}
-
-			const matricule = generateEmployeMatricule(maxSeq + 1);
+			// Next sequence number for the configured prefix
+			const { prefixeEmploye } = await getParametres(ctx.db);
+			const seq = await nextSequence(
+				ctx.db,
+				employes,
+				employes.matricule,
+				`^${prefixeEmploye}-(\\d+)$`,
+			);
+			const matricule = generateEmployeMatricule(prefixeEmploye, seq);
 
 			const [created] = await ctx.db
 				.insert(employes)

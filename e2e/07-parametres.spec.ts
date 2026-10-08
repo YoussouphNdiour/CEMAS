@@ -39,4 +39,29 @@ test.describe("07 - Paramètres de l'école", () => {
 		await waitForLoad(page);
 		await expect(page.getByLabel("Préfixe matricule élève")).not.toHaveValue("ab-c");
 	});
+
+	test("un nouvel élève utilise le préfixe configuré", async ({ page }) => {
+		await setParametres(page, "CEMAS", "TSTE2E");
+
+		await page.goto("/eleves/nouveau");
+		await waitForLoad(page);
+		await page.locator('input[type="text"]').first().fill("Prefixe");
+		await page.locator('input[type="text"]').nth(1).fill("Test");
+		await page.locator('input[type="date"]').first().fill("2016-01-10");
+		await page.getByLabel("Masculin").check();
+		await page.getByRole("button", { name: /Suivant/i }).click();
+
+		await page.locator('input[type="text"]').first().fill("Parent");
+		await page.locator('input[type="text"]').nth(1).fill("Test");
+		await page.locator('input[type="tel"]').first().fill("77 000 00 00");
+		await page.getByRole("button", { name: /Suivant/i }).click();
+
+		await page.locator("select").first().selectOption({ index: 1 });
+		await page.waitForTimeout(500);
+		await page.locator("select").nth(1).selectOption({ index: 1 });
+		await page.getByRole("button", { name: /Inscrire/i }).click();
+		await page.waitForURL(/\/eleves\//, { timeout: 15_000 });
+
+		await expect(page.getByText(/TSTE2E-\d{4}-\d{4}/)).toBeVisible();
+	});
 });

@@ -4,8 +4,10 @@ import { db } from "@/shared/lib/db";
 import { eleves, parents, eleveParents, inscriptions } from "./schema";
 import { classes, niveaux, anneesScolaires } from "@/modules/academic/schema";
 import { createStudentSchema, updateStudentSchema, studentFiltersSchema } from "./validation";
-import { eq, and, desc, ilike, or, sql, count } from "drizzle-orm";
+import { eq, and, desc, ilike, or, count } from "drizzle-orm";
 import { generateMatricule } from "@/shared/lib/utils";
+import { nextSequence } from "@/shared/lib/sequence";
+import { getParametres } from "@/modules/settings/service";
 
 export const studentsRouter = createTRPCRouter({
 	list: protectedProcedure.input(studentFiltersSchema).query(async ({ input }) => {
@@ -106,19 +108,15 @@ export const studentsRouter = createTRPCRouter({
 				.where(eq(anneesScolaires.id, input.anneeScolaireId));
 			const year = annee ? parseInt(annee.libelle.split("-")[0]) : new Date().getFullYear();
 
-			// Get next sequence number
-			const [maxResult] = await tx
-				.select({ maxMatricule: sql<string>`MAX(${eleves.matricule})` })
-				.from(eleves)
-				.where(ilike(eleves.matricule, `CEMAS-${year}-%`));
-
-			let seq = 1;
-			if (maxResult?.maxMatricule) {
-				const parts = maxResult.maxMatricule.split("-");
-				seq = parseInt(parts[2]) + 1;
-			}
-
-			const matricule = generateMatricule("CEMAS", year, seq);
+			// Next sequence number for the configured prefix
+			const { prefixeMatricule } = await getParametres(tx);
+			const seq = await nextSequence(
+				tx,
+				eleves,
+				eleves.matricule,
+				`^${prefixeMatricule}-${year}-(\\d+)$`,
+			);
+			const matricule = generateMatricule(prefixeMatricule, year, seq);
 
 			// Insert parent
 			const [parent] = await tx
