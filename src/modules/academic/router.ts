@@ -6,10 +6,12 @@ import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import {
 	chargerContexte,
 	configurerClasses,
+	controlesPassage,
 	enregistrerDecisions,
 	executerPassage,
 	previsualiserPassage,
 } from "./passage-service";
+import { sauvegarder } from "./sauvegarde-service";
 import { anneesScolaires, classes, matieres, niveaux } from "./schema";
 import {
 	configurerClassesSchema,
@@ -258,6 +260,8 @@ const passageRouter = createTRPCRouter({
 	preview: protectedProcedure
 		.input(z.object({ decisions: decisionsSchema }))
 		.query(({ ctx, input }) => previsualiserPassage(ctx.db, input.decisions)),
+	controles: protectedProcedure.query(({ ctx }) => controlesPassage(ctx.db)),
+	sauvegarder: protectedProcedure.mutation(() => sauvegarder("cemas")),
 	enregistrerDecisions: protectedProcedure
 		.input(enregistrerDecisionsSchema)
 		.mutation(({ ctx, input }) => enregistrerDecisions(ctx.db, input.decisions)),

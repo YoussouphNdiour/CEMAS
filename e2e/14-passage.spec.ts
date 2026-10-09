@@ -121,7 +121,7 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 	// Assistant
 	await page.goto("/academique/annees");
 	await waitForLoad(page);
-	await page.getByRole("link", { name: "Passer à l'année suivante" }).click();
+	await page.getByRole("link", { name: /Passer à l'année suivante|Préparer le passage/ }).click();
 	await expect(page.getByRole("heading", { name: "1. Nouvelle année" })).toBeVisible();
 	await expect(page.getByLabel("Libellé")).toHaveValue(ctx.proposition.libelle);
 	await page.getByRole("button", { name: "Suivant" }).click();
@@ -135,9 +135,20 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 	await page.getByRole("button", { name: "Suivant" }).click();
 	await expect(page.getByRole("heading", { name: "4. Vérification" })).toBeVisible();
 	await expect(page.getByRole("row", { name: new RegExp(A.nom) }).first()).toContainText("1");
-	await page.getByRole("button", { name: "Lancer le passage" }).click();
+	await page.getByRole("button", { name: "Suivant" }).click();
+	await expect(page.getByRole("heading", { name: "5. Contrôles et lancement" })).toBeVisible();
+	const lancer = page.getByRole("button", { name: "Lancer le passage" });
+	await expect(lancer).toBeDisabled();
+	await page.getByRole("button", { name: "Faire une sauvegarde maintenant" }).click();
+	await expect(page.getByText(/Dernière sauvegarde : il y a/)).toBeVisible({ timeout: 30_000 });
+	await page.getByLabel("Classes suivantes vérifiées").check();
+	await page.getByLabel("Redoublants et départs décidés").check();
+	await page.getByLabel("Grille tarifaire de la nouvelle année revue").check();
+	await expect(lancer).toBeEnabled();
+	await lancer.click();
 	await page.getByRole("alertdialog").getByRole("button", { name: "Confirmer le passage" }).click();
-	await expect(page.getByText("Passage effectué")).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText("Passage effectué")).toBeVisible({ timeout: 60_000 });
+	await expect(page.getByText(/prepassage-\d{8}-\d{6}\.dump/)).toBeVisible();
 
 	// Vérifications
 	const apres = await trpc<{ id: string; libelle: string; active: boolean; archived: boolean }[]>(
@@ -195,10 +206,38 @@ test("14b - Deux passages simultanés : un seul aboutit", async ({ page }) => {
 		dateFin: "2029-07-31",
 	};
 	const resultats = await Promise.allSettled([
-		trpc(page, "academic.passage.executer", { cible, decisions: {} }, true),
-		trpc(page, "academic.passage.executer", { cible, decisions: {} }, true),
+		trpc(
+			page,
+			"academic.passage.executer",
+			{ cible, decisions: {}, confirmations: { classes: true, decisions: true, grille: true } },
+			true,
+		),
+		trpc(
+			page,
+			"academic.passage.executer",
+			{ cible, decisions: {}, confirmations: { classes: true, decisions: true, grille: true } },
+			true,
+		),
 	]);
 	expect(resultats.filter((r) => r.status === "fulfilled")).toHaveLength(1);
 	const annees = await trpc<{ libelle: string }[]>(page, "academic.annees.list");
 	expect(annees.filter((a) => a.libelle === cible.libelle)).toHaveLength(1);
+});
+
+test("14c - Passage refusé avant la fin de l'année active", async ({ page }) => {
+	await login(page);
+	const ctx = await trpc<Ctx & { fenetre: { etat: string } }>(page, "academic.passage.contexte");
+	expect(ctx.fenetre.etat).not.toBe("ouvert");
+	await expect(
+		trpc(
+			page,
+			"academic.passage.executer",
+			{
+				cible: { libelle: ctx.proposition.libelle, dateDebut: "2029-10-01", dateFin: "2030-07-31" },
+				decisions: {},
+				confirmations: { classes: true, decisions: true, grille: true },
+			},
+			true,
+		),
+	).rejects.toThrow(/disponible à partir du/i);
 });

@@ -60,6 +60,9 @@ jobs:
       E2E_PASSWORD: cemas2025!
       # Autorise le test destructif 14-passage (base jetable)
       E2E_DESTRUCTIF: "1"
+      # Date simulée (hors production) : années 2026-2027 et 2027-2028 terminées
+      PASSAGE_AUJOURDHUI: "2028-08-01"
+      BACKUP_DIR: /tmp/cemas-backups
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -69,6 +72,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - run: mkdir -p /tmp/cemas-backups && pg_dump --version
       - run: pnpm db:migrate
       - run: pnpm db:seed
       # Functional suites 01..99 (the 00-guide specs generate documentation screenshots)

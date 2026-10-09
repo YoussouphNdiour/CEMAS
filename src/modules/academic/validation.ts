@@ -50,6 +50,11 @@ export const executerPassageSchema = z.object({
 		dateFin: z.string().min(1),
 	}),
 	decisions: decisionsSchema,
+	confirmations: z.object({
+		classes: z.literal(true),
+		decisions: z.literal(true),
+		grille: z.literal(true),
+	}),
 });
 
 export const createMatiereSchema = z.object({

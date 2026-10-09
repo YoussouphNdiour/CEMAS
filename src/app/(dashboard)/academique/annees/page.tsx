@@ -3,6 +3,7 @@
 import { Archive, CheckCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { libelleDateFr } from "@/modules/academic/fenetre";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatDate } from "@/shared/lib/utils";
 import type { Column } from "@/shared/ui";
@@ -22,6 +23,9 @@ type Annee = Record<string, unknown> & {
 export default function AnneesPage() {
 	const utils = trpc.useUtils();
 	const { data: annees = [], isLoading } = trpc.academic.annees.list.useQuery();
+	const fenetre = trpc.academic.passage.contexte.useQuery(undefined, {
+		enabled: annees.some((a) => a.active),
+	});
 
 	const createMutation = trpc.academic.annees.create.useMutation({
 		onSuccess: () => {
@@ -169,7 +173,9 @@ export default function AnneesPage() {
 									href="/academique/annees/passage"
 									className="rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
 								>
-									Passer à l'année suivante
+									{fenetre.data?.fenetre.etat === "ouvert"
+										? "Passer à l'année suivante"
+										: `Préparer le passage (ouverture le ${fenetre.data ? libelleDateFr(fenetre.data.fenetre.ouverture) : "…"})`}
 								</Link>
 							)}
 							<Button

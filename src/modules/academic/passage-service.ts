@@ -1,10 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
+import { getImpayes } from "@/modules/finance/impayes-service";
 import { grilleFrais } from "@/modules/finance/schema";
 import { eleves, inscriptions, passageDecisions } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
-import { aujourdhuiServeur, etatFenetrePassage } from "./fenetre";
+import { aujourdhuiServeur, etatFenetrePassage, libelleDateFr, sauvegardeRecente } from "./fenetre";
 import { type Decision, planifierPassage } from "./passage";
+import { derniereSauvegarde, sauvegarder } from "./sauvegarde-service";
 import { anneesScolaires, classes, niveaux } from "./schema";
 
 type Db = typeof db;
@@ -163,13 +165,47 @@ export async function previsualiserPassage(database: Db, decisions: Record<strin
 	return planifierPassage({ classes: classesS, eleves: elevesS, decisions });
 }
 
+export async function controlesPassage(database: Db) {
+	const source = await anneeActive(database);
+	const fenetre = etatFenetrePassage(source.dateFin, aujourdhuiServeur());
+	const sauvegarde = await derniereSauvegarde();
+	const impayes = await getImpayes(database, source.id);
+	return {
+		fenetre,
+		sauvegarde,
+		sauvegardeRecente: sauvegardeRecente(
+			sauvegarde
+				? { nom: sauvegarde.nom, mtime: new Date(sauvegarde.date), taille: sauvegarde.taille }
+				: null,
+			new Date(),
+		),
+		sauvegardesConfigurees: !!process.env.BACKUP_DIR,
+		totalImpayes: impayes.totalReste,
+	};
+}
+
 export async function executerPassage(
 	database: Db,
 	input: {
 		cible: { libelle: string; dateDebut: string; dateFin: string };
 		decisions: Record<string, Decision>;
+		confirmations: { classes: true; decisions: true; grille: true };
 	},
 ) {
+	const avant = await controlesPassage(database);
+	if (avant.fenetre.etat !== "ouvert") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Passage disponible à partir du ${libelleDateFr(avant.fenetre.ouverture)}.`,
+		});
+	}
+	if (!avant.sauvegardeRecente) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Aucune sauvegarde de moins de 24 h : faites une sauvegarde avant le passage.",
+		});
+	}
+	const sauvegardeAvantPassage = (await sauvegarder("prepassage")).nom;
 	return database.transaction(async (tx) => {
 		const source = await anneeActive(tx, true);
 		const { classesS, elevesS } = await chargerDonnees(tx, source.id);
@@ -333,6 +369,7 @@ export async function executerPassage(
 			departs: n("depart"),
 			classesCreees,
 			grilleCopiee,
+			sauvegardeAvantPassage,
 		};
 	});
 }

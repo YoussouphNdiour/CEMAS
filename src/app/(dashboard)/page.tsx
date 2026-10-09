@@ -22,6 +22,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { libelleDateFr } from "@/modules/academic/fenetre";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
 import { StatCard } from "@/shared/ui";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
 		{ anneeScolaireId: activeAnnee?.id ?? "" },
 		{ enabled: !!activeAnnee?.id },
 	);
+	const rappel = trpc.dashboard.rappelPassage.useQuery();
 
 	const studentsByNiveau = trpc.dashboard.studentsByNiveau.useQuery(
 		{ anneeScolaireId: activeAnnee?.id ?? "" },
@@ -77,6 +79,29 @@ export default function DashboardPage() {
 			{!activeAnnee && (
 				<div className="mb-6 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
 					Aucune année scolaire active. Configurez-en une dans Académique → Années scolaires.
+				</div>
+			)}
+
+			{rappel.data && (
+				<div
+					className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm ${
+						rappel.data.etat === "ouvert"
+							? "bg-primary/10 text-primary"
+							: "bg-orange-50 text-orange-800"
+					}`}
+				>
+					<span>
+						{rappel.data.etat === "ouvert"
+							? `L'année ${rappel.data.libelleSource} est terminée : passez à l'année ${rappel.data.libelleCible}.`
+							: `Fin d'année le ${libelleDateFr(rappel.data.dateFin)} : préparez le passage à ${rappel.data.libelleCible}${
+									rappel.data.classesAConfigurer
+										? ` (${rappel.data.classesAConfigurer} classe(s) sans classe suivante)`
+										: ""
+								} et saisissez les redoublants.`}
+					</span>
+					<Link href="/academique/annees/passage" className="font-medium underline">
+						{rappel.data.etat === "ouvert" ? "Lancer le passage" : "Préparer"}
+					</Link>
 				</div>
 			)}
 

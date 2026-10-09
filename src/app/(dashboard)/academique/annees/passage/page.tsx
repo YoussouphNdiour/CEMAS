@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { libelleDateFr } from "@/modules/academic/fenetre";
 import type { Decision } from "@/modules/academic/passage";
 import { trpc } from "@/shared/lib/trpc-client";
+import { formatCFA } from "@/shared/lib/utils";
 import { Button, ConfirmDialog, PageHeader } from "@/shared/ui";
 
 const INPUT =
@@ -30,6 +32,7 @@ export default function PassagePage() {
 		// Initialisation unique : un rechargement des données n'écrase pas les saisies
 		if (!initialise.current) {
 			initialise.current = true;
+			setDecisions(ctx.data.decisions);
 			setCible(ctx.data.proposition);
 			setSuivantes(
 				Object.fromEntries(
@@ -55,13 +58,25 @@ export default function PassagePage() {
 			setEtape(3);
 		},
 	});
-	const preview = trpc.academic.passage.preview.useQuery({ decisions }, { enabled: etape === 4 });
+	const preview = trpc.academic.passage.preview.useQuery({ decisions }, { enabled: etape >= 4 });
 	const executer = trpc.academic.passage.executer.useMutation({
 		onSuccess: () => {
 			setConfirmer(false);
 			utils.invalidate();
 		},
 	});
+	const enregistrer = trpc.academic.passage.enregistrerDecisions.useMutation({
+		onSuccess: () => utils.academic.passage.contexte.invalidate(),
+	});
+	const controles = trpc.academic.passage.controles.useQuery(undefined, { enabled: etape === 5 });
+	const sauver = trpc.academic.passage.sauvegarder.useMutation({
+		onSuccess: () => controles.refetch(),
+	});
+	const [coches, setCoches] = useState({ classes: false, decisions: false, grille: false });
+	const ageLisible = (iso: string) => {
+		const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+		return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`;
+	};
 
 	const classes = ctx.data?.classes ?? [];
 	const toutesConfigurees = classes.every((c) => suivantes[c.id]);
@@ -71,6 +86,15 @@ export default function PassagePage() {
 		return m;
 	}, [ctx.data]);
 	const plan = preview.data;
+	const pret =
+		!!controles.data &&
+		controles.data.fenetre.etat === "ouvert" &&
+		controles.data.sauvegardeRecente &&
+		coches.classes &&
+		coches.decisions &&
+		coches.grille &&
+		!!plan &&
+		plan.erreurs.length === 0;
 	const depassements = plan?.effectifsPrevus.filter((e) => e.effectif > e.capacite) ?? [];
 
 	if (ctx.isLoading) return <p className="text-sm text-muted">Chargement...</p>;
@@ -94,7 +118,8 @@ export default function PassagePage() {
 					<p>
 						Année {cible.libelle} active. {r.promus} promus, {r.redoublants} redoublants,{" "}
 						{r.sortants} sortants, {r.departs} départs. {r.classesCreees} classes créées,{" "}
-						{r.grilleCopiee} montants de grille recopiés.
+						{r.grilleCopiee} montants de grille recopiés. Sauvegarde avant passage :{" "}
+						{r.sauvegardeAvantPassage}.
 					</p>
 					<Link href="/eleves" className="mt-3 inline-block font-medium underline">
 						Voir les élèves
@@ -114,13 +139,20 @@ export default function PassagePage() {
 					{ label: "Passage" },
 				]}
 			/>
+			{ctx.data.fenetre.etat !== "ouvert" && (
+				<p className="mb-4 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
+					Préparation : le passage pourra être lancé à partir du{" "}
+					{libelleDateFr(ctx.data.fenetre.ouverture)}. Vous pouvez dès maintenant configurer les
+					classes et enregistrer les décisions.
+				</p>
+			)}
 			{retires > 0 && (
 				<p className="mb-4 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
 					{retires} décision(s) retirée(s) : ces élèves ne sont plus actifs dans l'année en cours.
 				</p>
 			)}
 			<p className="mb-6 text-sm text-muted">
-				Année en cours : {ctx.data.source.libelle}. Étape {etape} sur 4.
+				Année en cours : {ctx.data.source.libelle}. Étape {etape} sur 5.
 			</p>
 
 			<div className="rounded-xl bg-surface p-6 shadow-sm">
@@ -303,7 +335,23 @@ export default function PassagePage() {
 							<Button variant="ghost" onClick={() => setEtape(2)}>
 								Précédent
 							</Button>
+							<Button
+								variant="outline"
+								disabled={enregistrer.isPending}
+								onClick={() =>
+									enregistrer.mutate({
+										decisions: Object.fromEntries(
+											Object.entries(decisions).filter(([, d]) => d !== "passe"),
+										) as Record<string, "redouble" | "quitte">,
+									})
+								}
+							>
+								{enregistrer.isPending ? "Enregistrement..." : "Enregistrer les décisions"}
+							</Button>
 							<Button onClick={() => setEtape(4)}>Suivant</Button>
+							{enregistrer.isSuccess && (
+								<span className="self-center text-sm text-green-700">Décisions enregistrées</span>
+							)}
 						</div>
 					</div>
 				)}
@@ -359,10 +407,6 @@ export default function PassagePage() {
 										</p>
 									)}
 								</div>
-								<p className="rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
-									Opération définitive : l'année {ctx.data.source.libelle} sera archivée. Vérifiez
-									qu'une sauvegarde récente existe (voir docs/19_sauvegardes.md).
-								</p>
 							</>
 						)}
 						{executer.error && <p className="text-sm text-danger">{executer.error.message}</p>}
@@ -370,10 +414,83 @@ export default function PassagePage() {
 							<Button variant="ghost" onClick={() => setEtape(3)}>
 								Précédent
 							</Button>
-							<Button
-								disabled={!plan || plan.erreurs.length > 0}
-								onClick={() => setConfirmer(true)}
-							>
+							<Button disabled={!plan || plan.erreurs.length > 0} onClick={() => setEtape(5)}>
+								Suivant
+							</Button>
+						</div>
+					</div>
+				)}
+				{etape === 5 && (
+					<div className="space-y-6">
+						<h2 className="text-lg font-semibold">5. Contrôles et lancement</h2>
+						{controles.isLoading && <p className="text-sm text-muted">Vérification...</p>}
+						{controles.data && (
+							<ul className="space-y-3 text-sm">
+								<li
+									className={
+										controles.data.fenetre.etat === "ouvert" ? "text-green-700" : "text-red-700"
+									}
+								>
+									{controles.data.fenetre.etat === "ouvert"
+										? "Année terminée : le passage est possible."
+										: `Passage disponible à partir du ${libelleDateFr(controles.data.fenetre.ouverture)}.`}
+								</li>
+								<li
+									className={controles.data.sauvegardeRecente ? "text-green-700" : "text-red-700"}
+								>
+									{controles.data.sauvegarde
+										? `Dernière sauvegarde : il y a ${ageLisible(controles.data.sauvegarde.date)} (${controles.data.sauvegarde.nom}, ${Math.round(controles.data.sauvegarde.taille / 1024)} Ko)`
+										: controles.data.sauvegardesConfigurees
+											? "Aucune sauvegarde trouvée."
+											: "Sauvegardes non configurées sur ce serveur."}
+									{!controles.data.sauvegardeRecente &&
+										" — une sauvegarde de moins de 24 h est requise."}{" "}
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={sauver.isPending}
+										onClick={() => sauver.mutate()}
+									>
+										{sauver.isPending ? "Sauvegarde..." : "Faire une sauvegarde maintenant"}
+									</Button>
+									{sauver.error && <span className="ml-2 text-danger">{sauver.error.message}</span>}
+								</li>
+								<li className="text-gray-700">
+									Impayés restants sur {ctx.data.source.libelle} :{" "}
+									{formatCFA(controles.data.totalImpayes)}
+								</li>
+							</ul>
+						)}
+						<fieldset className="space-y-2 text-sm">
+							<legend className="mb-1 font-medium">Avant de lancer</legend>
+							{(
+								[
+									["classes", "Classes suivantes vérifiées"],
+									["decisions", "Redoublants et départs décidés"],
+									["grille", "Grille tarifaire de la nouvelle année revue"],
+								] as const
+							).map(([cle, libelle]) => (
+								<label key={cle} className="flex items-center gap-2">
+									<input
+										type="checkbox"
+										className="accent-primary"
+										checked={coches[cle]}
+										onChange={(e) => setCoches({ ...coches, [cle]: e.target.checked })}
+									/>
+									{libelle}
+								</label>
+							))}
+						</fieldset>
+						<p className="rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
+							Opération définitive : l'année {ctx.data.source.libelle} sera archivée. Une sauvegarde
+							est faite automatiquement juste avant le passage.
+						</p>
+						{executer.error && <p className="text-sm text-danger">{executer.error.message}</p>}
+						<div className="flex gap-2">
+							<Button variant="ghost" onClick={() => setEtape(4)}>
+								Précédent
+							</Button>
+							<Button disabled={!pret} onClick={() => setConfirmer(true)}>
 								Lancer le passage
 							</Button>
 						</div>
@@ -384,7 +501,13 @@ export default function PassagePage() {
 			<ConfirmDialog
 				open={confirmer}
 				onClose={() => setConfirmer(false)}
-				onConfirm={() => executer.mutate({ cible, decisions })}
+				onConfirm={() =>
+					executer.mutate({
+						cible,
+						decisions,
+						confirmations: { classes: true, decisions: true, grille: true },
+					})
+				}
 				title={`Passer à l'année ${cible.libelle} ?`}
 				message={`L'année ${ctx.data.source.libelle} sera archivée et les élèves répartis selon vos choix. Cette opération ne peut pas être annulée.`}
 				confirmLabel="Confirmer le passage"
