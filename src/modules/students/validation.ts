@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const parentSchema = z.object({
+	prenom: z.string().trim().min(1, "Prénom du parent requis"),
+	nom: z.string().trim().min(1, "Nom du parent requis"),
+	telephone: z.string().trim().min(1, "Téléphone requis"),
+	telephone2: z.string().optional(),
+	profession: z.string().optional(),
+	adresse: z.string().optional(),
+	relation: z.enum(["pere", "mere", "tuteur"]),
+});
+
+export type ParentInput = z.infer<typeof parentSchema>;
+
 export const createStudentSchema = z.object({
 	prenom: z.string().min(1, "Prénom requis"),
 	nom: z.string().min(1, "Nom requis"),
@@ -9,15 +21,14 @@ export const createStudentSchema = z.object({
 	adresse: z.string().optional(),
 	classeId: z.string().uuid("Classe requise"),
 	anneeScolaireId: z.string().uuid(),
-	parent: z.object({
-		prenom: z.string().min(1, "Prénom du parent requis"),
-		nom: z.string().min(1, "Nom du parent requis"),
-		telephone: z.string().min(1, "Téléphone requis"),
-		telephone2: z.string().optional(),
-		profession: z.string().optional(),
-		adresse: z.string().optional(),
-		relation: z.enum(["pere", "mere", "tuteur"]),
-	}),
+	parent: parentSchema,
+	/** 2e contact optionnel */
+	parent2: parentSchema.optional(),
+});
+
+export const addParentSchema = z.object({
+	eleveId: z.string().uuid(),
+	parent: parentSchema,
 });
 
 export const updateStudentSchema = z.object({

@@ -1,9 +1,16 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { etatCapacite } from "@/modules/academic/capacite";
+import {
+	CONTACT_VIDE,
+	ContactFields,
+	type ContactForm,
+	contactComplet,
+	RELATION_LABELS,
+} from "@/modules/students/components/contact-fields";
 import { trpc } from "@/shared/lib/trpc-client";
 import { Button, ConfirmDialog, PageHeader } from "@/shared/ui";
 
@@ -23,15 +30,9 @@ export default function NouvelElevePage() {
 		classeId: "",
 	});
 
-	const [parentData, setParentData] = useState({
-		prenom: "",
-		nom: "",
-		telephone: "",
-		telephone2: "",
-		profession: "",
-		adresse: "",
-		relation: "pere" as "pere" | "mere" | "tuteur",
-	});
+	const [parentData, setParentData] = useState<ContactForm>(CONTACT_VIDE);
+	/** 2e contact optionnel (null = bloc fermé) */
+	const [contact2, setContact2] = useState<ContactForm | null>(null);
 
 	const annees = trpc.academic.annees.list.useQuery();
 	const activeAnnee = annees.data?.find((a) => a.active);
@@ -54,6 +55,15 @@ export default function NouvelElevePage() {
 	const filteredClasses = classesList.data?.filter(
 		(c) => !selectedNiveau || c.niveauId === selectedNiveau,
 	);
+
+	function handleSuivant() {
+		if (step === 2 && contact2 && !contactComplet(contact2)) {
+			setError("Complétez le 2e contact (prénom, nom, téléphone) ou retirez-le.");
+			return;
+		}
+		setError("");
+		setStep(step + 1);
+	}
 
 	const [confirmPleine, setConfirmPleine] = useState(false);
 	const classeChoisie = classesList.data?.find((c) => c.id === eleveData.classeId);
@@ -78,6 +88,7 @@ export default function NouvelElevePage() {
 			...eleveData,
 			anneeScolaireId: activeAnnee.id,
 			parent: parentData,
+			parent2: contact2 ?? undefined,
 		});
 	}
 
@@ -210,91 +221,35 @@ export default function NouvelElevePage() {
 					</div>
 				)}
 
-				{/* Step 2: Info parent */}
+				{/* Step 2: Contacts */}
 				{step === 2 && (
 					<div className="space-y-4">
 						<h2 className="text-lg font-semibold">Informations du parent / tuteur</h2>
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="mb-1 block text-sm font-medium">Prénom *</label>
-								<input
-									type="text"
-									value={parentData.prenom}
-									onChange={(e) => setParentData({ ...parentData, prenom: e.target.value })}
-									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-									required
-								/>
-							</div>
-							<div>
-								<label className="mb-1 block text-sm font-medium">Nom *</label>
-								<input
-									type="text"
-									value={parentData.nom}
-									onChange={(e) => setParentData({ ...parentData, nom: e.target.value })}
-									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-									required
-								/>
-							</div>
-						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="mb-1 block text-sm font-medium">Téléphone *</label>
-								<input
-									type="tel"
-									value={parentData.telephone}
-									onChange={(e) =>
-										setParentData({
-											...parentData,
-											telephone: e.target.value,
-										})
-									}
-									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-									placeholder="77 123 45 67"
-									required
-								/>
-							</div>
-							<div>
-								<label className="mb-1 block text-sm font-medium">Téléphone 2</label>
-								<input
-									type="tel"
-									value={parentData.telephone2}
-									onChange={(e) =>
-										setParentData({
-											...parentData,
-											telephone2: e.target.value,
-										})
-									}
-									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-								/>
-							</div>
-						</div>
-						<div>
-							<label className="mb-1 block text-sm font-medium">Profession</label>
-							<input
-								type="text"
-								value={parentData.profession}
-								onChange={(e) => setParentData({ ...parentData, profession: e.target.value })}
-								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-							/>
-						</div>
-						<div>
-							<label className="mb-1 block text-sm font-medium">Relation *</label>
-							<div className="flex gap-4">
-								{(["pere", "mere", "tuteur"] as const).map((r) => (
-									<label key={r} className="flex items-center gap-2">
-										<input
-											type="radio"
-											name="relation"
-											value={r}
-											checked={parentData.relation === r}
-											onChange={() => setParentData({ ...parentData, relation: r })}
-											className="accent-primary"
-										/>
-										{r === "pere" ? "Père" : r === "mere" ? "Mère" : "Tuteur"}
-									</label>
-								))}
-							</div>
-						</div>
+						<ContactFields idPrefix="contact1" value={parentData} onChange={setParentData} />
+
+						{contact2 ? (
+							<fieldset
+								aria-label="2e contact"
+								className="space-y-3 rounded-lg border border-gray-200 p-4"
+							>
+								<div className="flex items-center justify-between">
+									<span className="font-medium">2e contact</span>
+									<Button variant="ghost" size="sm" onClick={() => setContact2(null)}>
+										Retirer
+									</Button>
+								</div>
+								<ContactFields idPrefix="contact2" value={contact2} onChange={setContact2} />
+							</fieldset>
+						) : (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setContact2({ ...CONTACT_VIDE, relation: "mere" })}
+							>
+								<Plus className="h-4 w-4" />
+								Ajouter un 2e contact
+							</Button>
+						)}
 					</div>
 				)}
 
@@ -353,8 +308,14 @@ export default function NouvelElevePage() {
 								</p>
 								<p>
 									<span className="text-muted">Parent :</span> {parentData.prenom} {parentData.nom}{" "}
-									({parentData.relation})
+									({RELATION_LABELS[parentData.relation]})
 								</p>
+								{contact2 && (
+									<p>
+										<span className="text-muted">2e contact :</span> {contact2.prenom}{" "}
+										{contact2.nom} ({RELATION_LABELS[contact2.relation]})
+									</p>
+								)}
 								<p>
 									<span className="text-muted">Classe :</span>{" "}
 									{filteredClasses?.find((c) => c.id === eleveData.classeId)?.nom || "—"}
@@ -375,7 +336,7 @@ export default function NouvelElevePage() {
 						<div />
 					)}
 					{step < 3 ? (
-						<Button onClick={() => setStep(step + 1)}>
+						<Button onClick={handleSuivant}>
 							Suivant
 							<ChevronRight className="h-4 w-4" />
 						</Button>

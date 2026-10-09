@@ -133,14 +133,20 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 ### `students.getById`
 - **Type :** Query
 - **Input :** `{ id: uuid }`
-- **Output :** `Student & { parents: Parent[] }`
+- **Output :** `Student & { parents: (Parent & { principal: boolean })[] }` — contact principal en premier
 - **Erreur :** Throw si élève non trouvé
 
 ### `students.create`
 - **Type :** Mutation
-- **Input :** `createStudentSchema` — données élève + parent imbriqué
-- **Description :** Transaction : génère matricule → insère parent → insère élève → lie parent-élève → crée inscription
+- **Input :** `createStudentSchema` — données élève + `parent` (contact principal) + `parent2` optionnel (même schéma `parentSchema`)
+- **Description :** Transaction : génère matricule → insère élève → insère et lie le contact principal (`principal = true`) puis le 2e contact (`principal = false`) → crée inscription
 - **Output :** `Eleve`
+
+### `students.addParent`
+- **Type :** Mutation
+- **Input :** `{ eleveId: uuid, parent: parentSchema }`
+- **Description :** Ajoute le 2e contact d'un élève existant (principal si l'élève n'en avait aucun)
+- **Erreurs :** `NOT_FOUND` élève inconnu ; `BAD_REQUEST` « Cet élève a déjà 2 contacts. »
 
 ### `students.update`
 - **Type :** Mutation
