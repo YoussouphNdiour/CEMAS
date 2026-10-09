@@ -2,6 +2,7 @@
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { etatCapacite, type TonCapacite } from "@/modules/academic/capacite";
 import { trpc } from "@/shared/lib/trpc-client";
 import type { Column } from "@/shared/ui";
 import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
@@ -17,10 +18,18 @@ type Classe = Record<string, unknown> & {
 	nom: string;
 	niveauId: string;
 	capacite: number;
+	effectif: number;
+	placesRestantes: number;
 	anneeScolaireId: string;
 	niveau: Niveau;
 	createdAt: string | null;
 	updatedAt: string | null;
+};
+
+const TON_CLASSES: Record<TonCapacite, string> = {
+	ok: "bg-green-100 text-green-700",
+	alerte: "bg-orange-100 text-orange-700",
+	pleine: "bg-red-100 text-red-700",
 };
 
 export default function ClassesPage() {
@@ -121,7 +130,25 @@ export default function ClassesPage() {
 			label: "Niveau",
 			render: (row) => row.niveau?.nom ?? "-",
 		},
-		{ key: "capacite", label: "Capacité", sortable: true },
+		{
+			key: "effectif",
+			label: "Effectif",
+			sortable: true,
+			render: (row) => `${row.effectif} / ${row.capacite}`,
+		},
+		{
+			key: "placesRestantes",
+			label: "Places restantes",
+			sortable: true,
+			render: (row) => {
+				const etat = etatCapacite(row.effectif, row.capacite);
+				return (
+					<span className={`rounded px-2 py-0.5 text-xs font-medium ${TON_CLASSES[etat.ton]}`}>
+						{etat.libelle}
+					</span>
+				);
+			},
+		},
 		{
 			key: "actions",
 			label: "Actions",

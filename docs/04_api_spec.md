@@ -83,7 +83,7 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 ### `academic.classes.list`
 - **Type :** Query
 - **Input :** `{ anneeScolaireId?: uuid, niveauId?: uuid }` (optionnel)
-- **Output :** `Classe[] with { niveau }`
+- **Output :** `Classe[] with { niveau, effectif, placesRestantes }` — `effectif` = élèves `actif` de la classe ; `placesRestantes = capacite − effectif` (négatif en cas de dépassement)
 
 ### `academic.classes.create`
 - **Type :** Mutation

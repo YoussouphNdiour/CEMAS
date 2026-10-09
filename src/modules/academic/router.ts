@@ -1,5 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { eleves } from "@/modules/students/schema";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { anneesScolaires, classes, matieres, niveaux } from "./schema";
 import {
@@ -119,9 +120,22 @@ const classesRouter = createTRPCRouter({
 				conditions.push(eq(classes.niveauId, input.niveauId));
 			}
 
-			return ctx.db.query.classes.findMany({
+			const rows = await ctx.db.query.classes.findMany({
 				where: conditions.length > 0 ? and(...conditions) : undefined,
 				with: { niveau: true },
+			});
+
+			// Effectif = élèves actifs rattachés à la classe
+			const effectifs = await ctx.db
+				.select({ classeId: eleves.classeId, effectif: count() })
+				.from(eleves)
+				.where(eq(eleves.statut, "actif"))
+				.groupBy(eleves.classeId);
+			const parClasse = new Map(effectifs.map((e) => [e.classeId, e.effectif]));
+
+			return rows.map((classe) => {
+				const effectif = parClasse.get(classe.id) ?? 0;
+				return { ...classe, effectif, placesRestantes: classe.capacite - effectif };
 			});
 		}),
 

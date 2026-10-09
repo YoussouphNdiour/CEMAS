@@ -18,6 +18,7 @@
 - Nom, niveau, capacité (défaut: 30), année scolaire
 - Filtrage par année scolaire et/ou niveau
 - Relation avec le niveau pour affichage du nom du niveau
+- Effectif (élèves **actifs** de la classe) affiché `effectif / capacité`, et places restantes en badge : vert, orange à 10 % de places ou moins, rouge « Complète » ou « Dépassement : N »
 
 ### Détail : Matières
 - Nom, coefficient (défaut: 1), niveau associé
@@ -35,11 +36,12 @@
 | Comptage par niveau | P0 | Statistiques d'effectifs par niveau pour le dashboard |
 
 ### Détail : Inscription
-- Génération automatique du matricule : `CEMAS-{année}-{seq 4 chiffres}`
+- Génération automatique du matricule : `{préfixe}-{année}-{seq 4 chiffres}` (préfixe configurable dans Paramètres)
 - Données élève : prénom, nom, date/lieu naissance, sexe (M/F), adresse, classe
 - Données parent : prénom, nom, téléphone (+ optionnel), profession, adresse, relation (père/mère/tuteur)
 - Création simultanée de l'inscription dans la table `inscriptions` avec statut `confirmee`
 - Lien parent-élève via table de jointure `eleve_parents`
+- Capacité : le choix de classe affiche le remplissage ; une classe pleine affiche un avertissement et l'inscription demande une confirmation (pas de blocage)
 
 ### Détail : Statuts élève
 - `actif` (défaut), `inactif`, `transfere`

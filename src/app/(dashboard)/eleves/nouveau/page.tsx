@@ -3,8 +3,9 @@
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { etatCapacite } from "@/modules/academic/capacite";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader } from "@/shared/ui";
+import { Button, ConfirmDialog, PageHeader } from "@/shared/ui";
 
 export default function NouvelElevePage() {
 	const router = useRouter();
@@ -54,8 +55,24 @@ export default function NouvelElevePage() {
 		(c) => !selectedNiveau || c.niveauId === selectedNiveau,
 	);
 
+	const [confirmPleine, setConfirmPleine] = useState(false);
+	const classeChoisie = classesList.data?.find((c) => c.id === eleveData.classeId);
+	const etatChoisie = classeChoisie
+		? etatCapacite(classeChoisie.effectif, classeChoisie.capacite)
+		: null;
+
+	/** Classe pleine : l'inscription reste possible mais doit être confirmée. */
+	function handleInscrire() {
+		if (etatChoisie?.complete) {
+			setConfirmPleine(true);
+			return;
+		}
+		handleSubmit();
+	}
+
 	async function handleSubmit() {
 		if (!activeAnnee) return;
+		setConfirmPleine(false);
 		setError("");
 		createMutation.mutate({
 			...eleveData,
@@ -314,10 +331,17 @@ export default function NouvelElevePage() {
 								<option value="">Sélectionner une classe</option>
 								{filteredClasses?.map((c) => (
 									<option key={c.id} value={c.id}>
-										{c.nom}
+										{c.nom} ({c.effectif}/{c.capacite}
+										{c.effectif >= c.capacite ? ", complète" : ""})
 									</option>
 								))}
 							</select>
+							{classeChoisie && etatChoisie?.complete && (
+								<p className="mt-2 rounded-lg bg-orange-50 px-3 py-2 text-sm text-orange-800">
+									Classe complète ({classeChoisie.effectif}/{classeChoisie.capacite}) : cette
+									inscription dépassera la capacité.
+								</p>
+							)}
 						</div>
 
 						{/* Recap */}
@@ -357,7 +381,7 @@ export default function NouvelElevePage() {
 						</Button>
 					) : (
 						<Button
-							onClick={handleSubmit}
+							onClick={handleInscrire}
 							disabled={!eleveData.classeId || createMutation.isPending}
 						>
 							{createMutation.isPending ? "Inscription..." : "Inscrire l'élève"}
@@ -365,6 +389,18 @@ export default function NouvelElevePage() {
 					)}
 				</div>
 			</div>
+
+			<ConfirmDialog
+				open={confirmPleine}
+				onClose={() => setConfirmPleine(false)}
+				onConfirm={handleSubmit}
+				title="Inscrire quand même ?"
+				message={`La classe ${classeChoisie?.nom ?? ""} est complète (${classeChoisie?.effectif ?? 0}/${classeChoisie?.capacite ?? 0}). L'élève sera inscrit au-delà de la capacité.`}
+				confirmLabel="Inscrire quand même"
+				loadingLabel="Inscription..."
+				confirmVariant="primary"
+				loading={createMutation.isPending}
+			/>
 		</div>
 	);
 }
