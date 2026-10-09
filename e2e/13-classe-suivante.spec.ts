@@ -62,4 +62,44 @@ test.describe("13 - Classe suivante", () => {
 			trpc(page, "academic.classes.update", { id: a.id, classeSuivanteId: a.id }, true),
 		).rejects.toThrow(/classe suivante/i);
 	});
+
+	test("contexte et prévisualisation du passage", async ({ page }) => {
+		const { a, b } = await deuxClasses(page);
+		const ctx = await trpc<{ proposition: { libelle: string }; classes: { id: string }[] }>(
+			page,
+			"academic.passage.contexte",
+		);
+		expect(ctx.proposition.libelle).toMatch(/^\d{4}-\d{4}$/);
+		expect(ctx.classes.some((c) => c.id === a.id)).toBe(true);
+
+		const r = await trpc<{ count: number }>(
+			page,
+			"academic.passage.configurerClasses",
+			{
+				classes: [
+					{ id: a.id, classeSuivanteId: b.id, finDeCycle: false },
+					{ id: b.id, classeSuivanteId: null, finDeCycle: true },
+				],
+			},
+			true,
+		);
+		expect(r.count).toBe(2);
+
+		await expect(
+			trpc(
+				page,
+				"academic.passage.configurerClasses",
+				{
+					classes: [{ id: a.id, classeSuivanteId: a.id, finDeCycle: false }],
+				},
+				true,
+			),
+		).rejects.toThrow(/classe suivante/i);
+
+		const plan = await trpc<{ erreurs: string[] }>(page, "academic.passage.preview", {
+			decisions: {},
+		});
+		expect(plan.erreurs.some((e) => e.startsWith(a.nom))).toBe(false);
+		expect(plan.erreurs.some((e) => e.startsWith(b.nom))).toBe(false);
+	});
 });

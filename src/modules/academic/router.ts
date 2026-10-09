@@ -3,11 +3,20 @@ import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { eleves } from "@/modules/students/schema";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import {
+	chargerContexte,
+	configurerClasses,
+	executerPassage,
+	previsualiserPassage,
+} from "./passage-service";
 import { anneesScolaires, classes, matieres, niveaux } from "./schema";
 import {
+	configurerClassesSchema,
 	createAnneeSchema,
 	createClasseSchema,
 	createMatiereSchema,
+	decisionsSchema,
+	executerPassageSchema,
 	updateAnneeSchema,
 	updateClasseSchema,
 	updateMatiereSchema,
@@ -239,9 +248,23 @@ const matieresRouter = createTRPCRouter({
 		}),
 });
 
+const passageRouter = createTRPCRouter({
+	contexte: protectedProcedure.query(({ ctx }) => chargerContexte(ctx.db)),
+	configurerClasses: protectedProcedure
+		.input(configurerClassesSchema)
+		.mutation(({ ctx, input }) => configurerClasses(ctx.db, input.classes)),
+	preview: protectedProcedure
+		.input(z.object({ decisions: decisionsSchema }))
+		.query(({ ctx, input }) => previsualiserPassage(ctx.db, input.decisions)),
+	executer: protectedProcedure
+		.input(executerPassageSchema)
+		.mutation(({ ctx, input }) => executerPassage(ctx.db, input)),
+});
+
 export const academicRouter = createTRPCRouter({
 	niveaux: niveauxRouter,
 	annees: anneesRouter,
 	classes: classesRouter,
 	matieres: matieresRouter,
+	passage: passageRouter,
 });
