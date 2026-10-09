@@ -68,6 +68,8 @@ Une seule ligne (`id = 1`), créée par la migration `0005`.
 | niveau_id | uuid | FK → niveaux, NOT NULL | Niveau rattaché |
 | capacite | integer | NOT NULL, default 30 | Capacité max |
 | annee_scolaire_id | uuid | FK → annees_scolaires, NOT NULL | Année scolaire |
+| classe_suivante_id | uuid | FK → classes, ON DELETE SET NULL, nullable | Classe de la même année où passent les élèves |
+| fin_de_cycle | boolean | NOT NULL, default false | Dernière classe : les élèves qui passent sortent (`classe_suivante_id` = null) |
 | created_at | timestamptz | default now() | |
 | updated_at | timestamptz | default now() | |
 

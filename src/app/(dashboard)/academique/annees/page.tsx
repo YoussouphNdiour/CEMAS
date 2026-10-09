@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, CheckCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatDate } from "@/shared/lib/utils";
@@ -162,6 +163,14 @@ export default function AnneesPage() {
 								>
 									<Archive className="h-4 w-4 text-amber-600" />
 								</Button>
+							)}
+							{row.active && (
+								<Link
+									href="/academique/annees/passage"
+									className="rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+								>
+									Passer à l'année suivante
+								</Link>
 							)}
 							<Button
 								variant="ghost"

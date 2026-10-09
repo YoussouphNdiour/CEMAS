@@ -19,6 +19,8 @@ type Classe = Record<string, unknown> & {
 	niveauId: string;
 	capacite: number;
 	effectif: number;
+	classeSuivanteId: string | null;
+	finDeCycle: boolean;
 	placesRestantes: number;
 	anneeScolaireId: string;
 	niveau: Niveau;
@@ -48,6 +50,11 @@ export default function ClassesPage() {
 			anneeScolaireId: activeAnnee?.id,
 			niveauId: filterNiveauId || undefined,
 		},
+		{ enabled: !!activeAnnee },
+	);
+	// Toutes les classes de l'année (non filtrées par niveau) pour la classe suivante
+	const { data: toutesClasses = [] } = trpc.academic.classes.list.useQuery(
+		{ anneeScolaireId: activeAnnee?.id },
 		{ enabled: !!activeAnnee },
 	);
 
@@ -80,6 +87,7 @@ export default function ClassesPage() {
 	const [nom, setNom] = useState("");
 	const [niveauId, setNiveauId] = useState("");
 	const [capacite, setCapacite] = useState(30);
+	const [suivante, setSuivante] = useState("");
 
 	function openCreate() {
 		setEditing(null);
@@ -94,6 +102,7 @@ export default function ClassesPage() {
 		setNom(classe.nom);
 		setNiveauId(classe.niveauId);
 		setCapacite(classe.capacite);
+		setSuivante(classe.finDeCycle ? "fin" : (classe.classeSuivanteId ?? ""));
 		setModalOpen(true);
 	}
 
@@ -109,6 +118,8 @@ export default function ClassesPage() {
 				id: editing.id,
 				nom,
 				capacite,
+				finDeCycle: suivante === "fin",
+				classeSuivanteId: suivante && suivante !== "fin" ? suivante : null,
 			});
 		} else {
 			if (!activeAnnee) return;
@@ -148,6 +159,20 @@ export default function ClassesPage() {
 					</span>
 				);
 			},
+		},
+		{
+			key: "classeSuivanteId",
+			label: "Classe suivante",
+			render: (row) =>
+				row.finDeCycle ? (
+					<span className="text-sm text-muted">Fin de cycle</span>
+				) : row.classeSuivanteId ? (
+					((toutesClasses as Classe[]).find((c) => c.id === row.classeSuivanteId)?.nom ?? "—")
+				) : (
+					<span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+						À configurer
+					</span>
+				),
 		},
 		{
 			key: "actions",
@@ -275,6 +300,32 @@ export default function ClassesPage() {
 							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
 					</div>
+					{editing && (
+						<div>
+							<label
+								htmlFor="classe-suivante"
+								className="mb-1 block text-sm font-medium text-gray-700"
+							>
+								Classe suivante
+							</label>
+							<select
+								id="classe-suivante"
+								value={suivante}
+								onChange={(e) => setSuivante(e.target.value)}
+								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+							>
+								<option value="">À configurer</option>
+								<option value="fin">Fin de cycle (les élèves sortent)</option>
+								{(toutesClasses as Classe[])
+									.filter((c) => c.id !== editing.id)
+									.map((c) => (
+										<option key={c.id} value={c.id}>
+											{c.nom}
+										</option>
+									))}
+							</select>
+						</div>
+					)}
 					<div className="flex items-center justify-end gap-3 pt-2">
 						<Button variant="ghost" type="button" onClick={closeModal}>
 							Annuler

@@ -1,12 +1,22 @@
+import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { eleves } from "@/modules/students/schema";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import {
+	chargerContexte,
+	configurerClasses,
+	executerPassage,
+	previsualiserPassage,
+} from "./passage-service";
 import { anneesScolaires, classes, matieres, niveaux } from "./schema";
 import {
+	configurerClassesSchema,
 	createAnneeSchema,
 	createClasseSchema,
 	createMatiereSchema,
+	decisionsSchema,
+	executerPassageSchema,
 	updateAnneeSchema,
 	updateClasseSchema,
 	updateMatiereSchema,
@@ -160,6 +170,26 @@ const classesRouter = createTRPCRouter({
 
 	update: protectedProcedure.input(updateClasseSchema).mutation(async ({ ctx, input }) => {
 		const { id, ...data } = input;
+		if (data.finDeCycle) data.classeSuivanteId = null;
+		if (data.classeSuivanteId) {
+			const [classe] = await ctx.db.select().from(classes).where(eq(classes.id, id));
+			const [suivante] = await ctx.db
+				.select()
+				.from(classes)
+				.where(eq(classes.id, data.classeSuivanteId));
+			if (
+				!classe ||
+				!suivante ||
+				suivante.id === classe.id ||
+				suivante.anneeScolaireId !== classe.anneeScolaireId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "La classe suivante doit être une autre classe de la même année.",
+				});
+			}
+			data.finDeCycle = false;
+		}
 		const [classe] = await ctx.db.update(classes).set(data).where(eq(classes.id, id)).returning();
 		return classe;
 	}),
@@ -218,9 +248,23 @@ const matieresRouter = createTRPCRouter({
 		}),
 });
 
+const passageRouter = createTRPCRouter({
+	contexte: protectedProcedure.query(({ ctx }) => chargerContexte(ctx.db)),
+	configurerClasses: protectedProcedure
+		.input(configurerClassesSchema)
+		.mutation(({ ctx, input }) => configurerClasses(ctx.db, input.classes)),
+	preview: protectedProcedure
+		.input(z.object({ decisions: decisionsSchema }))
+		.query(({ ctx, input }) => previsualiserPassage(ctx.db, input.decisions)),
+	executer: protectedProcedure
+		.input(executerPassageSchema)
+		.mutation(({ ctx, input }) => executerPassage(ctx.db, input)),
+});
+
 export const academicRouter = createTRPCRouter({
 	niveaux: niveauxRouter,
 	annees: anneesRouter,
 	classes: classesRouter,
 	matieres: matieresRouter,
+	passage: passageRouter,
 });

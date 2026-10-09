@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	boolean,
 	date,
 	index,
@@ -36,6 +37,10 @@ export const classes = pgTable(
 			.notNull()
 			.references(() => niveaux.id),
 		capacite: integer("capacite").notNull().default(30),
+		classeSuivanteId: uuid("classe_suivante_id").references((): AnyPgColumn => classes.id, {
+			onDelete: "set null",
+		}),
+		finDeCycle: boolean("fin_de_cycle").notNull().default(false),
 		anneeScolaireId: uuid("annee_scolaire_id")
 			.notNull()
 			.references(() => anneesScolaires.id),

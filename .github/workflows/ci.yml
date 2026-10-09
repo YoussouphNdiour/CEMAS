@@ -58,6 +58,8 @@ jobs:
       # Seed admin account (src/shared/lib/seed.ts)
       E2E_EMAIL: admin@cemas.online
       E2E_PASSWORD: cemas2025!
+      # Autorise le test destructif 14-passage (base jetable)
+      E2E_DESTRUCTIF: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
