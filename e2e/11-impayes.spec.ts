@@ -168,4 +168,36 @@ test.describe("11 - Impayés et relances", () => {
 				?.montantMensuel,
 		).toBe(23_000);
 	});
+
+	test("UI : liste des impayés, lettre de relance et carte du tableau de bord", async ({
+		page,
+	}) => {
+		const { classe, eleve } = await contexte(page);
+		const classes = await trpc<{ id: string; nom: string }[]>(page, "academic.classes.list");
+		const nomClasse = classes.find((c) => c.id === classe.id)?.nom ?? "";
+
+		await page.goto("/finances/impayes");
+		await waitForLoad(page);
+		await page.getByLabel("Classe").selectOption(classe.id);
+		const ligne = page.getByRole("row", { name: new RegExp(nomClasse) }).first();
+		await expect(ligne).toContainText("Inscription");
+		await expect(ligne).toContainText("77 999 99 99");
+		await expect(page.getByText(/montant par défaut/)).toBeVisible();
+
+		const download = page.waitForEvent("download");
+		await ligne.getByRole("button", { name: "Lettre" }).click();
+		const fichier = await download;
+		expect(fichier.suggestedFilename()).toMatch(/^relance-.+\.pdf$/);
+
+		await ligne.getByRole("checkbox").check();
+		const lot = page.waitForEvent("download");
+		await page.getByRole("button", { name: /Lettres de relance \(1\)/ }).click();
+		// Sélection d'un seul élève : même nom de fichier que la lettre individuelle (spec)
+		expect((await lot).suggestedFilename()).toBe(fichier.suggestedFilename());
+
+		await page.goto("/");
+		await waitForLoad(page);
+		await expect(page.getByText("Impayés").first()).toBeVisible();
+		expect(eleve.id).toBeTruthy();
+	});
 });
