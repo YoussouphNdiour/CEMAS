@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import { db } from "./db";
+import { getParametres } from "@/modules/settings/service";
 
 const transporter = nodemailer.createTransport({
 	host: process.env.SMTP_HOST,
@@ -17,8 +19,9 @@ interface SendMailOptions {
 }
 
 export async function sendMail({ to, subject, html }: SendMailOptions) {
+	const { sigle } = await getParametres(db);
 	return transporter.sendMail({
-		from: `"CEMAS" <${process.env.SMTP_USER}>`,
+		from: `"${sigle.replace(/"/g, "")}" <${process.env.SMTP_USER}>`,
 		to,
 		subject,
 		html,

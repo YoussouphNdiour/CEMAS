@@ -55,6 +55,8 @@ COPY --from=builder /app/src/modules/finance/schema.ts ./src/modules/finance/sch
 COPY --from=builder /app/src/modules/students/schema.ts ./src/modules/students/schema.ts
 COPY --from=builder /app/src/modules/transport/schema.ts ./src/modules/transport/schema.ts
 COPY --from=builder /app/src/modules/payroll/schema.ts ./src/modules/payroll/schema.ts
+COPY --from=builder /app/src/modules/settings/schema.ts ./src/modules/settings/schema.ts
+COPY --from=builder /app/src/modules/settings/defaults.ts ./src/modules/settings/defaults.ts
 
 EXPOSE 3000
 

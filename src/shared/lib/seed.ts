@@ -2,6 +2,8 @@ import { db } from "./db";
 import { users } from "@/modules/auth/schema";
 import { anneesScolaires, niveaux, classes, matieres } from "@/modules/academic/schema";
 import { typesFrais, categoriesDepenses, categoriesRecettes } from "@/modules/finance/schema";
+import { parametresEcole } from "@/modules/settings/schema";
+import { PARAMETRES_DEFAUT } from "@/modules/settings/defaults";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -15,10 +17,16 @@ async function seed() {
 		await db.insert(users).values({
 			email: "admin@cemas.online",
 			passwordHash: hash,
-			nom: "Administrateur CEMAS",
+			nom: "Administrateur",
 		});
 		console.log("✅ Compte admin créé (admin@cemas.online)");
 	}
+
+	// 1b. Paramètres de l'école (ligne unique)
+	await db
+		.insert(parametresEcole)
+		.values({ id: 1, ...PARAMETRES_DEFAUT })
+		.onConflictDoNothing();
 
 	// 2. Année scolaire
 	const existingAnnee = await db

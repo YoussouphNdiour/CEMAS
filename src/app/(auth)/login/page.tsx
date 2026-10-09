@@ -4,9 +4,11 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
+import { trpc } from "@/shared/lib/trpc-client";
 
 export default function LoginPage() {
 	const router = useRouter();
+	const ecole = trpc.settings.public.useQuery();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
@@ -38,8 +40,8 @@ export default function LoginPage() {
 				<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
 					<GraduationCap className="h-8 w-8 text-primary" />
 				</div>
-				<h1 className="text-2xl font-bold text-primary">CEMAS</h1>
-				<p className="text-sm text-muted">Complexe Educatif Mame Anta Sidibe</p>
+				<h1 className="text-2xl font-bold text-primary">Gestion Ecole</h1>
+				<p className="text-sm text-muted">{ecole.data?.nom ?? "\u00a0"}</p>
 			</div>
 
 			<form onSubmit={handleSubmit} className="space-y-4">

@@ -4,12 +4,14 @@ import { useSession } from "next-auth/react";
 import { trpc } from "@/shared/lib/trpc-client";
 import { PageHeader, Button, StatCard } from "@/shared/ui";
 import { Settings, Calendar, User, Shield } from "lucide-react";
+import { ParametresForm } from "@/modules/settings/components/parametres-form";
 
 export default function ParametresPage() {
 	const { data: session } = useSession();
 	const annees = trpc.academic.annees.list.useQuery();
 	const activeAnnee = annees.data?.find((a) => a.active);
 	const niveaux = trpc.academic.niveaux.list.useQuery();
+	const parametres = trpc.settings.get.useQuery();
 
 	return (
 		<div>
@@ -22,7 +24,7 @@ export default function ParametresPage() {
 			<div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
 					title="École"
-					value="CEMAS"
+					value={parametres.data?.sigle ?? "—"}
 					icon={Settings}
 				/>
 				<StatCard
@@ -44,6 +46,11 @@ export default function ParametresPage() {
 
 			{/* Account section */}
 			<div className="mx-auto max-w-2xl space-y-6">
+				<div className="rounded-xl bg-surface p-6 shadow-sm">
+					<h2 className="mb-4 text-lg font-semibold">Établissement</h2>
+					<ParametresForm />
+				</div>
+
 				<div className="rounded-xl bg-surface p-6 shadow-sm">
 					<h2 className="mb-4 text-lg font-semibold">Informations du compte</h2>
 					<div className="space-y-3">
@@ -96,13 +103,11 @@ export default function ParametresPage() {
 					<div className="space-y-2 text-sm">
 						<p>
 							<span className="text-muted">Application :</span>{" "}
-							<span className="font-medium">CEMAS - Gestion Scolaire</span>
+							<span className="font-medium">Gestion Ecole</span>
 						</p>
 						<p>
 							<span className="text-muted">Établissement :</span>{" "}
-							<span className="font-medium">
-								Complexe Éducatif Mame Anta Sidibé
-							</span>
+							<span className="font-medium">{parametres.data?.nom ?? "—"}</span>
 						</p>
 						<p>
 							<span className="text-muted">Niveaux :</span>{" "}

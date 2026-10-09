@@ -12,6 +12,8 @@ import {
 import { classes } from "@/modules/academic/schema";
 import { eleves, parents, eleveParents } from "@/modules/students/schema";
 import { generateRecuNumber } from "@/shared/lib/utils";
+import { nextSequence } from "@/shared/lib/sequence";
+import { getParametres } from "@/modules/settings/service";
 import {
 	createPaiementSchema,
 	createDepenseSchema,
@@ -89,24 +91,16 @@ const paiementsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createPaiementSchema)
 		.mutation(async ({ ctx, input }) => {
-			// Get max recu number sequence for the current year
-			const [maxResult] = await ctx.db
-				.select({
-					maxRecu: sql<string>`MAX(${paiements.numeroRecu})`,
-				})
-				.from(paiements);
-
-			let seq = 1;
-			if (maxResult?.maxRecu) {
-				const parts = maxResult.maxRecu.split("-");
-				const lastSeq = parseInt(parts[2], 10);
-				if (!isNaN(lastSeq)) {
-					seq = lastSeq + 1;
-				}
-			}
-
+			// Next receipt sequence for the configured prefix and current year
 			const year = new Date().getFullYear();
-			const numeroRecu = generateRecuNumber(year, seq);
+			const { prefixeRecu } = await getParametres(ctx.db);
+			const seq = await nextSequence(
+				ctx.db,
+				paiements,
+				paiements.numeroRecu,
+				`^${prefixeRecu}-${year}-(\\d+)$`,
+			);
+			const numeroRecu = generateRecuNumber(prefixeRecu, year, seq);
 
 			const [created] = await ctx.db
 				.insert(paiements)

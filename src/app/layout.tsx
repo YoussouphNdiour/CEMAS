@@ -3,8 +3,8 @@ import { Providers } from "@/shared/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-	title: "CEMAS — Gestion Scolaire",
-	description: "Complexe Educatif Mame Anta Sidibe",
+	title: "Gestion Ecole",
+	description: "Gestion scolaire",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
