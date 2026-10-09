@@ -133,10 +133,16 @@ const classesRouter = createTRPCRouter({
 				.groupBy(eleves.classeId);
 			const parClasse = new Map(effectifs.map((e) => [e.classeId, e.effectif]));
 
-			return rows.map((classe) => {
-				const effectif = parClasse.get(classe.id) ?? 0;
-				return { ...classe, effectif, placesRestantes: classe.capacite - effectif };
-			});
+			return rows
+				.map((classe) => {
+					const effectif = parClasse.get(classe.id) ?? 0;
+					return { ...classe, effectif, placesRestantes: classe.capacite - effectif };
+				})
+				.sort(
+					(a, b) =>
+						(a.niveau?.ordre ?? 0) - (b.niveau?.ordre ?? 0) ||
+						a.nom.localeCompare(b.nom, "fr", { numeric: true }),
+				);
 		}),
 
 	create: protectedProcedure.input(createClasseSchema).mutation(async ({ ctx, input }) => {
