@@ -38,3 +38,23 @@ export const grilleFraisSchema = z.object({
 	anneeScolaireId: z.string().uuid("Année scolaire requise"),
 	montantMensuel: z.number().int().positive("Le montant doit être positif"),
 });
+
+export const upsertGrilleSchema = z.object({
+	anneeScolaireId: z.string().uuid(),
+	cellules: z
+		.array(
+			z.object({
+				classeId: z.string().uuid(),
+				typeFraisId: z.string().uuid(),
+				montant: z.number().int("Montant entier requis").min(0, "Le montant doit être positif"),
+			}),
+		)
+		.min(1)
+		.max(200),
+});
+
+export const impayesFiltersSchema = z.object({
+	anneeScolaireId: z.string().uuid(),
+	classeId: z.string().uuid().optional(),
+	niveauId: z.string().uuid().optional(),
+});

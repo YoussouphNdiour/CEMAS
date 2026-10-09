@@ -1,6 +1,7 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { classes, niveaux } from "@/modules/academic/schema";
+import { getImpayes } from "@/modules/finance/impayes-service";
 import { depenses, paiements, typesFrais } from "@/modules/finance/schema";
 import { bulletinsPaie, employes } from "@/modules/payroll/schema";
 import { eleves } from "@/modules/students/schema";
@@ -48,6 +49,8 @@ export const dashboardRouter = createTRPCRouter({
 				.from(bulletinsPaie)
 				.where(and(eq(bulletinsPaie.mois, currentMois), eq(bulletinsPaie.annee, currentAnnee)));
 
+			const impayes = await getImpayes(ctx.db, input.anneeScolaireId);
+
 			return {
 				totalEleves: studentsResult.total,
 				totalClasses: classesResult.total,
@@ -55,6 +58,7 @@ export const dashboardRouter = createTRPCRouter({
 				totalDepenses: Number(depensesResult.total),
 				totalEmployes: employesResult.total,
 				masseSalariale: Number(payrollResult.total),
+				totalImpayes: impayes.totalReste,
 			};
 		}),
 

@@ -10,6 +10,7 @@ import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber } from "@/shared/lib/utils";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
+import { getImpayes } from "./impayes-service";
 import {
 	categoriesDepenses,
 	categoriesRecettes,
@@ -24,6 +25,8 @@ import {
 	createPaiementSchema,
 	createRecetteSchema,
 	grilleFraisSchema,
+	impayesFiltersSchema,
+	upsertGrilleSchema,
 } from "./validation";
 
 const typesFraisRouter = createTRPCRouter({
@@ -52,6 +55,26 @@ const grilleFraisRouter = createTRPCRouter({
 				.where(eq(grilleFrais.anneeScolaireId, input.anneeScolaireId))
 				.orderBy(classes.nom, typesFrais.nom);
 		}),
+
+	upsertMany: protectedProcedure.input(upsertGrilleSchema).mutation(async ({ ctx, input }) => {
+		await ctx.db.transaction(async (tx) => {
+			for (const c of input.cellules) {
+				await tx
+					.insert(grilleFrais)
+					.values({
+						classeId: c.classeId,
+						typeFraisId: c.typeFraisId,
+						anneeScolaireId: input.anneeScolaireId,
+						montantMensuel: c.montant,
+					})
+					.onConflictDoUpdate({
+						target: [grilleFrais.classeId, grilleFrais.typeFraisId, grilleFrais.anneeScolaireId],
+						set: { montantMensuel: c.montant },
+					});
+			}
+		});
+		return { count: input.cellules.length };
+	}),
 
 	upsert: protectedProcedure.input(grilleFraisSchema).mutation(async ({ ctx, input }) => {
 		// Check if entry already exists
@@ -495,6 +518,15 @@ const bilanRouter = createTRPCRouter({
 		}),
 });
 
+const impayesRouter = createTRPCRouter({
+	list: protectedProcedure.input(impayesFiltersSchema).query(({ ctx, input }) =>
+		getImpayes(ctx.db, input.anneeScolaireId, {
+			classeId: input.classeId,
+			niveauId: input.niveauId,
+		}),
+	),
+});
+
 export const financeRouter = createTRPCRouter({
 	typesFrais: typesFraisRouter,
 	grilleFrais: grilleFraisRouter,
@@ -503,4 +535,5 @@ export const financeRouter = createTRPCRouter({
 	depenses: depensesRouter,
 	recettes: recettesRouter,
 	bilan: bilanRouter,
+	impayes: impayesRouter,
 });
