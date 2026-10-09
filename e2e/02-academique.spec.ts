@@ -132,7 +132,7 @@ test.describe("02 - Module Academique", () => {
 			await page.getByRole("button", { name: "Créer" }).click();
 
 			// Verifier que la matiere apparait
-			await expect(page.getByText("Sciences Physiques")).toBeVisible({ timeout: 10_000 });
+			await expect(page.getByText("Sciences Physiques").first()).toBeVisible({ timeout: 10_000 });
 		});
 	});
 });
