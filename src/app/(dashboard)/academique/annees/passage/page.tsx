@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Decision } from "@/modules/academic/passage";
 import { trpc } from "@/shared/lib/trpc-client";
 import { Button, ConfirmDialog, PageHeader } from "@/shared/ui";
@@ -22,17 +22,31 @@ export default function PassagePage() {
 	const [suivantes, setSuivantes] = useState<Record<string, string>>({});
 	const [decisions, setDecisions] = useState<Record<string, Decision>>({});
 	const [confirmer, setConfirmer] = useState(false);
+	const [retires, setRetires] = useState(0);
+	const initialise = useRef(false);
 
 	useEffect(() => {
 		if (!ctx.data) return;
-		setCible((c) => (c.libelle ? c : ctx.data.proposition));
-		setSuivantes((s) =>
-			Object.keys(s).length
-				? s
-				: Object.fromEntries(
-						ctx.data.classes.map((c) => [c.id, c.finDeCycle ? "fin" : (c.classeSuivanteId ?? "")]),
-					),
-		);
+		// Initialisation unique : un rechargement des données n'écrase pas les saisies
+		if (!initialise.current) {
+			initialise.current = true;
+			setCible(ctx.data.proposition);
+			setSuivantes(
+				Object.fromEntries(
+					ctx.data.classes.map((c) => [c.id, c.finDeCycle ? "fin" : (c.classeSuivanteId ?? "")]),
+				),
+			);
+		}
+		// Décisions d'élèves qui ne sont plus concernés (désactivés entre-temps) : retirées
+		const concernes = new Set(ctx.data.eleves.map((e) => e.id));
+		setDecisions((d) => {
+			const obsoletes = Object.keys(d).filter((id) => !concernes.has(id));
+			if (obsoletes.length === 0) return d;
+			setRetires(obsoletes.length);
+			const suivant = { ...d };
+			for (const id of obsoletes) delete suivant[id];
+			return suivant;
+		});
 	}, [ctx.data]);
 
 	const configurer = trpc.academic.passage.configurerClasses.useMutation({
@@ -100,6 +114,11 @@ export default function PassagePage() {
 					{ label: "Passage" },
 				]}
 			/>
+			{retires > 0 && (
+				<p className="mb-4 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
+					{retires} décision(s) retirée(s) : ces élèves ne sont plus actifs dans l'année en cours.
+				</p>
+			)}
 			<p className="mb-6 text-sm text-muted">
 				Année en cours : {ctx.data.source.libelle}. Étape {etape} sur 4.
 			</p>

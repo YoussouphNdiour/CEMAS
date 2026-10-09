@@ -3,6 +3,8 @@ import { login, trpc, waitForLoad } from "./helpers";
 
 // Archive l'année active : uniquement sur une base jetable (CI).
 test.skip(process.env.E2E_DESTRUCTIF !== "1", "test destructif : E2E_DESTRUCTIF=1 requis");
+// Un nouvel essai tournerait sur une base déjà basculée et masquerait un échec
+test.describe.configure({ retries: 0, mode: "serial" });
 
 type Ctx = {
 	source: { id: string; libelle: string };
@@ -75,6 +77,34 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 
 	// Toutes les autres classes en fin de cycle ; A → B ; B fin de cycle
 	const ctx = await trpc<Ctx>(page, "academic.passage.contexte");
+
+	// Année cible déjà créée à la main, avec une classe de même nom que A et un montant déjà saisi :
+	// le passage doit la réutiliser sans doublon et sans écraser le montant
+	const cibleExistante = await trpc<{ id: string }>(
+		page,
+		"academic.annees.create",
+		{
+			libelle: ctx.proposition.libelle,
+			dateDebut: "2027-10-01",
+			dateFin: "2028-07-31",
+		},
+		true,
+	);
+	const aExistante = await trpc<{ id: string }>(
+		page,
+		"academic.classes.create",
+		{ nom: A.nom, niveauId: niveau.id, capacite: 30, anneeScolaireId: cibleExistante.id },
+		true,
+	);
+	await trpc(
+		page,
+		"finance.grilleFrais.upsertMany",
+		{
+			anneeScolaireId: cibleExistante.id,
+			cellules: [{ classeId: aExistante.id, typeFraisId: sco.id, montant: 99_000 }],
+		},
+		true,
+	);
 	await trpc(
 		page,
 		"academic.passage.configurerClasses",
@@ -136,10 +166,39 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 		"finance.grilleFrais.list",
 		{ anneeScolaireId: cible?.id },
 	);
-	expect(grille.find((g) => g.classeId === A2?.id)?.montantMensuel).toBe(17_000);
+	expect(grille.find((g) => g.classeId === A2?.id)?.montantMensuel).toBe(99_000);
+	expect(cible?.id).toBe(cibleExistante.id);
+	expect(classesCible.filter((c) => c.nom === A.nom)).toHaveLength(1);
+	expect(A2?.id).toBe(aExistante.id);
 
 	const bilan = await trpc<{ totalPaiements: number }>(page, "finance.bilan.summary", {
 		anneeScolaireId: source.id,
 	});
 	expect(bilan.totalPaiements).toBeGreaterThanOrEqual(17_000);
+});
+
+test("14b - Deux passages simultanés : un seul aboutit", async ({ page }) => {
+	test.setTimeout(60_000);
+	await login(page);
+	const ctx = await trpc<Ctx>(page, "academic.passage.contexte");
+	await trpc(
+		page,
+		"academic.passage.configurerClasses",
+		{
+			classes: ctx.classes.map((c) => ({ id: c.id, classeSuivanteId: null, finDeCycle: true })),
+		},
+		true,
+	);
+	const cible = {
+		libelle: ctx.proposition.libelle,
+		dateDebut: "2028-10-01",
+		dateFin: "2029-07-31",
+	};
+	const resultats = await Promise.allSettled([
+		trpc(page, "academic.passage.executer", { cible, decisions: {} }, true),
+		trpc(page, "academic.passage.executer", { cible, decisions: {} }, true),
+	]);
+	expect(resultats.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+	const annees = await trpc<{ libelle: string }[]>(page, "academic.annees.list");
+	expect(annees.filter((a) => a.libelle === cible.libelle)).toHaveLength(1);
 });

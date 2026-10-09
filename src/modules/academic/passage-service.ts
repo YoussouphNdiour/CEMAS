@@ -14,11 +14,11 @@ const plusUnAn = (date: string) => {
 	return `${Number(a) + 1}-${m}-${j}`;
 };
 
-async function anneeActive(database: Db | Tx) {
-	const [source] = await database
-		.select()
-		.from(anneesScolaires)
-		.where(eq(anneesScolaires.active, true));
+async function anneeActive(database: Db | Tx, verrouiller = false) {
+	const requete = database.select().from(anneesScolaires).where(eq(anneesScolaires.active, true));
+	// Dans la transaction du passage : verrou sur l'année active, un second passage simultané
+	// attend puis ne trouve plus d'année active (elle a été archivée) et échoue proprement.
+	const [source] = verrouiller ? await requete.for("update") : await requete;
 	if (!source)
 		throw new TRPCError({ code: "BAD_REQUEST", message: "Aucune année scolaire active." });
 	return source;
@@ -135,7 +135,7 @@ export async function executerPassage(
 	},
 ) {
 	return database.transaction(async (tx) => {
-		const source = await anneeActive(tx);
+		const source = await anneeActive(tx, true);
 		const { classesS, elevesS } = await chargerDonnees(tx, source.id);
 		const plan = planifierPassage({
 			classes: classesS,
@@ -146,12 +146,23 @@ export async function executerPassage(
 			throw new TRPCError({ code: "BAD_REQUEST", message: plan.erreurs.join(" ; ") });
 
 		// 1. Année cible (réutilisée si même libellé non archivée)
-		let [cible] = await tx
+		const homonymes = await tx
 			.select()
 			.from(anneesScolaires)
-			.where(
-				and(eq(anneesScolaires.libelle, input.cible.libelle), eq(anneesScolaires.archived, false)),
-			);
+			.where(eq(anneesScolaires.libelle, input.cible.libelle));
+		if (homonymes.some((a) => a.archived)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `L'année ${input.cible.libelle} existe déjà et est archivée : choisissez un autre libellé.`,
+			});
+		}
+		if (homonymes.length > 1) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Plusieurs années s'appellent ${input.cible.libelle} : supprimez les doublons avant le passage.`,
+			});
+		}
+		let [cible] = homonymes;
 		if (cible?.id === source.id) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
@@ -173,14 +184,17 @@ export async function executerPassage(
 		}
 
 		// 2. Classes (réutilisées par nom)
-		const existantes = new Map(
-			(
-				await tx
-					.select({ id: classes.id, nom: classes.nom })
-					.from(classes)
-					.where(eq(classes.anneeScolaireId, cible.id))
-			).map((c) => [c.nom, c.id]),
-		);
+		const classesCible = await tx
+			.select({ id: classes.id, nom: classes.nom })
+			.from(classes)
+			.where(eq(classes.anneeScolaireId, cible.id));
+		const existantes = new Map(classesCible.map((c) => [c.nom, c.id]));
+		if (existantes.size !== classesCible.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `L'année ${cible.libelle} contient des classes de même nom : renommez-les avant le passage.`,
+			});
+		}
 		const copie = new Map<string, string>();
 		let classesCreees = 0;
 		for (const c of classesS) {
@@ -259,7 +273,7 @@ export async function executerPassage(
 				})
 				.onConflictDoUpdate({
 					target: [inscriptions.eleveId, inscriptions.anneeScolaireId],
-					set: { classeId: destination },
+					set: { classeId: destination, statut: "confirmee" },
 				});
 		}
 

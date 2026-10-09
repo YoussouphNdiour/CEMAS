@@ -44,6 +44,14 @@ export function planifierPassage(p: {
 		else if (c.classeSuivanteId === c.id || !parId.has(c.classeSuivanteId))
 			erreurs.push(`${c.nom} : classe suivante invalide`);
 	}
+	const parNom = new Map<string, number>();
+	for (const c of p.classes) {
+		const cle = c.nom.trim().toLocaleUpperCase("fr");
+		parNom.set(cle, (parNom.get(cle) ?? 0) + 1);
+	}
+	for (const [nom, n] of parNom) {
+		if (n > 1) erreurs.push(`Plusieurs classes nommées « ${nom} » : renommez-les avant le passage`);
+	}
 	const concernes = new Set(p.eleves.map((e) => e.id));
 	for (const id of Object.keys(p.decisions)) {
 		if (!concernes.has(id)) erreurs.push(`Décision pour un élève non concerné : ${id}`);

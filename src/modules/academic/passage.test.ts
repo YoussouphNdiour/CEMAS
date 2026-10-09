@@ -105,4 +105,12 @@ describe("planifierPassage", () => {
 		const p = planifierPassage({ classes: [A, B], eleves, decisions: { inconnu: "passe" } });
 		expect(p.erreurs).toEqual(["Décision pour un élève non concerné : inconnu"]);
 	});
+
+	it("refuse deux classes de même nom dans l'année (sinon fusion silencieuse)", () => {
+		const doublon: ClassePassage = { ...B, id: "B2", nom: " ce1 " };
+		const p = planifierPassage({ classes: [A, B, doublon], eleves, decisions: {} });
+		expect(p.erreurs).toEqual([
+			"Plusieurs classes nommées « CE1 » : renommez-les avant le passage",
+		]);
+	});
 });
