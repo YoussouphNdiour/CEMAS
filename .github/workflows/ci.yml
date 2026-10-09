@@ -69,8 +69,8 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm db:migrate
       - run: pnpm db:seed
-      # Functional suites only (the 00-guide specs generate documentation screenshots)
-      - run: pnpm exec playwright test e2e/0[1-9]
+      # Functional suites 01..99 (the 00-guide specs generate documentation screenshots)
+      - run: pnpm exec playwright test "e2e/(0[1-9]|[1-9][0-9])-"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -78,7 +78,9 @@ test.describe("02 - Module Academique", () => {
 			await page.getByRole("button", { name: "Créer" }).click();
 
 			// Verifier que la classe apparait
-			await expect(page.getByText("CM2 Test")).toBeVisible({ timeout: 10_000 });
+			// La liste est paginée : rechercher la classe créée
+			await page.getByPlaceholder("Rechercher une classe...").fill("CM2 Test");
+			await expect(page.getByText("CM2 Test").first()).toBeVisible({ timeout: 10_000 });
 		});
 
 		test("filtrer les classes par niveau", async ({ page }) => {

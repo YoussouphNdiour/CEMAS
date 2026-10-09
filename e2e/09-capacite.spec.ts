@@ -37,6 +37,8 @@ test.describe("09 - Capacité des classes", () => {
 		// Liste des classes : effectif et état
 		await page.goto("/academique/classes");
 		await waitForLoad(page);
+		// La liste est paginée : rechercher la classe
+		await page.getByPlaceholder("Rechercher une classe...").fill(nomClasse);
 		const ligne = page.getByRole("row", { name: new RegExp(nomClasse) });
 		await expect(ligne).toContainText("1 / 1");
 		await expect(ligne).toContainText("Complète");
@@ -78,6 +80,8 @@ test.describe("09 - Capacité des classes", () => {
 
 		await page.goto("/academique/classes");
 		await waitForLoad(page);
+		// La liste est paginée : rechercher la classe
+		await page.getByPlaceholder("Rechercher une classe...").fill(nomClasse);
 		await expect(page.getByRole("row", { name: new RegExp(nomClasse) })).toContainText(
 			"Dépassement : 1",
 		);
