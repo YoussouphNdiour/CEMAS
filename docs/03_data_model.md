@@ -154,7 +154,7 @@ Une seule ligne (`id = 1`), créée par la migration `0005`.
 | classe_id | uuid | FK → classes, NOT NULL | |
 | type_frais_id | uuid | FK → types_frais, NOT NULL | |
 | annee_scolaire_id | uuid | FK → annees_scolaires, NOT NULL | |
-| montant_mensuel | integer | NOT NULL | Montant mensuel |
+| montant_mensuel | integer | NOT NULL | Montant mensuel ; pour un frais unique (`mensuel = false`), le montant unique |
 | | | UNIQUE(classe_id, type_frais_id, annee_scolaire_id) | |
 
 ### `paiements`
