@@ -114,6 +114,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Service `backup` (image postgres:16-alpine + script) : `pg_dump -Fc` au démarrage puis chaque jour à 2 h UTC, vérifié, conservé 30 jours dans un volume dédié
 - **Conséquences :** Restauration documentée (`docs/19_sauvegardes.md`) ; copie hors serveur à prévoir
 
+### D-019 — Passage à l'année suivante atomique, décision par élève
+- **Date :** 2026-10-09
+- **Contexte :** Les classes sont rattachées à une année ; il faut recopier la structure et répartir les élèves, avec des redoublants
+- **Décision :** Assistant en 4 étapes ; classe suivante ou fin de cycle obligatoire pour chaque classe ; décision par élève (passe/redouble/quitte) ; une seule transaction ; classes et grille recopiées par nom sans doublon ; sortants et départs passés `inactif` et laissés dans l'ancienne année ; nouvelle année active, ancienne archivée
+- **Conséquences :** Pas d'annulation (restauration depuis la sauvegarde) ; affectations de transport à refaire ; le test e2e complet ne tourne qu'avec `E2E_DESTRUCTIF=1`
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

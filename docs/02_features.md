@@ -13,11 +13,14 @@
 - Création avec libellé (ex: `2025-2026`), date début, date fin
 - Activation exclusive : une seule année active à la fois (toggle dans une transaction)
 - Suppression possible (pas de soft delete)
+- **Passage à l'année suivante** (`/academique/annees/passage`, lien sur l'année active) : assistant en 4 étapes — nouvelle année (libellé et dates préremplis +1 an) ; classe suivante de chaque classe (obligatoire) ; décision par élève actif (Passe par défaut, Redouble, Quitte) ; vérification (comptes par classe, effectifs prévus, alerte de dépassement) puis confirmation
+- Exécution atomique : année cible créée ou réutilisée (même libellé non archivée) ; classes et grille recopiées par nom sans doublon ni écrasement ; élèves qui restent → nouvelle classe, nouvelle année et nouvelle inscription ; sortants (fin de cycle) et départs → `inactif`, rattachés à l'ancienne année ; nouvelle année active, ancienne archivée. Une sauvegarde récente est recommandée (`docs/19_sauvegardes.md`)
 
 ### Détail : Classes
 - Nom, niveau, capacité (défaut: 30), année scolaire
 - Filtrage par année scolaire et/ou niveau
 - Relation avec le niveau pour affichage du nom du niveau
+- Classe suivante : autre classe de la même année, ou « Fin de cycle » (les élèves qui passent quittent l'école) ; « À configurer » sinon
 - Effectif (élèves **actifs** de la classe) affiché `effectif / capacité`, et places restantes en badge : vert, orange à 10 % de places ou moins, rouge « Complète » ou « Dépassement : N »
 
 ### Détail : Matières

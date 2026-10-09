@@ -92,8 +92,29 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 
 ### `academic.classes.update`
 - **Type :** Mutation
-- **Input :** `{ id: uuid, nom?: string, capacite?: number }`
+- **Input :** `{ id: uuid, nom?: string, capacite?: number, classeSuivanteId?: uuid | null, finDeCycle?: boolean }`
 - **Output :** `Classe`
+- **Erreurs :** `BAD_REQUEST` si la classe suivante n'est pas une autre classe de la même année ; `finDeCycle = true` remet `classeSuivanteId` à null
+
+### `academic.passage.contexte`
+- **Type :** Query
+- **Output :** `{ source: Annee, proposition: { libelle, dateDebut, dateFin }, classes: (Classe & { niveauNom })[], eleves: { id, prenom, nom, matricule, classeId }[] }` (année active)
+
+### `academic.passage.configurerClasses`
+- **Type :** Mutation
+- **Input :** `{ classes: { id, classeSuivanteId: uuid | null, finDeCycle: boolean }[] }` (classes de l'année active)
+- **Output :** `{ count }`
+
+### `academic.passage.preview`
+- **Type :** Query
+- **Input :** `{ decisions: Record<eleveId, "passe" | "redouble" | "quitte"> }` (absent = passe)
+- **Output :** `{ erreurs, mouvements, parClasse, effectifsPrevus }` — sans écriture
+
+### `academic.passage.executer`
+- **Type :** Mutation
+- **Input :** `{ cible: { libelle, dateDebut, dateFin }, decisions }`
+- **Description :** Transaction unique (voir `02_features.md`) ; refus `BAD_REQUEST` si une classe n'est pas configurée, une décision vise un élève non concerné, ou la cible est l'année active
+- **Output :** `{ anneeId, promus, redoublants, sortants, departs, classesCreees, grilleCopiee }`
 
 ### `academic.classes.delete`
 - **Type :** Mutation
