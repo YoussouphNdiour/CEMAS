@@ -38,6 +38,16 @@ Mis à jour le 2026-10-09.
 - Le test e2e destructif ne vérifie pas la base ciblée (`E2E_DESTRUCTIF` seul)
 - Retour arrière en cas d'erreur au milieu du passage : non testé automatiquement (repose sur la transaction)
 
+### Encadrement du passage (lot 4b)
+- `executer` recalcule les impayés pour rien ; la page Années charge tout le contexte du passage pour un libellé
+- « Décisions enregistrées » reste affiché après de nouvelles modifications ; pas d'enregistrement automatique
+- Le test 14c dépend de l'ordre et de `PASSAGE_AUJOURDHUI` ; le test 13 efface les décisions enregistrées de la base de dev
+- Ajouter `USER nextjs` au Dockerfile rendrait `/backups` non inscriptible ; modifier la date de fin ouvre la fenêtre ; « Faire une sauvegarde maintenant » sans limite de fréquence
+
+### Général
+- `scripts/entrypoint.sh` masque les erreurs de migration (`2>/dev/null || echo …`)
+- Aucune vérification de rôle : tout compte connecté peut tout faire (dont le passage d'année)
+
 ### Tableau de bord
 - `dashboard.stats.totalDepenses` additionne les dépenses de toutes les années
 
