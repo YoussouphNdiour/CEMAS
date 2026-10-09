@@ -200,4 +200,56 @@ test.describe("11 - Impayés et relances", () => {
 		await expect(page.getByText("Impayés").first()).toBeVisible();
 		expect(eleve.id).toBeTruthy();
 	});
+
+	test("UI : une saisie non enregistrée survit au rechargement des données de la grille", async ({
+		page,
+	}) => {
+		test.setTimeout(90_000);
+		const { annee, sco, classe } = await contexte(page);
+		const autre = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{
+				nom: `IMP3-${Date.now()}`,
+				niveauId: (await trpc<{ id: string }[]>(page, "academic.niveaux.list"))[0].id,
+				capacite: 30,
+				anneeScolaireId: annee.id,
+			},
+			true,
+		);
+		const classes = await trpc<{ id: string; nom: string }[]>(page, "academic.classes.list", {
+			anneeScolaireId: annee.id,
+		});
+		const nom = classes.find((c) => c.id === classe.id)?.nom ?? "";
+
+		await page.goto("/finances/grille");
+		await waitForLoad(page);
+		await page.getByLabel(`${nom} — Scolarité`).fill("19500");
+
+		// Une autre modification arrive côté serveur, puis la page recharge ses données (retour sur l'onglet)
+		await trpc(
+			page,
+			"finance.grilleFrais.upsertMany",
+			{
+				anneeScolaireId: annee.id,
+				cellules: [{ classeId: autre.id, typeFraisId: sco.id, montant: 11_000 }],
+			},
+			true,
+		);
+		await page.waitForTimeout(31_000);
+		await page.evaluate(() => {
+			Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+			window.dispatchEvent(new Event("visibilitychange"));
+			Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+			window.dispatchEvent(new Event("visibilitychange"));
+		});
+		const autreNom =
+			(
+				await trpc<{ id: string; nom: string }[]>(page, "academic.classes.list", {
+					anneeScolaireId: annee.id,
+				})
+			).find((c) => c.id === autre.id)?.nom ?? "";
+		await expect(page.getByLabel(`${autreNom} — Scolarité`)).toHaveValue("11000");
+		await expect(page.getByLabel(`${nom} — Scolarité`)).toHaveValue("19500");
+	});
 });

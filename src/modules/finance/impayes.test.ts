@@ -132,6 +132,32 @@ describe("calculerImpayes", () => {
 	});
 });
 
+describe("calculerImpayes — robustesse", () => {
+	it("ne compte qu'une fois un élève présent deux fois (deux contacts principaux)", () => {
+		const r = calculerImpayes({
+			...base,
+			aujourdhui: "2026-10-05",
+			eleves: [eleve("e1"), eleve("e1")],
+		});
+		expect(r.lignes).toHaveLength(1);
+		expect(r.totalReste).toBe(75_000);
+	});
+
+	it("ignore un frais dont le montant de grille est 0", () => {
+		const r = calculerImpayes({
+			...base,
+			aujourdhui: "2026-11-05",
+			eleves: [eleve("e1")],
+			grille: [
+				{ classeId: "c1", typeFraisId: "sco", montant: 0 },
+				{ classeId: "c1", typeFraisId: "ins", montant: 60_000 },
+			],
+		});
+		expect(r.lignes[0]).toMatchObject({ du: 60_000, reste: 60_000 });
+		expect(r.lignes[0].moisImpayes.map((m) => m.typeFraisNom)).toEqual(["Inscription"]);
+	});
+});
+
 describe("libelleMoisImpayes", () => {
 	it("regroupe par frais", () => {
 		expect(

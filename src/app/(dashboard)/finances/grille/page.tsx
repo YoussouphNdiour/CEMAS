@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA } from "@/shared/lib/utils";
 import { Button, PageHeader } from "@/shared/ui";
@@ -40,35 +40,39 @@ export default function GrillePage() {
 			new Map((grille.data ?? []).map((g) => [cle(g.classeId, g.typeFraisId), g.montantMensuel])),
 		[grille.data],
 	);
-	const [valeurs, setValeurs] = useState<Record<string, string>>({});
+	/** Saisies de l'utilisateur, superposées aux montants enregistrés (un rechargement ne les efface pas). */
+	const [modifs, setModifs] = useState<Record<string, string>>({});
 	const [message, setMessage] = useState("");
-	useEffect(() => {
-		setValeurs(Object.fromEntries([...enregistre].map(([k, v]) => [k, String(v)])));
-	}, [enregistre]);
+	const valeur = (k: string) => modifs[k] ?? (enregistre.has(k) ? String(enregistre.get(k)) : "");
 
 	const save = trpc.finance.grilleFrais.upsertMany.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
 			setMessage("Grille enregistrée");
+			setModifs((m) => {
+				const reste = { ...m };
+				for (const c of variables.cellules) delete reste[cle(c.classeId, c.typeFraisId)];
+				return reste;
+			});
 			utils.finance.grilleFrais.list.invalidate();
 			utils.finance.impayes.list.invalidate();
 		},
 	});
 
 	function appliquerAuNiveau(classeId: string, niveauId: string) {
-		const suivantes = { ...valeurs };
+		const suivantes = { ...modifs };
 		for (const c of lignes.filter((l) => l.niveauId === niveauId && l.id !== classeId)) {
 			for (const f of frais) {
-				const v = valeurs[cle(classeId, f.id)];
+				const v = valeur(cle(classeId, f.id));
 				if (v) suivantes[cle(c.id, f.id)] = v;
 			}
 		}
-		setValeurs(suivantes);
+		setModifs(suivantes);
 	}
 
 	function enregistrer() {
 		if (!annee) return;
 		setMessage("");
-		const cellules = Object.entries(valeurs)
+		const cellules = Object.entries(modifs)
 			.filter(([k, v]) => v !== "" && Number(v) !== enregistre.get(k))
 			.map(([k, v]) => {
 				const [classeId, typeFraisId] = k.split(":");
@@ -127,9 +131,9 @@ export default function GrillePage() {
 												min={0}
 												step={500}
 												aria-label={`${c.nom} — ${f.nom}`}
-												value={valeurs[k] ?? ""}
+												value={valeur(k)}
 												placeholder={String(f.montantDefaut)}
-												onChange={(e) => setValeurs({ ...valeurs, [k]: e.target.value })}
+												onChange={(e) => setModifs({ ...modifs, [k]: e.target.value })}
 												className={INPUT}
 											/>
 											{!enregistre.has(k) && (

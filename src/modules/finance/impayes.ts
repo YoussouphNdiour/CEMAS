@@ -93,13 +93,18 @@ export function calculerImpayes(p: {
 	const defauts = new Map<string, { classeId: string; classeNom: string; frais: string[] }>();
 
 	const lignes: LigneImpaye[] = [];
-	for (const e of p.eleves) {
+	// Un élève peut apparaître plusieurs fois (plusieurs contacts principaux) : le premier gagne
+	const vus = new Set<string>();
+	const eleves = p.eleves.filter((e) => !vus.has(e.id) && vus.add(e.id));
+	for (const e of eleves) {
 		let du = 0;
 		let reste = 0;
 		const moisImpayes: MoisImpaye[] = [];
 		for (const f of p.frais) {
 			const montantGrille = grille.get(`${e.classeId}:${f.id}`);
 			const montant = montantGrille ?? f.montantDefaut;
+			// Frais gratuit pour cette classe
+			if (montant === 0) continue;
 			if (montantGrille === undefined) {
 				const d = defauts.get(e.classeId) ?? {
 					classeId: e.classeId,

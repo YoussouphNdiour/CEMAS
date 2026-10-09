@@ -156,7 +156,24 @@ export default function ImpayesPage() {
 								</td>
 							</tr>
 						)}
-						{!impayes.isLoading && lignes.length === 0 && (
+						{!annees.isLoading && !annee && (
+							<tr>
+								<td colSpan={10} className="px-3 py-6 text-center text-orange-700">
+									Aucune année scolaire active.
+								</td>
+							</tr>
+						)}
+						{impayes.isError && (
+							<tr>
+								<td colSpan={10} className="px-3 py-6 text-center text-danger">
+									Impossible de charger les impayés : {impayes.error.message}{" "}
+									<Button variant="ghost" size="sm" onClick={() => impayes.refetch()}>
+										Réessayer
+									</Button>
+								</td>
+							</tr>
+						)}
+						{impayes.isSuccess && lignes.length === 0 && (
 							<tr>
 								<td colSpan={10} className="px-3 py-6 text-center text-muted">
 									Aucun impayé.
