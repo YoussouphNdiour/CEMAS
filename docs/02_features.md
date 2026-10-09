@@ -56,7 +56,7 @@
 | Suivi paiements | P0 | Grille visuelle par classe : élève × mois (Oct-Jul), pastilles vert/rouge |
 | Dépenses | P0 | CRUD des dépenses avec catégorie, libellé, montant, date, note |
 | Recettes | P0 | CRUD des recettes (hors paiements scolarité) avec catégorie |
-| Bilan | P0 | Vue consolidée : total paiements + recettes - dépenses = solde |
+| Bilan | P0 | Vue consolidée : paiements + recettes − dépenses − salaires payés = solde, avec détail par mois |
 
 ### Détail : Paiements
 - Numéro de reçu auto-généré : `REC-{année}-{seq 4 chiffres}`
@@ -69,9 +69,10 @@
 - Filtrage par classe
 
 ### Détail : Bilan
-- Calcul : Solde = Total paiements + Total recettes - Total dépenses
-- Filtré par année scolaire active
-- 4 indicateurs : paiements, recettes, dépenses, solde
+- Calcul : Solde = paiements + recettes − dépenses − **salaires payés**
+- Filtré par année scolaire active (salaires : bulletins `paye = true` dont la période tombe dans l'année scolaire)
+- 5 indicateurs : paiements, recettes, dépenses, salaires payés, solde
+- Détail par mois (vue trésorerie) : chaque montant est rattaché au mois où l'argent a bougé (date de paiement, date de la dépense/recette, date de paiement du bulletin ou à défaut son mois). Octobre → juillet toujours affichés ; un autre mois (ex. septembre) apparaît s'il a des mouvements. Colonnes : paiements, recettes, dépenses, salaires, solde du mois, solde cumulé ; ligne de total égale aux indicateurs
 
 ---
 

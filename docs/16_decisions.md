@@ -90,6 +90,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** CI (typecheck, lint, build, e2e sur base neuve) à chaque PR et push ; déploiement automatique après une CI verte sur `main` via l'API Portainer, précédé d'un `pg_dump` et suivi d'une vérification de santé
 - **Conséquences :** Secrets `PORTAINER_URL` / `PORTAINER_API_KEY` dans GitHub ; règles Biome historiques en avertissement (dette) ; voir `docs/18_ci_cd.md`
 
+### D-015 — Bilan net des salaires, vue trésorerie
+- **Date :** 2026-10-09
+- **Contexte :** Le solde ignorait les salaires ; besoin d'un détail mensuel. En production, des parents paient d'avance (scolarité de janvier encaissée en octobre) et des dépenses existent en septembre
+- **Décision :** Solde = paiements + recettes − dépenses − salaires payés. Détail mensuel rattaché à la date d'encaissement/décaissement ; octobre → juillet toujours affichés, autres mois s'ils ont des mouvements. Salaires de l'année = bulletins payés dont la période est dans l'année scolaire
+- **Conséquences :** Le tableau mensuel montre la trésorerie réelle, pas le mois de scolarité concerné ; ajout de Vitest pour les calculs (lancé en CI)
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

@@ -231,7 +231,10 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 ### `finance.bilan.summary`
 - **Type :** Query
 - **Input :** `{ anneeScolaireId: uuid }`
-- **Output :** `{ totalPaiements, totalDepenses, totalRecettes, solde }`
+- **Output :** `{ totalPaiements, totalRecettes, totalDepenses, totalSalaires, solde, mois: LigneBilan[] }`
+- `LigneBilan` : `{ annee, mois, paiements, recettes, depenses, salaires, solde, soldeCumule }` (vue trésorerie, ordre chronologique)
+- **Calcul :** `src/modules/finance/bilan.ts` (`buildBilanMensuel`, `totauxBilan`, testés par Vitest). Les totaux sont la somme des lignes.
+- **Erreurs :** `NOT_FOUND` si l'année scolaire n'existe pas
 
 ---
 
