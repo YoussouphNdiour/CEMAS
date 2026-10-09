@@ -1,5 +1,24 @@
 # Prompt — Reporter dans l'app web CEMAS les fonctionnalités et décisions de la version Excel
 
+## État (2026-10-09)
+
+| Lot | Statut | PR | Spec / plan |
+|-----|--------|----|-------------|
+| 1. Paramètres de l'école | ✅ en production | #1 | `superpowers/specs/2026-10-08-lot1-parametres-ecole-design.md` |
+| 2. Impayés et relances | ✅ en production | #6 | `superpowers/specs/2026-10-09-lot2-impayes-relances-design.md` |
+| 3. Fiche de paie imprimable | ✅ en production | #8 | (lot borné, design en conversation) |
+| 4. Passage à l'année suivante | ✅ en production | #10 | `superpowers/specs/2026-10-09-lot4-passage-annee-design.md` |
+| 4b. Encadrement du passage | 🟡 design validé | — | fenêtre après la fin d'année, contrôles avant passage, bandeaux (sans email) |
+| 5. Sauvegarde automatique | ✅ en production | #9 | `docs/19_sauvegardes.md` |
+| 6. Bilan incluant les salaires | ✅ en production | #3 | (lot borné) |
+| 7. Capacité des classes | ✅ en production | #4 | (lot borné) |
+| 8. Second contact parent | ✅ en production | #5 | (lot borné) |
+| Hors prompt : CI/CD | ✅ | #2, #7 | `docs/18_ci_cd.md` |
+
+Décisions : `16_decisions.md` (D-011 à D-019). Points reportés : `10_current_issues.md`.
+
+---
+
 > À coller tel quel dans une nouvelle session Claude Code ouverte sur ce dépôt.
 
 ---
