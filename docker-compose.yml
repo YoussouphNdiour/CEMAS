@@ -36,5 +36,24 @@ services:
       db:
         condition: service_healthy
 
+  backup:
+    build:
+      context: .
+      dockerfile: scripts/backup/Dockerfile
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: cemas
+      PGPASSWORD: cemas2025
+      PGDATABASE: cemas
+      RETENTION_JOURS: "30"
+      BACKUP_HEURE: "2"
+    volumes:
+      - cemas_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   cemas_pgdata:
+  cemas_backups:

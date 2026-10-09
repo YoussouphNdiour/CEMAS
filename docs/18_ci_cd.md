@@ -42,7 +42,7 @@ Le certificat Portainer est auto-signé : le script utilise `curl -k`.
 
 - Emplacement : `/var/lib/postgresql/data/backups/predeploy-<sha>-<date>.dump` dans le conteneur `cemas-db-1` (volume `cemas_cemas_pgdata`).
 - Format `pg_dump -Fc`, vérifié par `pg_restore -l`. Les 10 plus récents sont conservés.
-- Ce sont des sauvegardes de sécurité avant déploiement, pas une politique de sauvegarde (voir le lot « Sauvegarde automatique »).
+- Ce sont des sauvegardes de sécurité avant déploiement. La sauvegarde quotidienne (30 jours) est décrite dans `docs/19_sauvegardes.md`.
 
 ## Restaurer une sauvegarde
 
