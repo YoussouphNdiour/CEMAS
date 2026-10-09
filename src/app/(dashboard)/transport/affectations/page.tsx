@@ -1,10 +1,10 @@
 "use client";
 
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
-import { Plus, Trash2 } from "lucide-react";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
 
 type AffectationRow = Record<string, unknown> & {
 	id: string;
@@ -179,10 +179,7 @@ export default function AffectationsPage() {
 		<div>
 			<PageHeader
 				title="Affectations transport"
-				breadcrumbs={[
-					{ label: "Transport" },
-					{ label: "Affectations" },
-				]}
+				breadcrumbs={[{ label: "Transport" }, { label: "Affectations" }]}
 				action={
 					<Button onClick={openCreate} disabled={!activeAnnee}>
 						<Plus className="h-4 w-4" />
@@ -203,16 +200,10 @@ export default function AffectationsPage() {
 				searchPlaceholder="Rechercher une affectation..."
 			/>
 
-			<FormModal
-				open={modalOpen}
-				onClose={closeModal}
-				title="Nouvelle affectation"
-			>
+			<FormModal open={modalOpen} onClose={closeModal} title="Nouvelle affectation">
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Élève
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Élève</label>
 						<input
 							type="text"
 							value={studentSearch}
@@ -236,9 +227,7 @@ export default function AffectationsPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Itinéraire
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Itinéraire</label>
 						<select
 							required
 							value={itineraireId}
@@ -255,9 +244,7 @@ export default function AffectationsPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Arrêt
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Arrêt</label>
 						<select
 							required
 							value={arretId}
@@ -270,7 +257,8 @@ export default function AffectationsPage() {
 							</option>
 							{arretsList.map((a) => (
 								<option key={a.id} value={a.id}>
-									{a.ordre}. {a.nom}{a.heurePassage ? ` (${a.heurePassage})` : ""}
+									{a.ordre}. {a.nom}
+									{a.heurePassage ? ` (${a.heurePassage})` : ""}
 								</option>
 							))}
 						</select>

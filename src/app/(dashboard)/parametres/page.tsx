@@ -1,10 +1,10 @@
 "use client";
 
+import { Calendar, Settings, Shield, User } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, Button, StatCard } from "@/shared/ui";
-import { Settings, Calendar, User, Shield } from "lucide-react";
 import { ParametresForm } from "@/modules/settings/components/parametres-form";
+import { trpc } from "@/shared/lib/trpc-client";
+import { PageHeader, StatCard } from "@/shared/ui";
 
 export default function ParametresPage() {
 	const { data: session } = useSession();
@@ -15,33 +15,14 @@ export default function ParametresPage() {
 
 	return (
 		<div>
-			<PageHeader
-				title="Paramètres"
-				breadcrumbs={[{ label: "Paramètres" }]}
-			/>
+			<PageHeader title="Paramètres" breadcrumbs={[{ label: "Paramètres" }]} />
 
 			{/* School info */}
 			<div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				<StatCard
-					title="École"
-					value={parametres.data?.sigle ?? "—"}
-					icon={Settings}
-				/>
-				<StatCard
-					title="Année active"
-					value={activeAnnee?.libelle ?? "Aucune"}
-					icon={Calendar}
-				/>
-				<StatCard
-					title="Niveaux"
-					value={String(niveaux.data?.length ?? 0)}
-					icon={Shield}
-				/>
-				<StatCard
-					title="Utilisateur"
-					value={session?.user?.name ?? "Directeur"}
-					icon={User}
-				/>
+				<StatCard title="École" value={parametres.data?.sigle ?? "—"} icon={Settings} />
+				<StatCard title="Année active" value={activeAnnee?.libelle ?? "Aucune"} icon={Calendar} />
+				<StatCard title="Niveaux" value={String(niveaux.data?.length ?? 0)} icon={Shield} />
+				<StatCard title="Utilisateur" value={session?.user?.name ?? "Directeur"} icon={User} />
 			</div>
 
 			{/* Account section */}
@@ -56,15 +37,11 @@ export default function ParametresPage() {
 					<div className="space-y-3">
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-muted">Nom</span>
-							<span className="text-sm font-medium">
-								{session?.user?.name ?? "—"}
-							</span>
+							<span className="text-sm font-medium">{session?.user?.name ?? "—"}</span>
 						</div>
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-muted">Email</span>
-							<span className="text-sm font-medium">
-								{session?.user?.email ?? "—"}
-							</span>
+							<span className="text-sm font-medium">{session?.user?.email ?? "—"}</span>
 						</div>
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-muted">Rôle</span>
@@ -111,9 +88,7 @@ export default function ParametresPage() {
 						</p>
 						<p>
 							<span className="text-muted">Niveaux :</span>{" "}
-							<span className="font-medium">
-								Crèche, Préscolaire, Élémentaire
-							</span>
+							<span className="font-medium">Crèche, Préscolaire, Élémentaire</span>
 						</p>
 						<p>
 							<span className="text-muted">Version :</span>{" "}

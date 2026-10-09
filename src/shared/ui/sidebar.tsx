@@ -1,34 +1,34 @@
 "use client";
 
-import Link from "next/link";
-import { trpc } from "@/shared/lib/trpc-client";
-import { usePathname } from "next/navigation";
 import {
-	LayoutDashboard,
-	BookOpen,
-	Users,
 	Banknote,
-	Bus,
-	Briefcase,
-	Settings,
-	GraduationCap,
-	ChevronDown,
-	X,
-	Calendar,
+	BookOpen,
 	BookOpenCheck,
+	Briefcase,
+	Bus,
+	Calendar,
+	ChevronDown,
+	ClipboardList,
 	CreditCard,
-	TrendingUp,
-	Receipt,
 	DollarSign,
 	FileText,
-	Truck,
+	GraduationCap,
+	History,
+	LayoutDashboard,
 	MapPin,
+	Receipt,
+	Settings,
+	TrendingUp,
+	Truck,
 	UserCheck,
 	UserPlus,
-	ClipboardList,
-	History,
+	Users,
+	X,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { trpc } from "@/shared/lib/trpc-client";
 import { cn } from "@/shared/lib/utils";
 
 interface SidebarProps {
@@ -162,10 +162,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 												<item.icon className="h-5 w-5" />
 												<span className="flex-1 text-left">{item.label}</span>
 												<ChevronDown
-													className={cn(
-														"h-4 w-4 transition",
-														isExpanded && "rotate-180",
-													)}
+													className={cn("h-4 w-4 transition", isExpanded && "rotate-180")}
 												/>
 											</button>
 											{isExpanded && (
@@ -177,8 +174,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 																onClick={onClose}
 																className={cn(
 																	"flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/10",
-																	isActive(child.href) &&
-																		"bg-white/15 font-medium",
+																	isActive(child.href) && "bg-white/15 font-medium",
 																)}
 															>
 																<child.icon className="h-4 w-4" />

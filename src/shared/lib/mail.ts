@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
-import { db } from "./db";
 import { getParametres } from "@/modules/settings/service";
+import { db } from "./db";
 
 const transporter = nodemailer.createTransport({
 	host: process.env.SMTP_HOST,

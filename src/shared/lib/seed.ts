@@ -1,11 +1,11 @@
-import { db } from "./db";
-import { users } from "@/modules/auth/schema";
-import { anneesScolaires, niveaux, classes, matieres } from "@/modules/academic/schema";
-import { typesFrais, categoriesDepenses, categoriesRecettes } from "@/modules/finance/schema";
-import { parametresEcole } from "@/modules/settings/schema";
-import { PARAMETRES_DEFAUT } from "@/modules/settings/defaults";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { anneesScolaires, classes, matieres, niveaux } from "@/modules/academic/schema";
+import { users } from "@/modules/auth/schema";
+import { categoriesDepenses, categoriesRecettes, typesFrais } from "@/modules/finance/schema";
+import { PARAMETRES_DEFAUT } from "@/modules/settings/defaults";
+import { parametresEcole } from "@/modules/settings/schema";
+import { db } from "./db";
 
 async function seed() {
 	console.log("🌱 Seeding database...");
@@ -68,9 +68,7 @@ async function seed() {
 	} else {
 		niveauxMap = Object.fromEntries(existingNiveaux.map((n) => [n.nom, n.id]));
 		// Add missing niveaux
-		const missingNiveaux = [
-			{ nom: "Moyen", ordre: 4 },
-		];
+		const missingNiveaux = [{ nom: "Moyen", ordre: 4 }];
 		for (const n of missingNiveaux) {
 			if (!existingNiveaux.some((e) => e.nom === n.nom)) {
 				const [inserted] = await db.insert(niveaux).values(n).returning();
@@ -84,31 +82,46 @@ async function seed() {
 	const existingClasses = await db.select().from(classes);
 	if (existingClasses.length === 0) {
 		await db.insert(classes).values([
-			{ nom: "Petite Section", niveauId: niveauxMap["Crèche"], capacite: 20, anneeScolaireId: anneeId },
-			{ nom: "Moyenne Section", niveauId: niveauxMap["Crèche"], capacite: 20, anneeScolaireId: anneeId },
-			{ nom: "Grande Section", niveauId: niveauxMap["Préscolaire"], capacite: 25, anneeScolaireId: anneeId },
-			{ nom: "CI", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
-			{ nom: "CP", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
-			{ nom: "CE1", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
-			{ nom: "CE2", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
-			{ nom: "CM1", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
-			{ nom: "CM2", niveauId: niveauxMap["Élémentaire"], capacite: 35, anneeScolaireId: anneeId },
+			{
+				nom: "Petite Section",
+				niveauId: niveauxMap.Crèche,
+				capacite: 20,
+				anneeScolaireId: anneeId,
+			},
+			{
+				nom: "Moyenne Section",
+				niveauId: niveauxMap.Crèche,
+				capacite: 20,
+				anneeScolaireId: anneeId,
+			},
+			{
+				nom: "Grande Section",
+				niveauId: niveauxMap.Préscolaire,
+				capacite: 25,
+				anneeScolaireId: anneeId,
+			},
+			{ nom: "CI", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
+			{ nom: "CP", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
+			{ nom: "CE1", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
+			{ nom: "CE2", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
+			{ nom: "CM1", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
+			{ nom: "CM2", niveauId: niveauxMap.Élémentaire, capacite: 35, anneeScolaireId: anneeId },
 		]);
 		console.log("✅ 9 classes créées");
 	}
 
 	// 4b. Classes Moyen (add if missing)
-	if (niveauxMap["Moyen"]) {
+	if (niveauxMap.Moyen) {
 		const existingClassesMoyen = await db
 			.select()
 			.from(classes)
-			.where(eq(classes.niveauId, niveauxMap["Moyen"]));
+			.where(eq(classes.niveauId, niveauxMap.Moyen));
 		if (existingClassesMoyen.length === 0) {
 			await db.insert(classes).values([
-				{ nom: "6ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
-				{ nom: "5ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
-				{ nom: "4ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
-				{ nom: "3ème", niveauId: niveauxMap["Moyen"], capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "6ème", niveauId: niveauxMap.Moyen, capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "5ème", niveauId: niveauxMap.Moyen, capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "4ème", niveauId: niveauxMap.Moyen, capacite: 40, anneeScolaireId: anneeId },
+				{ nom: "3ème", niveauId: niveauxMap.Moyen, capacite: 40, anneeScolaireId: anneeId },
 			]);
 			console.log("✅ 4 classes Moyen créées (6ème-3ème)");
 		}
@@ -118,13 +131,13 @@ async function seed() {
 	const existingMatieres = await db.select().from(matieres);
 	if (existingMatieres.length === 0) {
 		await db.insert(matieres).values([
-			{ nom: "Français", coefficient: 3, niveauId: niveauxMap["Élémentaire"] },
-			{ nom: "Mathématiques", coefficient: 3, niveauId: niveauxMap["Élémentaire"] },
-			{ nom: "Éveil", coefficient: 2, niveauId: niveauxMap["Élémentaire"] },
-			{ nom: "Éducation physique", coefficient: 1, niveauId: niveauxMap["Élémentaire"] },
-			{ nom: "Activités d'éveil", coefficient: 2, niveauId: niveauxMap["Préscolaire"] },
-			{ nom: "Langage", coefficient: 2, niveauId: niveauxMap["Préscolaire"] },
-			{ nom: "Psychomotricité", coefficient: 1, niveauId: niveauxMap["Crèche"] },
+			{ nom: "Français", coefficient: 3, niveauId: niveauxMap.Élémentaire },
+			{ nom: "Mathématiques", coefficient: 3, niveauId: niveauxMap.Élémentaire },
+			{ nom: "Éveil", coefficient: 2, niveauId: niveauxMap.Élémentaire },
+			{ nom: "Éducation physique", coefficient: 1, niveauId: niveauxMap.Élémentaire },
+			{ nom: "Activités d'éveil", coefficient: 2, niveauId: niveauxMap.Préscolaire },
+			{ nom: "Langage", coefficient: 2, niveauId: niveauxMap.Préscolaire },
+			{ nom: "Psychomotricité", coefficient: 1, niveauId: niveauxMap.Crèche },
 		]);
 		console.log("✅ 7 matières créées");
 	}
@@ -157,24 +170,28 @@ async function seed() {
 	// 7. Catégories de dépenses
 	const existingCatDep = await db.select().from(categoriesDepenses);
 	if (existingCatDep.length === 0) {
-		await db.insert(categoriesDepenses).values([
-			{ nom: "Fournitures" },
-			{ nom: "Entretien" },
-			{ nom: "Équipement" },
-			{ nom: "Divers" },
-		]);
+		await db
+			.insert(categoriesDepenses)
+			.values([
+				{ nom: "Fournitures" },
+				{ nom: "Entretien" },
+				{ nom: "Équipement" },
+				{ nom: "Divers" },
+			]);
 		console.log("✅ 4 catégories de dépenses créées");
 	}
 
 	// 8. Catégories de recettes
 	const existingCatRec = await db.select().from(categoriesRecettes);
 	if (existingCatRec.length === 0) {
-		await db.insert(categoriesRecettes).values([
-			{ nom: "Location salle" },
-			{ nom: "Événements" },
-			{ nom: "Dons" },
-			{ nom: "Divers" },
-		]);
+		await db
+			.insert(categoriesRecettes)
+			.values([
+				{ nom: "Location salle" },
+				{ nom: "Événements" },
+				{ nom: "Dons" },
+				{ nom: "Divers" },
+			]);
 		console.log("✅ 4 catégories de recettes créées");
 	}
 

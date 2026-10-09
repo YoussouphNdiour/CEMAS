@@ -1,11 +1,11 @@
 "use client";
 
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, DataTable, StatusBadge, Button, FormModal, ConfirmDialog } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
 import { formatCFA } from "@/shared/lib/utils";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import type { Column } from "@/shared/ui";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader, StatusBadge } from "@/shared/ui";
 
 type EmployeRow = {
 	id: string;
@@ -206,9 +206,7 @@ export default function EmployesPage() {
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Prenom
-							</label>
+							<label className="mb-1 block text-sm font-medium text-gray-700">Prenom</label>
 							<input
 								type="text"
 								required
@@ -218,9 +216,7 @@ export default function EmployesPage() {
 							/>
 						</div>
 						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Nom
-							</label>
+							<label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
 							<input
 								type="text"
 								required
@@ -232,9 +228,7 @@ export default function EmployesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Telephone
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Telephone</label>
 						<input
 							type="text"
 							value={form.telephone}
@@ -244,9 +238,7 @@ export default function EmployesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Poste
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Poste</label>
 						<input
 							type="text"
 							required
@@ -257,9 +249,7 @@ export default function EmployesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Type
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Type</label>
 						<select
 							value={form.type}
 							onChange={(e) => setForm({ ...form, type: e.target.value as FormData["type"] })}
@@ -286,9 +276,7 @@ export default function EmployesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Date d'embauche
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Date d'embauche</label>
 						<input
 							type="date"
 							required

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader } from "@/shared/ui";
 import { formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
+import { PageHeader } from "@/shared/ui";
 
 type MonthSummary = {
 	mois: number;
@@ -81,9 +81,7 @@ export default function HistoriquePage() {
 					<tbody>
 						{data.map((row) => (
 							<tr key={row.mois} className="border-b transition last:border-b-0 hover:bg-gray-50">
-								<td className="whitespace-nowrap px-4 py-3 font-medium">
-									{MOIS_LABELS[row.mois]}
-								</td>
+								<td className="whitespace-nowrap px-4 py-3 font-medium">{MOIS_LABELS[row.mois]}</td>
 								<td className="whitespace-nowrap px-4 py-3 text-right">
 									{formatCFA(row.totalBase)}
 								</td>
@@ -96,17 +94,13 @@ export default function HistoriquePage() {
 								<td className="whitespace-nowrap px-4 py-3 text-right font-semibold">
 									{formatCFA(row.totalNet)}
 								</td>
-								<td className="whitespace-nowrap px-4 py-3 text-right">
-									{row.nbPayes}
-								</td>
+								<td className="whitespace-nowrap px-4 py-3 text-right">{row.nbPayes}</td>
 							</tr>
 						))}
 					</tbody>
 					<tfoot>
 						<tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
-							<td className="whitespace-nowrap px-4 py-3">
-								Total annuel
-							</td>
+							<td className="whitespace-nowrap px-4 py-3">Total annuel</td>
 							<td className="whitespace-nowrap px-4 py-3 text-right">
 								{formatCFA(totals.totalBase)}
 							</td>
@@ -119,9 +113,7 @@ export default function HistoriquePage() {
 							<td className="whitespace-nowrap px-4 py-3 text-right">
 								{formatCFA(totals.totalNet)}
 							</td>
-							<td className="whitespace-nowrap px-4 py-3 text-right">
-								{totals.nbPayes}
-							</td>
+							<td className="whitespace-nowrap px-4 py-3 text-right">{totals.nbPayes}</td>
 						</tr>
 					</tfoot>
 				</table>

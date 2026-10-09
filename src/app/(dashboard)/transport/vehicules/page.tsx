@@ -1,10 +1,10 @@
 "use client";
 
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
 
 type VehiculeRow = Record<string, unknown> & {
 	id: string;
@@ -165,10 +165,7 @@ export default function VehiculesPage() {
 		<div>
 			<PageHeader
 				title="Véhicules"
-				breadcrumbs={[
-					{ label: "Transport" },
-					{ label: "Véhicules" },
-				]}
+				breadcrumbs={[{ label: "Transport" }, { label: "Véhicules" }]}
 				action={
 					<Button onClick={openCreate}>
 						<Plus className="h-4 w-4" />
@@ -190,9 +187,7 @@ export default function VehiculesPage() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Immatriculation
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Immatriculation</label>
 						<input
 							type="text"
 							required
@@ -204,9 +199,7 @@ export default function VehiculesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Marque
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Marque</label>
 						<input
 							type="text"
 							value={form.marque}
@@ -217,9 +210,7 @@ export default function VehiculesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Capacité
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Capacité</label>
 						<input
 							type="number"
 							required
@@ -232,9 +223,7 @@ export default function VehiculesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Nom du chauffeur
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Nom du chauffeur</label>
 						<input
 							type="text"
 							required

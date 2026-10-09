@@ -17,12 +17,7 @@ export function StatCard({ title, value, icon: Icon, trend, trendUp }: StatCardP
 					<p className="text-sm text-muted">{title}</p>
 					<p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
 					{trend && (
-						<p
-							className={cn(
-								"mt-1 text-xs font-medium",
-								trendUp ? "text-success" : "text-danger",
-							)}
-						>
+						<p className={cn("mt-1 text-xs font-medium", trendUp ? "text-success" : "text-danger")}>
 							{trendUp ? "↑" : "↓"} {trend}
 						</p>
 					)}

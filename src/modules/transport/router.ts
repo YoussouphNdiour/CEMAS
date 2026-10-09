@@ -1,22 +1,17 @@
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import {
-	vehicules,
-	itineraires,
-	arrets,
-	affectationsTransport,
-} from "./schema";
+import { paiements, typesFrais } from "@/modules/finance/schema";
 import { eleves } from "@/modules/students/schema";
+import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { affectationsTransport, arrets, itineraires, vehicules } from "./schema";
 import {
-	createVehiculeSchema,
-	updateVehiculeSchema,
-	createItineraireSchema,
-	updateItineraireSchema,
-	createArretSchema,
 	createAffectationSchema,
+	createArretSchema,
+	createItineraireSchema,
+	createVehiculeSchema,
+	updateItineraireSchema,
+	updateVehiculeSchema,
 } from "./validation";
-import { eq, and, sql } from "drizzle-orm";
-import { typesFrais, paiements } from "@/modules/finance/schema";
 
 const vehiculesRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
@@ -25,40 +20,36 @@ const vehiculesRouter = createTRPCRouter({
 		});
 	}),
 
-	create: protectedProcedure
-		.input(createVehiculeSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [vehicule] = await ctx.db
-				.insert(vehicules)
-				.values({
-					immatriculation: input.immatriculation,
-					marque: input.marque ?? null,
-					capacite: input.capacite,
-					chauffeurNom: input.chauffeurNom,
-					chauffeurTel: input.chauffeurTel,
-				})
-				.returning();
-			return vehicule;
-		}),
+	create: protectedProcedure.input(createVehiculeSchema).mutation(async ({ ctx, input }) => {
+		const [vehicule] = await ctx.db
+			.insert(vehicules)
+			.values({
+				immatriculation: input.immatriculation,
+				marque: input.marque ?? null,
+				capacite: input.capacite,
+				chauffeurNom: input.chauffeurNom,
+				chauffeurTel: input.chauffeurTel,
+			})
+			.returning();
+		return vehicule;
+	}),
 
-	update: protectedProcedure
-		.input(updateVehiculeSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
-			const updateData: Record<string, unknown> = {};
-			if (data.immatriculation !== undefined) updateData.immatriculation = data.immatriculation;
-			if (data.marque !== undefined) updateData.marque = data.marque;
-			if (data.capacite !== undefined) updateData.capacite = data.capacite;
-			if (data.chauffeurNom !== undefined) updateData.chauffeurNom = data.chauffeurNom;
-			if (data.chauffeurTel !== undefined) updateData.chauffeurTel = data.chauffeurTel;
+	update: protectedProcedure.input(updateVehiculeSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
+		const updateData: Record<string, unknown> = {};
+		if (data.immatriculation !== undefined) updateData.immatriculation = data.immatriculation;
+		if (data.marque !== undefined) updateData.marque = data.marque;
+		if (data.capacite !== undefined) updateData.capacite = data.capacite;
+		if (data.chauffeurNom !== undefined) updateData.chauffeurNom = data.chauffeurNom;
+		if (data.chauffeurTel !== undefined) updateData.chauffeurTel = data.chauffeurTel;
 
-			const [vehicule] = await ctx.db
-				.update(vehicules)
-				.set(updateData)
-				.where(eq(vehicules.id, id))
-				.returning();
-			return vehicule;
-		}),
+		const [vehicule] = await ctx.db
+			.update(vehicules)
+			.set(updateData)
+			.where(eq(vehicules.id, id))
+			.returning();
+		return vehicule;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -89,38 +80,34 @@ const itinerairesRouter = createTRPCRouter({
 		return rows;
 	}),
 
-	create: protectedProcedure
-		.input(createItineraireSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [itineraire] = await ctx.db
-				.insert(itineraires)
-				.values({
-					nom: input.nom,
-					vehiculeId: input.vehiculeId ?? null,
-					description: input.description ?? null,
-					montantMensuel: input.montantMensuel,
-				})
-				.returning();
-			return itineraire;
-		}),
+	create: protectedProcedure.input(createItineraireSchema).mutation(async ({ ctx, input }) => {
+		const [itineraire] = await ctx.db
+			.insert(itineraires)
+			.values({
+				nom: input.nom,
+				vehiculeId: input.vehiculeId ?? null,
+				description: input.description ?? null,
+				montantMensuel: input.montantMensuel,
+			})
+			.returning();
+		return itineraire;
+	}),
 
-	update: protectedProcedure
-		.input(updateItineraireSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
-			const updateData: Record<string, unknown> = {};
-			if (data.nom !== undefined) updateData.nom = data.nom;
-			if (data.vehiculeId !== undefined) updateData.vehiculeId = data.vehiculeId;
-			if (data.description !== undefined) updateData.description = data.description;
-			if (data.montantMensuel !== undefined) updateData.montantMensuel = data.montantMensuel;
+	update: protectedProcedure.input(updateItineraireSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
+		const updateData: Record<string, unknown> = {};
+		if (data.nom !== undefined) updateData.nom = data.nom;
+		if (data.vehiculeId !== undefined) updateData.vehiculeId = data.vehiculeId;
+		if (data.description !== undefined) updateData.description = data.description;
+		if (data.montantMensuel !== undefined) updateData.montantMensuel = data.montantMensuel;
 
-			const [itineraire] = await ctx.db
-				.update(itineraires)
-				.set(updateData)
-				.where(eq(itineraires.id, id))
-				.returning();
-			return itineraire;
-		}),
+		const [itineraire] = await ctx.db
+			.update(itineraires)
+			.set(updateData)
+			.where(eq(itineraires.id, id))
+			.returning();
+		return itineraire;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -140,20 +127,18 @@ const arretsRouter = createTRPCRouter({
 			});
 		}),
 
-	create: protectedProcedure
-		.input(createArretSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [arret] = await ctx.db
-				.insert(arrets)
-				.values({
-					itineraireId: input.itineraireId,
-					nom: input.nom,
-					ordre: input.ordre,
-					heurePassage: input.heurePassage ?? null,
-				})
-				.returning();
-			return arret;
-		}),
+	create: protectedProcedure.input(createArretSchema).mutation(async ({ ctx, input }) => {
+		const [arret] = await ctx.db
+			.insert(arrets)
+			.values({
+				itineraireId: input.itineraireId,
+				nom: input.nom,
+				ordre: input.ordre,
+				heurePassage: input.heurePassage ?? null,
+			})
+			.returning();
+		return arret;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -189,27 +174,23 @@ const affectationsRouter = createTRPCRouter({
 			return rows;
 		}),
 
-	create: protectedProcedure
-		.input(createAffectationSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [affectation] = await ctx.db
-				.insert(affectationsTransport)
-				.values({
-					eleveId: input.eleveId,
-					itineraireId: input.itineraireId,
-					arretId: input.arretId,
-					anneeScolaireId: input.anneeScolaireId,
-				})
-				.returning();
-			return affectation;
-		}),
+	create: protectedProcedure.input(createAffectationSchema).mutation(async ({ ctx, input }) => {
+		const [affectation] = await ctx.db
+			.insert(affectationsTransport)
+			.values({
+				eleveId: input.eleveId,
+				itineraireId: input.itineraireId,
+				arretId: input.arretId,
+				anneeScolaireId: input.anneeScolaireId,
+			})
+			.returning();
+		return affectation;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await ctx.db
-				.delete(affectationsTransport)
-				.where(eq(affectationsTransport.id, input.id));
+			await ctx.db.delete(affectationsTransport).where(eq(affectationsTransport.id, input.id));
 			return { success: true };
 		}),
 });
@@ -257,7 +238,8 @@ const suiviTransportRouter = createTRPCRouter({
 				)
 				.orderBy(eleves.nom, eleves.prenom);
 
-			if (studentsList.length === 0) return { students: [], montantMensuel: itineraire?.montantMensuel ?? 0 };
+			if (studentsList.length === 0)
+				return { students: [], montantMensuel: itineraire?.montantMensuel ?? 0 };
 
 			// Get all transport payments for these students
 			const studentIds = studentsList.map((s) => s.id);

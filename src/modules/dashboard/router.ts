@@ -1,10 +1,10 @@
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { eq, and, count, sql, desc } from "drizzle-orm";
-import { eleves } from "@/modules/students/schema";
-import { classes, niveaux, anneesScolaires } from "@/modules/academic/schema";
-import { paiements, typesFrais, depenses, recettes } from "@/modules/finance/schema";
+import { classes, niveaux } from "@/modules/academic/schema";
+import { depenses, paiements, typesFrais } from "@/modules/finance/schema";
 import { bulletinsPaie, employes } from "@/modules/payroll/schema";
+import { eleves } from "@/modules/students/schema";
+import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 
 export const dashboardRouter = createTRPCRouter({
 	stats: protectedProcedure
@@ -14,12 +14,7 @@ export const dashboardRouter = createTRPCRouter({
 			const [studentsResult] = await ctx.db
 				.select({ total: count() })
 				.from(eleves)
-				.where(
-					and(
-						eq(eleves.anneeScolaireId, input.anneeScolaireId),
-						eq(eleves.statut, "actif"),
-					),
-				);
+				.where(and(eq(eleves.anneeScolaireId, input.anneeScolaireId), eq(eleves.statut, "actif")));
 
 			// Total classes
 			const [classesResult] = await ctx.db
@@ -51,12 +46,7 @@ export const dashboardRouter = createTRPCRouter({
 			const [payrollResult] = await ctx.db
 				.select({ total: sql<number>`COALESCE(SUM(${bulletinsPaie.netAPayer}), 0)` })
 				.from(bulletinsPaie)
-				.where(
-					and(
-						eq(bulletinsPaie.mois, currentMois),
-						eq(bulletinsPaie.annee, currentAnnee),
-					),
-				);
+				.where(and(eq(bulletinsPaie.mois, currentMois), eq(bulletinsPaie.annee, currentAnnee)));
 
 			return {
 				totalEleves: studentsResult.total,
@@ -79,12 +69,7 @@ export const dashboardRouter = createTRPCRouter({
 				.from(eleves)
 				.innerJoin(classes, eq(eleves.classeId, classes.id))
 				.innerJoin(niveaux, eq(classes.niveauId, niveaux.id))
-				.where(
-					and(
-						eq(eleves.anneeScolaireId, input.anneeScolaireId),
-						eq(eleves.statut, "actif"),
-					),
-				)
+				.where(and(eq(eleves.anneeScolaireId, input.anneeScolaireId), eq(eleves.statut, "actif")))
 				.groupBy(niveaux.nom)
 				.orderBy(niveaux.nom);
 

@@ -1,7 +1,17 @@
-import { pgTable, uuid, varchar, text, integer, time, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { eleves } from "@/modules/students/schema";
+import {
+	index,
+	integer,
+	pgTable,
+	text,
+	time,
+	timestamp,
+	uniqueIndex,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
 import { anneesScolaires } from "@/modules/academic/schema";
+import { eleves } from "@/modules/students/schema";
 
 export const vehicules = pgTable("vehicules", {
 	id: uuid("id").defaultRandom().primaryKey(),
@@ -22,18 +32,18 @@ export const itineraires = pgTable("itineraires", {
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const arrets = pgTable("arrets", {
-	id: uuid("id").defaultRandom().primaryKey(),
-	itineraireId: uuid("itineraire_id")
-		.notNull()
-		.references(() => itineraires.id, { onDelete: "cascade" }),
-	nom: varchar("nom", { length: 100 }).notNull(),
-	ordre: integer("ordre").notNull(),
-	heurePassage: time("heure_passage"),
-},
-(t) => [
-	index("arrets_itineraire_idx").on(t.itineraireId),
-],
+export const arrets = pgTable(
+	"arrets",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		itineraireId: uuid("itineraire_id")
+			.notNull()
+			.references(() => itineraires.id, { onDelete: "cascade" }),
+		nom: varchar("nom", { length: 100 }).notNull(),
+		ordre: integer("ordre").notNull(),
+		heurePassage: time("heure_passage"),
+	},
+	(t) => [index("arrets_itineraire_idx").on(t.itineraireId)],
 );
 
 export const affectationsTransport = pgTable(

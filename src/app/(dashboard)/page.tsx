@@ -1,21 +1,21 @@
 "use client";
 
-import { trpc } from "@/shared/lib/trpc-client";
-import { StatCard } from "@/shared/ui";
-import { formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
-import { Users, GraduationCap, Banknote, Briefcase, TrendingUp, Receipt } from "lucide-react";
+import { Banknote, Briefcase, GraduationCap, Receipt, TrendingUp, Users } from "lucide-react";
 import {
-	BarChart,
 	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	Pie,
+	PieChart,
+	ResponsiveContainer,
+	Tooltip,
 	XAxis,
 	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-	PieChart,
-	Pie,
-	Cell,
 } from "recharts";
+import { trpc } from "@/shared/lib/trpc-client";
+import { formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
+import { StatCard } from "@/shared/ui";
 
 const PIE_COLORS = ["#665d9d", "#fbc616", "#8b82b8", "#fdd44b", "#4a4271", "#e5a900"];
 
@@ -75,16 +75,8 @@ export default function DashboardPage() {
 			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
 				<StatCard title="Élèves" value={String(d?.totalEleves ?? 0)} icon={Users} />
 				<StatCard title="Classes" value={String(d?.totalClasses ?? 0)} icon={GraduationCap} />
-				<StatCard
-					title="Paiements"
-					value={formatCFA(d?.totalPaiements ?? 0)}
-					icon={TrendingUp}
-				/>
-				<StatCard
-					title="Dépenses"
-					value={formatCFA(d?.totalDepenses ?? 0)}
-					icon={Receipt}
-				/>
+				<StatCard title="Paiements" value={formatCFA(d?.totalPaiements ?? 0)} icon={TrendingUp} />
+				<StatCard title="Dépenses" value={formatCFA(d?.totalDepenses ?? 0)} icon={Receipt} />
 				<StatCard title="Employés" value={String(d?.totalEmployes ?? 0)} icon={Briefcase} />
 				<StatCard
 					title="Masse salariale"
@@ -103,20 +95,13 @@ export default function DashboardPage() {
 							<BarChart data={revenueData}>
 								<CartesianGrid strokeDasharray="3 3" />
 								<XAxis dataKey="mois" tick={{ fontSize: 12 }} />
-								<YAxis
-									tick={{ fontSize: 12 }}
-									tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-								/>
-								<Tooltip
-									formatter={(value) => [formatCFA(Number(value)), "Montant"]}
-								/>
+								<YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+								<Tooltip formatter={(value) => [formatCFA(Number(value)), "Montant"]} />
 								<Bar dataKey="montant" fill="#665d9d" radius={[4, 4, 0, 0]} />
 							</BarChart>
 						</ResponsiveContainer>
 					) : (
-						<p className="py-12 text-center text-sm text-muted">
-							Aucun paiement enregistré
-						</p>
+						<p className="py-12 text-center text-sm text-muted">Aucun paiement enregistré</p>
 					)}
 				</div>
 
@@ -136,10 +121,7 @@ export default function DashboardPage() {
 										dataKey="value"
 									>
 										{pieData.map((_, i) => (
-											<Cell
-												key={i}
-												fill={PIE_COLORS[i % PIE_COLORS.length]}
-											/>
+											<Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
 										))}
 									</Pie>
 									<Tooltip />
@@ -151,8 +133,7 @@ export default function DashboardPage() {
 										<div
 											className="h-3 w-3 rounded-full"
 											style={{
-												backgroundColor:
-													PIE_COLORS[i % PIE_COLORS.length],
+												backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
 											}}
 										/>
 										<span>
@@ -196,19 +177,13 @@ export default function DashboardPage() {
 							<tbody>
 								{recentPayments.data!.map((p) => (
 									<tr key={p.id} className="border-b last:border-b-0">
-										<td className="px-4 py-3 font-mono text-xs">
-											{p.numeroRecu}
-										</td>
+										<td className="px-4 py-3 font-mono text-xs">{p.numeroRecu}</td>
 										<td className="px-4 py-3 font-medium">
 											{p.elevePrenom} {p.eleveNom}
 										</td>
 										<td className="px-4 py-3">{p.typeFraisNom}</td>
-										<td className="px-4 py-3">
-											{MOIS_LABELS[p.mois] ?? p.mois}
-										</td>
-										<td className="px-4 py-3 text-right font-semibold">
-											{formatCFA(p.montant)}
-										</td>
+										<td className="px-4 py-3">{MOIS_LABELS[p.mois] ?? p.mois}</td>
+										<td className="px-4 py-3 text-right font-semibold">{formatCFA(p.montant)}</td>
 									</tr>
 								))}
 							</tbody>

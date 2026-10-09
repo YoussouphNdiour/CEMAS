@@ -1,11 +1,11 @@
 "use client";
 
+import { Banknote, CheckCircle, FileText, Gift, MinusCircle, Users } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, DataTable, StatusBadge, Button, MonthPicker, StatCard } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
 import { formatCFA } from "@/shared/lib/utils";
-import { FileText, CheckCircle, Banknote, Gift, MinusCircle, Users } from "lucide-react";
+import type { Column } from "@/shared/ui";
+import { Button, DataTable, MonthPicker, PageHeader, StatCard, StatusBadge } from "@/shared/ui";
 
 type BulletinRow = {
 	id: string;
@@ -29,7 +29,10 @@ export default function BulletinsPage() {
 	const now = new Date();
 	const [mois, setMois] = useState(now.getMonth() + 1);
 	const [annee, setAnnee] = useState(now.getFullYear());
-	const [editingCell, setEditingCell] = useState<{ id: string; field: "primes" | "retenues" } | null>(null);
+	const [editingCell, setEditingCell] = useState<{
+		id: string;
+		field: "primes" | "retenues";
+	} | null>(null);
 	const [editValue, setEditValue] = useState("");
 
 	const utils = trpc.useUtils();
@@ -99,8 +102,12 @@ export default function BulletinsPage() {
 			sortable: true,
 			render: (row) => (
 				<div>
-					<div className="font-medium">{row.employePrenom} {row.employeNom}</div>
-					<div className="text-xs text-muted">{row.employeMatricule} - {row.employePoste}</div>
+					<div className="font-medium">
+						{row.employePrenom} {row.employeNom}
+					</div>
+					<div className="text-xs text-muted">
+						{row.employeMatricule} - {row.employePoste}
+					</div>
 				</div>
 			),
 		},
@@ -176,16 +183,12 @@ export default function BulletinsPage() {
 		{
 			key: "netAPayer",
 			label: "Net a payer",
-			render: (row) => (
-				<span className="font-semibold">{formatCFA(row.netAPayer)}</span>
-			),
+			render: (row) => <span className="font-semibold">{formatCFA(row.netAPayer)}</span>,
 		},
 		{
 			key: "paye",
 			label: "Statut",
-			render: (row) => (
-				<StatusBadge status={row.paye ? "paye" : "impaye"} />
-			),
+			render: (row) => <StatusBadge status={row.paye ? "paye" : "impaye"} />,
 		},
 		{
 			key: "actions",
@@ -205,9 +208,7 @@ export default function BulletinsPage() {
 						Marquer paye
 					</Button>
 				) : (
-					<span className="text-xs text-muted">
-						Paye le {row.datePaiement}
-					</span>
+					<span className="text-xs text-muted">Paye le {row.datePaiement}</span>
 				),
 		},
 	];
@@ -250,7 +251,11 @@ export default function BulletinsPage() {
 				<div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					<StatCard title="Total net a payer" value={formatCFA(stats.totalNet)} icon={Banknote} />
 					<StatCard title="Total primes" value={formatCFA(stats.totalPrimes)} icon={Gift} />
-					<StatCard title="Total retenues" value={formatCFA(stats.totalRetenues)} icon={MinusCircle} />
+					<StatCard
+						title="Total retenues"
+						value={formatCFA(stats.totalRetenues)}
+						icon={MinusCircle}
+					/>
 					<StatCard title="Nombre d'employes" value={String(stats.nbEmployes)} icon={Users} />
 				</div>
 			)}

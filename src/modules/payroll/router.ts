@@ -1,17 +1,17 @@
-import { eq, and, sql, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
-import { employes, bulletinsPaie } from "./schema";
-import { generateEmployeMatricule } from "@/shared/lib/utils";
-import { nextSequence } from "@/shared/lib/sequence";
+import { and, count, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { getParametres } from "@/modules/settings/service";
+import { nextSequence } from "@/shared/lib/sequence";
+import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { generateEmployeMatricule } from "@/shared/lib/utils";
+import { bulletinsPaie, employes } from "./schema";
 import {
 	createEmployeSchema,
-	updateEmployeSchema,
 	generateBulletinsSchema,
 	updateBulletinSchema,
+	updateEmployeSchema,
 } from "./validation";
-import { z } from "zod";
 
 const employesRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
@@ -38,61 +38,54 @@ const employesRouter = createTRPCRouter({
 		return rows;
 	}),
 
-	create: protectedProcedure
-		.input(createEmployeSchema)
-		.mutation(async ({ ctx, input }) => {
-			// Next sequence number for the configured prefix
-			const { prefixeEmploye } = await getParametres(ctx.db);
-			const seq = await nextSequence(
-				ctx.db,
-				employes,
-				employes.matricule,
-				`^${prefixeEmploye}-(\\d+)$`,
-			);
-			const matricule = generateEmployeMatricule(prefixeEmploye, seq);
+	create: protectedProcedure.input(createEmployeSchema).mutation(async ({ ctx, input }) => {
+		// Next sequence number for the configured prefix
+		const { prefixeEmploye } = await getParametres(ctx.db);
+		const seq = await nextSequence(
+			ctx.db,
+			employes,
+			employes.matricule,
+			`^${prefixeEmploye}-(\\d+)$`,
+		);
+		const matricule = generateEmployeMatricule(prefixeEmploye, seq);
 
-			const [created] = await ctx.db
-				.insert(employes)
-				.values({
-					matricule,
-					prenom: input.prenom,
-					nom: input.nom,
-					telephone: input.telephone,
-					poste: input.poste,
-					type: input.type,
-					salaireBase: input.salaireBase,
-					dateEmbauche: input.dateEmbauche,
-				})
-				.returning();
+		const [created] = await ctx.db
+			.insert(employes)
+			.values({
+				matricule,
+				prenom: input.prenom,
+				nom: input.nom,
+				telephone: input.telephone,
+				poste: input.poste,
+				type: input.type,
+				salaireBase: input.salaireBase,
+				dateEmbauche: input.dateEmbauche,
+			})
+			.returning();
 
-			return created;
-		}),
+		return created;
+	}),
 
-	update: protectedProcedure
-		.input(updateEmployeSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
+	update: protectedProcedure.input(updateEmployeSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
 
-			const [updated] = await ctx.db
-				.update(employes)
-				.set({ ...data, updatedAt: new Date() })
-				.where(eq(employes.id, id))
-				.returning();
+		const [updated] = await ctx.db
+			.update(employes)
+			.set({ ...data, updatedAt: new Date() })
+			.where(eq(employes.id, id))
+			.returning();
 
-			if (!updated) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
-			}
+		if (!updated) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
+		}
 
-			return updated;
-		}),
+		return updated;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const [deleted] = await ctx.db
-				.delete(employes)
-				.where(eq(employes.id, input.id))
-				.returning();
+			const [deleted] = await ctx.db.delete(employes).where(eq(employes.id, input.id)).returning();
 
 			if (!deleted) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
@@ -103,120 +96,101 @@ const employesRouter = createTRPCRouter({
 });
 
 const bulletinsRouter = createTRPCRouter({
-	list: protectedProcedure
-		.input(generateBulletinsSchema)
-		.query(async ({ ctx, input }) => {
-			const rows = await ctx.db
-				.select({
-					id: bulletinsPaie.id,
-					employeId: bulletinsPaie.employeId,
-					mois: bulletinsPaie.mois,
-					annee: bulletinsPaie.annee,
-					salaireBase: bulletinsPaie.salaireBase,
-					primes: bulletinsPaie.primes,
-					retenues: bulletinsPaie.retenues,
-					netAPayer: bulletinsPaie.netAPayer,
-					datePaiement: bulletinsPaie.datePaiement,
-					paye: bulletinsPaie.paye,
-					note: bulletinsPaie.note,
-					employeMatricule: employes.matricule,
-					employePrenom: employes.prenom,
-					employeNom: employes.nom,
-					employePoste: employes.poste,
-				})
-				.from(bulletinsPaie)
-				.innerJoin(employes, eq(bulletinsPaie.employeId, employes.id))
-				.where(
-					and(
-						eq(bulletinsPaie.mois, input.mois),
-						eq(bulletinsPaie.annee, input.annee),
-					),
-				)
-				.orderBy(employes.nom);
+	list: protectedProcedure.input(generateBulletinsSchema).query(async ({ ctx, input }) => {
+		const rows = await ctx.db
+			.select({
+				id: bulletinsPaie.id,
+				employeId: bulletinsPaie.employeId,
+				mois: bulletinsPaie.mois,
+				annee: bulletinsPaie.annee,
+				salaireBase: bulletinsPaie.salaireBase,
+				primes: bulletinsPaie.primes,
+				retenues: bulletinsPaie.retenues,
+				netAPayer: bulletinsPaie.netAPayer,
+				datePaiement: bulletinsPaie.datePaiement,
+				paye: bulletinsPaie.paye,
+				note: bulletinsPaie.note,
+				employeMatricule: employes.matricule,
+				employePrenom: employes.prenom,
+				employeNom: employes.nom,
+				employePoste: employes.poste,
+			})
+			.from(bulletinsPaie)
+			.innerJoin(employes, eq(bulletinsPaie.employeId, employes.id))
+			.where(and(eq(bulletinsPaie.mois, input.mois), eq(bulletinsPaie.annee, input.annee)))
+			.orderBy(employes.nom);
 
-			return rows;
-		}),
+		return rows;
+	}),
 
-	generate: protectedProcedure
-		.input(generateBulletinsSchema)
-		.mutation(async ({ ctx, input }) => {
-			// Get all active employees
-			const activeEmployes = await ctx.db
-				.select()
-				.from(employes)
-				.where(eq(employes.statut, "actif"));
+	generate: protectedProcedure.input(generateBulletinsSchema).mutation(async ({ ctx, input }) => {
+		// Get all active employees
+		const activeEmployes = await ctx.db.select().from(employes).where(eq(employes.statut, "actif"));
 
-			if (activeEmployes.length === 0) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Aucun employé actif trouvé",
-				});
-			}
+		if (activeEmployes.length === 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Aucun employé actif trouvé",
+			});
+		}
 
-			// Get existing bulletins for this month/year to skip them
-			const existing = await ctx.db
-				.select({ employeId: bulletinsPaie.employeId })
-				.from(bulletinsPaie)
-				.where(
-					and(
-						eq(bulletinsPaie.mois, input.mois),
-						eq(bulletinsPaie.annee, input.annee),
-					),
-				);
+		// Get existing bulletins for this month/year to skip them
+		const existing = await ctx.db
+			.select({ employeId: bulletinsPaie.employeId })
+			.from(bulletinsPaie)
+			.where(and(eq(bulletinsPaie.mois, input.mois), eq(bulletinsPaie.annee, input.annee)));
 
-			const existingIds = new Set(existing.map((e) => e.employeId));
+		const existingIds = new Set(existing.map((e) => e.employeId));
 
-			const toInsert = activeEmployes
-				.filter((emp) => !existingIds.has(emp.id))
-				.map((emp) => ({
-					employeId: emp.id,
-					mois: input.mois,
-					annee: input.annee,
-					salaireBase: emp.salaireBase,
-					primes: 0,
-					retenues: 0,
-					netAPayer: emp.salaireBase,
-					paye: false,
-				}));
+		const toInsert = activeEmployes
+			.filter((emp) => !existingIds.has(emp.id))
+			.map((emp) => ({
+				employeId: emp.id,
+				mois: input.mois,
+				annee: input.annee,
+				salaireBase: emp.salaireBase,
+				primes: 0,
+				retenues: 0,
+				netAPayer: emp.salaireBase,
+				paye: false,
+			}));
 
-			if (toInsert.length === 0) {
-				return { created: 0, message: "Tous les bulletins existent déjà" };
-			}
+		if (toInsert.length === 0) {
+			return { created: 0, message: "Tous les bulletins existent déjà" };
+		}
 
-			await ctx.db.insert(bulletinsPaie).values(toInsert);
+		await ctx.db.insert(bulletinsPaie).values(toInsert);
 
-			return { created: toInsert.length, message: `${toInsert.length} bulletin(s) créé(s)` };
-		}),
+		return { created: toInsert.length, message: `${toInsert.length} bulletin(s) créé(s)` };
+	}),
 
-	update: protectedProcedure
-		.input(updateBulletinSchema)
-		.mutation(async ({ ctx, input }) => {
-			// Fetch the existing bulletin to get salaireBase
-			const [bulletin] = await ctx.db
-				.select()
-				.from(bulletinsPaie)
-				.where(eq(bulletinsPaie.id, input.id));
+	update: protectedProcedure.input(updateBulletinSchema).mutation(async ({ ctx, input }) => {
+		// Fetch the existing bulletin to get salaireBase
+		const [bulletin] = await ctx.db
+			.select()
+			.from(bulletinsPaie)
+			.where(eq(bulletinsPaie.id, input.id));
 
-			if (!bulletin) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Bulletin introuvable" });
-			}
+		if (!bulletin) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Bulletin introuvable" });
+		}
 
-			// Recompute net server-side
-			const netAPayer = bulletin.salaireBase + input.primes - input.retenues;
+		// Recompute net server-side
+		const netAPayer = bulletin.salaireBase + input.primes - input.retenues;
 
-			const [updated] = await ctx.db
-				.update(bulletinsPaie)
-				.set({
-					primes: input.primes,
-					retenues: input.retenues,
-					note: input.note,
-					netAPayer,
-				})
-				.where(eq(bulletinsPaie.id, input.id))
-				.returning();
+		const [updated] = await ctx.db
+			.update(bulletinsPaie)
+			.set({
+				primes: input.primes,
+				retenues: input.retenues,
+				note: input.note,
+				netAPayer,
+			})
+			.where(eq(bulletinsPaie.id, input.id))
+			.returning();
 
-			return updated;
-		}),
+		return updated;
+	}),
 
 	markPaid: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -236,31 +210,24 @@ const bulletinsRouter = createTRPCRouter({
 			return updated;
 		}),
 
-	stats: protectedProcedure
-		.input(generateBulletinsSchema)
-		.query(async ({ ctx, input }) => {
-			const [result] = await ctx.db
-				.select({
-					totalNet: sql<number>`COALESCE(SUM(${bulletinsPaie.netAPayer}), 0)`,
-					totalPrimes: sql<number>`COALESCE(SUM(${bulletinsPaie.primes}), 0)`,
-					totalRetenues: sql<number>`COALESCE(SUM(${bulletinsPaie.retenues}), 0)`,
-					nbEmployes: count(bulletinsPaie.id),
-				})
-				.from(bulletinsPaie)
-				.where(
-					and(
-						eq(bulletinsPaie.mois, input.mois),
-						eq(bulletinsPaie.annee, input.annee),
-					),
-				);
+	stats: protectedProcedure.input(generateBulletinsSchema).query(async ({ ctx, input }) => {
+		const [result] = await ctx.db
+			.select({
+				totalNet: sql<number>`COALESCE(SUM(${bulletinsPaie.netAPayer}), 0)`,
+				totalPrimes: sql<number>`COALESCE(SUM(${bulletinsPaie.primes}), 0)`,
+				totalRetenues: sql<number>`COALESCE(SUM(${bulletinsPaie.retenues}), 0)`,
+				nbEmployes: count(bulletinsPaie.id),
+			})
+			.from(bulletinsPaie)
+			.where(and(eq(bulletinsPaie.mois, input.mois), eq(bulletinsPaie.annee, input.annee)));
 
-			return {
-				totalNet: Number(result.totalNet),
-				totalPrimes: Number(result.totalPrimes),
-				totalRetenues: Number(result.totalRetenues),
-				nbEmployes: Number(result.nbEmployes),
-			};
-		}),
+		return {
+			totalNet: Number(result.totalNet),
+			totalPrimes: Number(result.totalPrimes),
+			totalRetenues: Number(result.totalRetenues),
+			nbEmployes: Number(result.nbEmployes),
+		};
+	}),
 });
 
 const historiqueRouter = protectedProcedure

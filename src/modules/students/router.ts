@@ -1,13 +1,13 @@
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/shared/lib/db";
-import { eleves, parents, eleveParents, inscriptions } from "./schema";
-import { classes, niveaux, anneesScolaires } from "@/modules/academic/schema";
-import { createStudentSchema, updateStudentSchema, studentFiltersSchema } from "./validation";
-import { eq, and, desc, ilike, or, count } from "drizzle-orm";
-import { generateMatricule } from "@/shared/lib/utils";
-import { nextSequence } from "@/shared/lib/sequence";
+import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { getParametres } from "@/modules/settings/service";
+import { db } from "@/shared/lib/db";
+import { nextSequence } from "@/shared/lib/sequence";
+import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { generateMatricule } from "@/shared/lib/utils";
+import { eleveParents, eleves, inscriptions, parents } from "./schema";
+import { createStudentSchema, studentFiltersSchema, updateStudentSchema } from "./validation";
 
 export const studentsRouter = createTRPCRouter({
 	list: protectedProcedure.input(studentFiltersSchema).query(async ({ input }) => {
@@ -108,7 +108,7 @@ export const studentsRouter = createTRPCRouter({
 				.select()
 				.from(anneesScolaires)
 				.where(eq(anneesScolaires.id, input.anneeScolaireId));
-			const year = annee ? parseInt(annee.libelle.split("-")[0]) : new Date().getFullYear();
+			const year = annee ? parseInt(annee.libelle.split("-")[0], 10) : new Date().getFullYear();
 
 			// Next sequence number for the configured prefix
 			const seq = await nextSequence(
@@ -180,11 +180,7 @@ export const studentsRouter = createTRPCRouter({
 		if (data.statut) updateData.statut = data.statut;
 		updateData.updatedAt = new Date();
 
-		const [updated] = await db
-			.update(eleves)
-			.set(updateData)
-			.where(eq(eleves.id, id))
-			.returning();
+		const [updated] = await db.update(eleves).set(updateData).where(eq(eleves.id, id)).returning();
 		return updated;
 	}),
 
@@ -206,12 +202,7 @@ export const studentsRouter = createTRPCRouter({
 				.from(eleves)
 				.innerJoin(classes, eq(eleves.classeId, classes.id))
 				.innerJoin(niveaux, eq(classes.niveauId, niveaux.id))
-				.where(
-					and(
-						eq(eleves.anneeScolaireId, input.anneeScolaireId),
-						eq(eleves.statut, "actif"),
-					),
-				)
+				.where(and(eq(eleves.anneeScolaireId, input.anneeScolaireId), eq(eleves.statut, "actif")))
 				.groupBy(niveaux.nom);
 
 			const total = results.reduce((sum, r) => sum + r.count, 0);

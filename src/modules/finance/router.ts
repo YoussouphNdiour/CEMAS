@@ -1,27 +1,26 @@
-import { eq, and, sql, desc } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import { classes } from "@/modules/academic/schema";
+import { getParametres } from "@/modules/settings/service";
+import { eleveParents, eleves, parents } from "@/modules/students/schema";
+import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { generateRecuNumber } from "@/shared/lib/utils";
 import {
-	typesFrais,
+	categoriesDepenses,
+	categoriesRecettes,
+	depenses,
 	grilleFrais,
 	paiements,
-	categoriesDepenses,
-	depenses,
-	categoriesRecettes,
 	recettes,
+	typesFrais,
 } from "./schema";
-import { classes } from "@/modules/academic/schema";
-import { eleves, parents, eleveParents } from "@/modules/students/schema";
-import { generateRecuNumber } from "@/shared/lib/utils";
-import { nextSequence } from "@/shared/lib/sequence";
-import { getParametres } from "@/modules/settings/service";
 import {
-	createPaiementSchema,
 	createDepenseSchema,
+	createPaiementSchema,
 	createRecetteSchema,
-	bilanFiltersSchema,
 	grilleFraisSchema,
 } from "./validation";
-import { z } from "zod";
 
 const typesFraisRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
@@ -50,72 +49,68 @@ const grilleFraisRouter = createTRPCRouter({
 				.orderBy(classes.nom, typesFrais.nom);
 		}),
 
-	upsert: protectedProcedure
-		.input(grilleFraisSchema)
-		.mutation(async ({ ctx, input }) => {
-			// Check if entry already exists
-			const [existing] = await ctx.db
-				.select()
-				.from(grilleFrais)
-				.where(
-					and(
-						eq(grilleFrais.classeId, input.classeId),
-						eq(grilleFrais.typeFraisId, input.typeFraisId),
-						eq(grilleFrais.anneeScolaireId, input.anneeScolaireId),
-					),
-				);
+	upsert: protectedProcedure.input(grilleFraisSchema).mutation(async ({ ctx, input }) => {
+		// Check if entry already exists
+		const [existing] = await ctx.db
+			.select()
+			.from(grilleFrais)
+			.where(
+				and(
+					eq(grilleFrais.classeId, input.classeId),
+					eq(grilleFrais.typeFraisId, input.typeFraisId),
+					eq(grilleFrais.anneeScolaireId, input.anneeScolaireId),
+				),
+			);
 
-			if (existing) {
-				const [updated] = await ctx.db
-					.update(grilleFrais)
-					.set({ montantMensuel: input.montantMensuel })
-					.where(eq(grilleFrais.id, existing.id))
-					.returning();
-				return updated;
-			}
-
-			const [created] = await ctx.db
-				.insert(grilleFrais)
-				.values({
-					classeId: input.classeId,
-					typeFraisId: input.typeFraisId,
-					anneeScolaireId: input.anneeScolaireId,
-					montantMensuel: input.montantMensuel,
-				})
+		if (existing) {
+			const [updated] = await ctx.db
+				.update(grilleFrais)
+				.set({ montantMensuel: input.montantMensuel })
+				.where(eq(grilleFrais.id, existing.id))
 				.returning();
-			return created;
-		}),
+			return updated;
+		}
+
+		const [created] = await ctx.db
+			.insert(grilleFrais)
+			.values({
+				classeId: input.classeId,
+				typeFraisId: input.typeFraisId,
+				anneeScolaireId: input.anneeScolaireId,
+				montantMensuel: input.montantMensuel,
+			})
+			.returning();
+		return created;
+	}),
 });
 
 const paiementsRouter = createTRPCRouter({
-	create: protectedProcedure
-		.input(createPaiementSchema)
-		.mutation(async ({ ctx, input }) => {
-			// Next receipt sequence for the configured prefix and current year
-			const year = new Date().getFullYear();
-			const { prefixeRecu } = await getParametres(ctx.db);
-			const seq = await nextSequence(
-				ctx.db,
-				paiements,
-				paiements.numeroRecu,
-				`^${prefixeRecu}-${year}-(\\d+)$`,
-			);
-			const numeroRecu = generateRecuNumber(prefixeRecu, year, seq);
+	create: protectedProcedure.input(createPaiementSchema).mutation(async ({ ctx, input }) => {
+		// Next receipt sequence for the configured prefix and current year
+		const year = new Date().getFullYear();
+		const { prefixeRecu } = await getParametres(ctx.db);
+		const seq = await nextSequence(
+			ctx.db,
+			paiements,
+			paiements.numeroRecu,
+			`^${prefixeRecu}-${year}-(\\d+)$`,
+		);
+		const numeroRecu = generateRecuNumber(prefixeRecu, year, seq);
 
-			const [created] = await ctx.db
-				.insert(paiements)
-				.values({
-					eleveId: input.eleveId,
-					typeFraisId: input.typeFraisId,
-					anneeScolaireId: input.anneeScolaireId,
-					mois: input.mois,
-					montant: input.montant,
-					numeroRecu,
-				})
-				.returning();
+		const [created] = await ctx.db
+			.insert(paiements)
+			.values({
+				eleveId: input.eleveId,
+				typeFraisId: input.typeFraisId,
+				anneeScolaireId: input.anneeScolaireId,
+				mois: input.mois,
+				montant: input.montant,
+				numeroRecu,
+			})
+			.returning();
 
-			return created;
-		}),
+		return created;
+	}),
 
 	listByEleve: protectedProcedure
 		.input(
@@ -260,10 +255,7 @@ const suiviRouter = createTRPCRouter({
 			if (studentsList.length === 0) return [];
 
 			// Get all types frais
-			const fraisTypes = await ctx.db
-				.select()
-				.from(typesFrais)
-				.orderBy(typesFrais.nom);
+			const fraisTypes = await ctx.db.select().from(typesFrais).orderBy(typesFrais.nom);
 
 			// Get all payments for these students in this year
 			const studentIds = studentsList.map((s) => s.id);
@@ -351,22 +343,20 @@ const depensesRouter = createTRPCRouter({
 				.orderBy(desc(depenses.date));
 		}),
 
-	create: protectedProcedure
-		.input(createDepenseSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [created] = await ctx.db
-				.insert(depenses)
-				.values({
-					categorieId: input.categorieId,
-					anneeScolaireId: input.anneeScolaireId,
-					libelle: input.libelle,
-					montant: input.montant,
-					date: input.date,
-					note: input.note ?? null,
-				})
-				.returning();
-			return created;
-		}),
+	create: protectedProcedure.input(createDepenseSchema).mutation(async ({ ctx, input }) => {
+		const [created] = await ctx.db
+			.insert(depenses)
+			.values({
+				categorieId: input.categorieId,
+				anneeScolaireId: input.anneeScolaireId,
+				libelle: input.libelle,
+				montant: input.montant,
+				date: input.date,
+				note: input.note ?? null,
+			})
+			.returning();
+		return created;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -402,22 +392,20 @@ const recettesRouter = createTRPCRouter({
 				.orderBy(desc(recettes.date));
 		}),
 
-	create: protectedProcedure
-		.input(createRecetteSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [created] = await ctx.db
-				.insert(recettes)
-				.values({
-					categorieId: input.categorieId,
-					anneeScolaireId: input.anneeScolaireId,
-					libelle: input.libelle,
-					montant: input.montant,
-					date: input.date,
-					note: input.note ?? null,
-				})
-				.returning();
-			return created;
-		}),
+	create: protectedProcedure.input(createRecetteSchema).mutation(async ({ ctx, input }) => {
+		const [created] = await ctx.db
+			.insert(recettes)
+			.values({
+				categorieId: input.categorieId,
+				anneeScolaireId: input.anneeScolaireId,
+				libelle: input.libelle,
+				montant: input.montant,
+				date: input.date,
+				note: input.note ?? null,
+			})
+			.returning();
+		return created;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))

@@ -1,11 +1,11 @@
 "use client";
 
+import { Archive, CheckCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog, StatusBadge } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
 import { formatDate } from "@/shared/lib/utils";
-import { Plus, Pencil, Trash2, CheckCircle, Archive } from "lucide-react";
+import type { Column } from "@/shared/ui";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader, StatusBadge } from "@/shared/ui";
 
 type Annee = Record<string, unknown> & {
 	id: string;
@@ -118,11 +118,14 @@ export default function AnneesPage() {
 		{
 			key: "active",
 			label: "Statut",
-			render: (row) => (
-				row.archived
-					? <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Archivée</span>
-					: <StatusBadge status={row.active ? "actif" : "inactif"} />
-			),
+			render: (row) =>
+				row.archived ? (
+					<span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+						Archivée
+					</span>
+				) : (
+					<StatusBadge status={row.active ? "actif" : "inactif"} />
+				),
 		},
 		{
 			key: "actions",
@@ -203,10 +206,7 @@ export default function AnneesPage() {
 		<div>
 			<PageHeader
 				title="Années scolaires"
-				breadcrumbs={[
-					{ label: "Académique" },
-					{ label: "Années scolaires" },
-				]}
+				breadcrumbs={[{ label: "Académique" }, { label: "Années scolaires" }]}
 				action={
 					<Button onClick={openCreate}>
 						<Plus className="h-4 w-4" />
@@ -228,9 +228,7 @@ export default function AnneesPage() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Libellé
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Libellé</label>
 						<input
 							type="text"
 							value={libelle}
@@ -241,9 +239,7 @@ export default function AnneesPage() {
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Date de début
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Date de début</label>
 						<input
 							type="date"
 							value={dateDebut}
@@ -253,9 +249,7 @@ export default function AnneesPage() {
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Date de fin
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Date de fin</label>
 						<input
 							type="date"
 							value={dateFin}

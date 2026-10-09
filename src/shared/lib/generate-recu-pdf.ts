@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
-import { MOIS_LABELS } from "./utils";
 import type { Parametres } from "@/modules/settings/service";
+import { MOIS_LABELS } from "./utils";
 
 interface RecuData {
 	numeroRecu: string;
@@ -22,7 +22,7 @@ const PRIMARY = { r: 102, g: 93, b: 157 }; // #665d9d
 const SECONDARY = { r: 251, g: 198, b: 22 }; // #fbc616
 
 function formatMontantPdf(amount: number): string {
-	return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
+	return `${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
 }
 
 function formatDateFr(dateStr: string): string {
@@ -101,7 +101,9 @@ export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 	doc.text(`N° ${data.numeroRecu}`, margin + 4, y + 2);
 	doc.setFont("helvetica", "normal");
 	doc.setTextColor(60, 60, 60);
-	doc.text(`Date: ${formatDateFr(data.datePaiement)}`, pageWidth - margin - 4, y + 2, { align: "right" });
+	doc.text(`Date: ${formatDateFr(data.datePaiement)}`, pageWidth - margin - 4, y + 2, {
+		align: "right",
+	});
 	y += 18;
 
 	// ── Student info ──
@@ -149,7 +151,9 @@ export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 	doc.setTextColor(255, 255, 255);
 	doc.setFontSize(12);
 	doc.setFont("helvetica", "bold");
-	doc.text(`MONTANT : ${formatMontantPdf(data.montant)}`, pageWidth / 2, y + 3, { align: "center" });
+	doc.text(`MONTANT : ${formatMontantPdf(data.montant)}`, pageWidth / 2, y + 3, {
+		align: "center",
+	});
 	doc.setTextColor(0, 0, 0);
 	y += 20;
 

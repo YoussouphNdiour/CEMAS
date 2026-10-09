@@ -1,10 +1,10 @@
 "use client";
 
+import { CircleDot } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
+import { cn, formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
 import { PageHeader } from "@/shared/ui";
-import { MOIS_LABELS, cn, formatCFA } from "@/shared/lib/utils";
-import { CircleDot } from "lucide-react";
 
 const SCHOOL_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
 
@@ -33,10 +33,7 @@ export default function SuiviTransportPage() {
 		<div>
 			<PageHeader
 				title="Suivi Transport"
-				breadcrumbs={[
-					{ label: "Transport", href: "/transport/vehicules" },
-					{ label: "Suivi" },
-				]}
+				breadcrumbs={[{ label: "Transport", href: "/transport/vehicules" }, { label: "Suivi" }]}
 			/>
 
 			<div className="mb-6 flex items-center gap-4">
@@ -81,9 +78,7 @@ export default function SuiviTransportPage() {
 			{selectedItineraire && students.length > 0 && (
 				<div className="overflow-hidden rounded-xl bg-surface shadow-sm">
 					<div className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
-						<span className="text-sm font-semibold">
-							Paiements transport — {selectedIt?.nom}
-						</span>
+						<span className="text-sm font-semibold">Paiements transport — {selectedIt?.nom}</span>
 						<span className="text-sm text-muted">
 							{totalPaid}/{totalExpected} paiements reçus
 						</span>
@@ -113,10 +108,7 @@ export default function SuiviTransportPage() {
 							</thead>
 							<tbody>
 								{students.map((student) => (
-									<tr
-										key={student.id}
-										className="border-b last:border-b-0"
-									>
+									<tr key={student.id} className="border-b last:border-b-0">
 										<td className="sticky left-0 bg-white px-4 py-2 font-medium whitespace-nowrap">
 											{student.prenom} {student.nom}
 										</td>
@@ -124,10 +116,7 @@ export default function SuiviTransportPage() {
 											{student.arretNom}
 										</td>
 										{student.months.map((monthData) => (
-											<td
-												key={monthData.mois}
-												className="px-2 py-2 text-center"
-											>
+											<td key={monthData.mois} className="px-2 py-2 text-center">
 												{monthData.paid ? (
 													<CircleDot className="mx-auto h-5 w-5 text-green-500" />
 												) : (

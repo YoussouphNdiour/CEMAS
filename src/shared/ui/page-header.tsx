@@ -21,10 +21,7 @@ export function PageHeader({ title, breadcrumbs, action }: PageHeaderProps) {
 							<span key={crumb.label} className="flex items-center gap-1">
 								{i > 0 && <span className="mx-1">/</span>}
 								{crumb.href ? (
-									<Link
-										href={crumb.href}
-										className="transition hover:text-primary hover:underline"
-									>
+									<Link href={crumb.href} className="transition hover:text-primary hover:underline">
 										{crumb.label}
 									</Link>
 								) : (
