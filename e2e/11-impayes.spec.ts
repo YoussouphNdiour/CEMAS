@@ -132,4 +132,40 @@ test.describe("11 - Impayés et relances", () => {
 		});
 		expect(stats.totalImpayes).toBeGreaterThanOrEqual(apres.totalReste);
 	});
+
+	test("UI : saisir la grille d'une classe et l'appliquer au niveau", async ({ page }) => {
+		const { annee, niveau, classe } = await contexte(page);
+		const classe2 = await trpc<{ id: string; nom: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: `IMP2-${Date.now()}`, niveauId: niveau.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		const classes = await trpc<{ id: string; nom: string }[]>(page, "academic.classes.list", {
+			anneeScolaireId: annee.id,
+		});
+		const nom1 = classes.find((c) => c.id === classe.id)?.nom ?? "";
+
+		await page.goto("/finances/grille");
+		await waitForLoad(page);
+		await page.getByLabel(`${nom1} — Scolarité`).fill("23000");
+		await page.getByLabel(`${nom1} — Inscription`).fill("62000");
+		await page
+			.getByRole("row", { name: new RegExp(nom1) })
+			.getByRole("button", { name: "Appliquer au niveau" })
+			.click();
+		await expect(page.getByLabel(`${classe2.nom} — Scolarité`)).toHaveValue("23000");
+		await page.getByRole("button", { name: "Enregistrer" }).click();
+		await expect(page.getByText("Grille enregistrée")).toBeVisible();
+
+		const grille = await trpc<{ classeId: string; typeFraisNom: string; montantMensuel: number }[]>(
+			page,
+			"finance.grilleFrais.list",
+			{ anneeScolaireId: annee.id },
+		);
+		expect(
+			grille.find((g) => g.classeId === classe2.id && g.typeFraisNom === "Scolarité")
+				?.montantMensuel,
+		).toBe(23_000);
+	});
 });
