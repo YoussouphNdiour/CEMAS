@@ -30,6 +30,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Client PostgreSQL : sauvegardes déclenchées depuis l'application (passage à l'année suivante)
+RUN apk add --no-cache postgresql16-client
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 

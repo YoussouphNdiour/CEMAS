@@ -1,6 +1,7 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { classes, niveaux } from "@/modules/academic/schema";
+import { aujourdhuiServeur, etatFenetrePassage } from "@/modules/academic/fenetre";
+import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { getImpayes } from "@/modules/finance/impayes-service";
 import { depenses, paiements, typesFrais } from "@/modules/finance/schema";
 import { bulletinsPaie, employes } from "@/modules/payroll/schema";
@@ -8,6 +9,36 @@ import { eleves } from "@/modules/students/schema";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 
 export const dashboardRouter = createTRPCRouter({
+	/** Bandeau de rappel du passage à l'année suivante (null = rien à afficher). */
+	rappelPassage: protectedProcedure.query(async ({ ctx }) => {
+		const [annee] = await ctx.db
+			.select()
+			.from(anneesScolaires)
+			.where(eq(anneesScolaires.active, true));
+		if (!annee) return null;
+		const { etat, ouverture } = etatFenetrePassage(annee.dateFin, aujourdhuiServeur());
+		if (etat === "aucun") return null;
+		const [{ total }] = await ctx.db
+			.select({ total: count() })
+			.from(classes)
+			.where(
+				and(
+					eq(classes.anneeScolaireId, annee.id),
+					eq(classes.finDeCycle, false),
+					isNull(classes.classeSuivanteId),
+				),
+			);
+		const m = annee.libelle.match(/^(\d{4})\D+(\d{4})$/);
+		return {
+			etat,
+			ouverture,
+			dateFin: annee.dateFin,
+			libelleSource: annee.libelle,
+			libelleCible: m ? `${Number(m[1]) + 1}-${Number(m[2]) + 1}` : "l'année suivante",
+			classesAConfigurer: total,
+		};
+	}),
+
 	stats: protectedProcedure
 		.input(z.object({ anneeScolaireId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {

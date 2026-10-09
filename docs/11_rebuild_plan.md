@@ -39,10 +39,11 @@ Source : `17_prompt_ameliorations_web.md`. Chaque lot : spec → plan → implé
 - [ ] `AUTH_SECRET` et mots de passe en variables d'environnement Portainer (voir `10_current_issues.md` S1–S3)
 - [ ] Rotation des jetons partagés (S4)
 
-### Phase 6 : Encadrement du passage d'année (lot 4b, validé)
-- [ ] Passage autorisé seulement après la date de fin de l'année active
-- [ ] Contrôles avant passage : sauvegarde < 24 h, sauvegarde automatique juste avant, impayés restants, checklist
-- [ ] Bandeaux de rappel sur le tableau de bord (à partir du 15 juin et du 1er août)
+### Phase 6 : Encadrement du passage d'année (lot 4b) ✅
+- [x] Passage autorisé seulement après la date de fin de l'année active
+- [x] Contrôles avant passage : sauvegarde < 24 h, sauvegarde automatique juste avant, impayés restants, checklist
+- [x] Décisions de passage enregistrées entre juin et août
+- [x] Bandeaux de rappel sur le tableau de bord (à partir du 15 juin et après la date de fin)
 
 ### Phase 7 : Points reportés
 - [ ] Voir `10_current_issues.md` (relectures des lots 1, 2, 4)

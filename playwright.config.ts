@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Port du serveur de test (E2E_PORT si le 3000 est déjà pris par une autre application)
+const port = process.env.E2E_PORT ?? "3000";
+
 export default defineConfig({
 	testDir: "./e2e",
 	fullyParallel: false,
@@ -9,7 +12,7 @@ export default defineConfig({
 	reporter: "html",
 	timeout: 60_000,
 	use: {
-		baseURL: "http://localhost:3000",
+		baseURL: `http://localhost:${port}`,
 		trace: "on-first-retry",
 		screenshot: "only-on-failure",
 	},
@@ -20,8 +23,8 @@ export default defineConfig({
 		},
 	],
 	webServer: {
-		command: "pnpm dev",
-		url: "http://localhost:3000",
+		command: `pnpm dev --port ${port}`,
+		url: `http://localhost:${port}/login`,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
 	},

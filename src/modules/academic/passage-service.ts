@@ -1,9 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
+import { getImpayes } from "@/modules/finance/impayes-service";
 import { grilleFrais } from "@/modules/finance/schema";
-import { eleves, inscriptions } from "@/modules/students/schema";
+import { eleves, inscriptions, passageDecisions } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
+import { aujourdhuiServeur, etatFenetrePassage, libelleDateFr, sauvegardeRecente } from "./fenetre";
 import { type Decision, planifierPassage } from "./passage";
+import { derniereSauvegarde, sauvegarder } from "./sauvegarde-service";
 import { anneesScolaires, classes, niveaux } from "./schema";
 
 type Db = typeof db;
@@ -60,6 +63,18 @@ async function chargerDonnees(database: Db | Tx, sourceId: string) {
 export async function chargerContexte(database: Db) {
 	const source = await anneeActive(database);
 	const { classesS, elevesS } = await chargerDonnees(database, source.id);
+	const concernes = new Set(elevesS.map((e) => e.id));
+	const decisions = Object.fromEntries(
+		(
+			await database
+				.select()
+				.from(passageDecisions)
+				.where(eq(passageDecisions.anneeScolaireId, source.id))
+		)
+			.filter((d) => concernes.has(d.eleveId))
+			.map((d) => [d.eleveId, d.decision as "redouble" | "quitte"]),
+	);
+	const fenetre = etatFenetrePassage(source.dateFin, aujourdhuiServeur());
 	const m = source.libelle.match(/^(\d{4})\D+(\d{4})$/);
 	const libelle = m
 		? `${Number(m[1]) + 1}-${Number(m[2]) + 1}`
@@ -78,7 +93,37 @@ export async function chargerContexte(database: Db) {
 		},
 		classes: classesS,
 		eleves: elevesS,
+		decisions,
+		fenetre,
 	};
+}
+
+export async function enregistrerDecisions(
+	database: Db,
+	decisions: Record<string, "redouble" | "quitte">,
+) {
+	return database.transaction(async (tx) => {
+		const source = await anneeActive(tx);
+		const { elevesS } = await chargerDonnees(tx, source.id);
+		const concernes = new Set(elevesS.map((e) => e.id));
+		const lignes = Object.entries(decisions).filter(([id]) => concernes.has(id));
+		await tx.delete(passageDecisions).where(eq(passageDecisions.anneeScolaireId, source.id));
+		if (lignes.length) {
+			// Restes éventuels d'une autre année pour ces élèves (clé primaire = élève)
+			await tx.delete(passageDecisions).where(
+				inArray(
+					passageDecisions.eleveId,
+					lignes.map(([id]) => id),
+				),
+			);
+			await tx
+				.insert(passageDecisions)
+				.values(
+					lignes.map(([eleveId, decision]) => ({ eleveId, anneeScolaireId: source.id, decision })),
+				);
+		}
+		return { count: lignes.length };
+	});
 }
 
 /** Vérifie et enregistre la configuration des classes de l'année active. */
@@ -127,13 +172,66 @@ export async function previsualiserPassage(database: Db, decisions: Record<strin
 	return planifierPassage({ classes: classesS, eleves: elevesS, decisions });
 }
 
-export async function executerPassage(
-	database: Db,
-	input: {
-		cible: { libelle: string; dateDebut: string; dateFin: string };
-		decisions: Record<string, Decision>;
-	},
-) {
+export async function controlesPassage(database: Db) {
+	const source = await anneeActive(database);
+	const fenetre = etatFenetrePassage(source.dateFin, aujourdhuiServeur());
+	const sauvegarde = await derniereSauvegarde();
+	const impayes = await getImpayes(database, source.id);
+	return {
+		fenetre,
+		sauvegarde,
+		sauvegardeRecente: sauvegardeRecente(
+			sauvegarde
+				? { nom: sauvegarde.nom, mtime: new Date(sauvegarde.date), taille: sauvegarde.taille }
+				: null,
+			new Date(),
+		),
+		sauvegardesConfigurees: !!process.env.BACKUP_DIR,
+		totalImpayes: impayes.totalReste,
+	};
+}
+
+type EntreePassage = {
+	cible: { libelle: string; dateDebut: string; dateFin: string };
+	decisions: Record<string, Decision>;
+	confirmations: { classes: true; decisions: true; grille: true };
+};
+
+/** Un seul passage à la fois dans ce processus (l'application tourne dans un seul conteneur). */
+let passageEnCours = false;
+
+export async function executerPassage(database: Db, input: EntreePassage) {
+	if (passageEnCours) {
+		throw new TRPCError({ code: "CONFLICT", message: "Un passage est déjà en cours." });
+	}
+	passageEnCours = true;
+	try {
+		return await executerPassageSansConcurrence(database, input);
+	} finally {
+		passageEnCours = false;
+	}
+}
+
+async function executerPassageSansConcurrence(database: Db, input: EntreePassage) {
+	const avant = await controlesPassage(database);
+	if (avant.fenetre.etat !== "ouvert") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Passage disponible à partir du ${libelleDateFr(avant.fenetre.ouverture)}.`,
+		});
+	}
+	if (!avant.sauvegardeRecente) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Aucune sauvegarde de moins de 24 h : faites une sauvegarde avant le passage.",
+		});
+	}
+	// Plan vérifié avant la sauvegarde : pas de fichier inutile si le passage est refusé
+	const planAvant = await previsualiserPassage(database, input.decisions);
+	if (planAvant.erreurs.length) {
+		throw new TRPCError({ code: "BAD_REQUEST", message: planAvant.erreurs.join(" ; ") });
+	}
+	const sauvegardeAvantPassage = (await sauvegarder("prepassage")).nom;
 	return database.transaction(async (tx) => {
 		const source = await anneeActive(tx, true);
 		const { classesS, elevesS } = await chargerDonnees(tx, source.id);
@@ -277,6 +375,9 @@ export async function executerPassage(
 				});
 		}
 
+		// Préparation consommée
+		await tx.delete(passageDecisions).where(eq(passageDecisions.anneeScolaireId, source.id));
+
 		// 5. Activer la cible, archiver la source
 		await tx.update(anneesScolaires).set({ active: false });
 		await tx.update(anneesScolaires).set({ active: true }).where(eq(anneesScolaires.id, cible.id));
@@ -294,6 +395,7 @@ export async function executerPassage(
 			departs: n("depart"),
 			classesCreees,
 			grilleCopiee,
+			sauvegardeAvantPassage,
 		};
 	});
 }

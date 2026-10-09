@@ -124,6 +124,18 @@ Une seule ligne (`id = 1`), créée par la migration `0005`.
 | principal | boolean | NOT NULL, default true | Contact principal (reçus, relances) ; le 2e contact a `false`. 2 contacts max par élève |
 | | | PK(eleve_id, parent_id) | Clé primaire composite |
 
+### `passage_decisions`
+Préparation du passage à l'année suivante (absent = l'élève passe).
+
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| eleve_id | uuid | PK, FK → eleves ON DELETE CASCADE | Élève |
+| annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE, NOT NULL | Année source |
+| decision | varchar(10) | NOT NULL | `redouble` ou `quitte` |
+| updated_at | timestamptz | default now() | |
+
+Supprimées après un passage réussi.
+
 ### `inscriptions`
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|

@@ -38,6 +38,16 @@ Mis à jour le 2026-10-09.
 - Le test e2e destructif ne vérifie pas la base ciblée (`E2E_DESTRUCTIF` seul)
 - Retour arrière en cas d'erreur au milieu du passage : non testé automatiquement (repose sur la transaction)
 
+### Encadrement du passage (lot 4b)
+- `executer` recalcule les impayés pour rien ; la page Années charge tout le contexte du passage pour un libellé
+- « Décisions enregistrées » reste affiché après de nouvelles modifications ; pas d'enregistrement automatique
+- Le test 14c dépend de l'ordre et de `PASSAGE_AUJOURDHUI` ; le test 13 efface les décisions enregistrées de la base de dev
+- Ajouter `USER nextjs` au Dockerfile rendrait `/backups` non inscriptible ; modifier la date de fin ouvre la fenêtre ; « Faire une sauvegarde maintenant » sans limite de fréquence
+
+### Général
+- `scripts/entrypoint.sh` masque les erreurs de migration (`2>/dev/null || echo …`)
+- Aucune vérification de rôle : tout compte connecté peut tout faire (dont le passage d'année)
+
 ### Tableau de bord
 - `dashboard.stats.totalDepenses` additionne les dépenses de toutes les années
 
@@ -48,7 +58,7 @@ Mis à jour le 2026-10-09.
 - Pas d'upload de photo élève (`photo_url` sans interface)
 - Pas de calcul des charges sociales en paie
 - Transport : capacité du véhicule non contrôlée, affectations à refaire chaque année
-- Pas de notifications (email, SMS) — rappels uniquement par bandeaux
+- Pas de notifications (email, SMS) — rappels du passage d'année par bandeaux uniquement (décision D-020)
 - Sauvegardes sur le même serveur que la base (pas de copie hors serveur)
 - Pas de logs d'audit, pas de mode hors ligne
 - 90 avertissements Biome historiques (libellés de formulaires non associés, boutons sans `type`…)

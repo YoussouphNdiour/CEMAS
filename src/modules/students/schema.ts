@@ -108,6 +108,18 @@ export const parentsRelations = relations(parents, ({ many }) => ({
 	eleveParents: many(eleveParents),
 }));
 
+/** Préparation du passage à l'année suivante : décision par élève (absent = passe). */
+export const passageDecisions = pgTable("passage_decisions", {
+	eleveId: uuid("eleve_id")
+		.primaryKey()
+		.references(() => eleves.id, { onDelete: "cascade" }),
+	anneeScolaireId: uuid("annee_scolaire_id")
+		.notNull()
+		.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+	decision: varchar("decision", { length: 10 }).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 export const eleveParentsRelations = relations(eleveParents, ({ one }) => ({
 	eleve: one(eleves, { fields: [eleveParents.eleveId], references: [eleves.id] }),
 	parent: one(parents, { fields: [eleveParents.parentId], references: [parents.id] }),

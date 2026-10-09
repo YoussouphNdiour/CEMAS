@@ -120,6 +120,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Assistant en 4 étapes ; classe suivante ou fin de cycle obligatoire pour chaque classe ; décision par élève (passe/redouble/quitte) ; une seule transaction ; classes et grille recopiées par nom sans doublon ; sortants et départs passés `inactif` et laissés dans l'ancienne année ; nouvelle année active, ancienne archivée
 - **Conséquences :** Pas d'annulation (restauration depuis la sauvegarde) ; affectations de transport à refaire ; le test e2e complet ne tourne qu'avec `E2E_DESTRUCTIF=1`
 
+### D-020 — Encadrement du passage d'année
+- **Date :** 2026-10-09
+- **Contexte :** Le passage est irréversible ; il ne doit pas être lancé trop tôt ni sans sauvegarde
+- **Décision :** Lancement seulement après la date de fin de l'année active (préparation possible avant) ; contrôles bloquants (sauvegarde < 24 h, 3 confirmations) ; sauvegarde `prepassage` automatique avant la transaction ; décisions persistées ; rappels par bandeaux du tableau de bord (15 juin, puis après la date de fin). Pas d'email ni de tâche planifiée
+- **Conséquences :** L'application a le client PostgreSQL et le volume des sauvegardes ; `PASSAGE_AUJOURDHUI` simule la date hors production (tests)
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

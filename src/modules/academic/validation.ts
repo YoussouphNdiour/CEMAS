@@ -50,6 +50,11 @@ export const executerPassageSchema = z.object({
 		dateFin: z.string().min(1),
 	}),
 	decisions: decisionsSchema,
+	confirmations: z.object({
+		classes: z.literal(true),
+		decisions: z.literal(true),
+		grille: z.literal(true),
+	}),
 });
 
 export const createMatiereSchema = z.object({
@@ -62,4 +67,8 @@ export const updateMatiereSchema = z.object({
 	id: z.string().uuid(),
 	nom: z.string().min(1).optional(),
 	coefficient: z.number().int().min(1).optional(),
+});
+
+export const enregistrerDecisionsSchema = z.object({
+	decisions: z.record(z.string().uuid(), z.enum(["redouble", "quitte"])),
 });

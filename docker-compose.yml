@@ -32,6 +32,9 @@ services:
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER:-admin@cemas.online}
       SMTP_PASS: ${SMTP_PASS:-cemas2025!}
+      BACKUP_DIR: /backups
+    volumes:
+      - cemas_backups:/backups
     depends_on:
       db:
         condition: service_healthy

@@ -99,6 +99,7 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Titre « Gestion Ecole », nom de l'établissement dessous (`settings.public`)
 
 ### Tableau de bord (`/`)
+- Bandeau de rappel du passage (à partir du 15 juin puis après la date de fin)
 - 7 StatCards : élèves, classes, paiements encaissés, dépenses, **impayés** (lien vers `/finances/impayes`), employés actifs, masse salariale
 - BarChart Recharts : paiements mensuels par mois
 - PieChart Recharts : répartition élèves par niveau
@@ -175,7 +176,9 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 
 ### Académique - Passage à l'année suivante (`/academique/annees/passage`)
 - Lien sur l'année active (page Années scolaires)
-- Assistant : 1. nouvelle année ; 2. classe suivante de chaque classe ; 3. décision par élève (Passe / Redouble / Quitte) ; 4. vérification et confirmation
+- Lien : « Passer à l'année suivante » après la date de fin, sinon « Préparer le passage (ouverture le …) »
+- Assistant : 1. nouvelle année ; 2. classe suivante de chaque classe ; 3. décision par élève (Passe / Redouble / Quitte) + « Enregistrer les décisions » ; 4. vérification ; 5. contrôles (fenêtre, sauvegarde < 24 h + « Faire une sauvegarde maintenant », impayés restants, 3 cases) et lancement
+- Bandeau « Préparation » tant que la date de fin n'est pas passée
 
 ### Paramètres (`/parametres`)
 - Formulaire « Établissement » : nom, sigle, adresse, téléphones, email, ligne de contacts, préfixes d'identifiants

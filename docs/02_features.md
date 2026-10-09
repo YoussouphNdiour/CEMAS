@@ -14,6 +14,9 @@
 - Activation exclusive : une seule année active à la fois (toggle dans une transaction)
 - Suppression possible (pas de soft delete)
 - **Passage à l'année suivante** (`/academique/annees/passage`, lien sur l'année active) : assistant en 4 étapes — nouvelle année (libellé et dates préremplis +1 an) ; classe suivante de chaque classe (obligatoire) ; décision par élève actif (Passe par défaut, Redouble, Quitte) ; vérification (comptes par classe, effectifs prévus, alerte de dépassement) puis confirmation
+- **Fenêtre** : préparation possible à tout moment (classes suivantes, décisions enregistrées par « Enregistrer les décisions ») ; **lancement seulement après la date de fin de l'année active** (1er août pour une fin au 31 juillet), refusé par le serveur avant
+- **Étape 5 « Contrôles et lancement »** : dernière sauvegarde (moins de 24 h, sinon bloquant ; bouton « Faire une sauvegarde maintenant »), impayés restants (information), trois cases obligatoires (classes vérifiées, redoublants décidés, grille revue) ; une sauvegarde `prepassage-…dump` est faite juste avant, le passage n'a lieu que si elle a réussi
+- **Bandeaux du tableau de bord** : « préparez le passage » du 15 juin à la date de fin (avec le nombre de classes sans classe suivante), puis « passez à l'année suivante » après la date de fin, jusqu'au passage
 - Exécution atomique : année cible créée ou réutilisée (même libellé non archivée) ; classes et grille recopiées par nom sans doublon ni écrasement ; élèves qui restent → nouvelle classe, nouvelle année et nouvelle inscription ; sortants (fin de cycle) et départs → `inactif`, rattachés à l'ancienne année ; nouvelle année active, ancienne archivée. Une sauvegarde récente est recommandée (`docs/19_sauvegardes.md`)
 
 ### Détail : Classes
