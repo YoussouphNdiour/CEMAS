@@ -108,6 +108,7 @@
 - Génération en masse : crée un bulletin pour chaque employé actif qui n'en a pas encore
 - Net = Salaire de base + Primes - Retenues (recalculé côté serveur)
 - Marquer payé : met `paye = true` et enregistre la date de paiement
+- Fiche de paie PDF (A5, en-tête de l'école) : bouton « Fiche » par ligne (`fiche-paie-<matricule>-AAAA-MM.pdf`) et « Imprimer les fiches du mois » (un PDF, une page par bulletin, `fiches-paie-AAAA-MM.pdf`). Contenu : employé, matricule, poste, période, base, primes, retenues, net, statut payé/date, note, signatures
 
 ### Détail : Statistiques bulletins
 - Total net, total primes, total retenues, nombre d'employés pour un mois/année donné
