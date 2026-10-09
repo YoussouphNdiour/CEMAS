@@ -108,6 +108,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Écran de saisie de la grille ; en l'absence de montant, le calcul utilise le montant par défaut du frais et la page Impayés signale les classes concernées
 - **Conséquences :** Les impayés sont exacts une fois la grille remplie
 
+### D-018 — Sauvegarde quotidienne par un service dédié
+- **Date :** 2026-10-09
+- **Contexte :** Seules des sauvegardes avant déploiement existaient
+- **Décision :** Service `backup` (image postgres:16-alpine + script) : `pg_dump -Fc` au démarrage puis chaque jour à 2 h UTC, vérifié, conservé 30 jours dans un volume dédié
+- **Conséquences :** Restauration documentée (`docs/19_sauvegardes.md`) ; copie hors serveur à prévoir
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.
