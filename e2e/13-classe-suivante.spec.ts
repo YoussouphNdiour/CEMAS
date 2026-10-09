@@ -102,4 +102,44 @@ test.describe("13 - Classe suivante", () => {
 		expect(plan.erreurs.some((e) => e.startsWith(a.nom))).toBe(false);
 		expect(plan.erreurs.some((e) => e.startsWith(b.nom))).toBe(false);
 	});
+
+	test("enregistrer des décisions et les retrouver", async ({ page }) => {
+		const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+		const annee = annees.find((a) => a.active);
+		if (!annee) throw new Error("Aucune année active");
+		const { a } = await deuxClasses(page);
+		const eleve = await trpc<{ id: string }>(
+			page,
+			"students.create",
+			{
+				prenom: "Decision",
+				nom: `Persist${Date.now()}`,
+				dateNaissance: "2016-01-01",
+				sexe: "F",
+				classeId: a.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "D", telephone: "77 000 00 13", relation: "mere" },
+			},
+			true,
+		);
+		const r = await trpc<{ count: number }>(
+			page,
+			"academic.passage.enregistrerDecisions",
+			{ decisions: { [eleve.id]: "redouble" } },
+			true,
+		);
+		expect(r.count).toBe(1);
+		const ctx = await trpc<{ decisions: Record<string, string>; fenetre: { etat: string } }>(
+			page,
+			"academic.passage.contexte",
+		);
+		expect(ctx.decisions[eleve.id]).toBe("redouble");
+		expect(["aucun", "preparation", "ouvert"]).toContain(ctx.fenetre.etat);
+		await trpc(page, "academic.passage.enregistrerDecisions", { decisions: {} }, true);
+		const vide = await trpc<{ decisions: Record<string, string> }>(
+			page,
+			"academic.passage.contexte",
+		);
+		expect(vide.decisions[eleve.id]).toBeUndefined();
+	});
 });

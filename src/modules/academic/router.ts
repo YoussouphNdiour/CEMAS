@@ -6,6 +6,7 @@ import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import {
 	chargerContexte,
 	configurerClasses,
+	enregistrerDecisions,
 	executerPassage,
 	previsualiserPassage,
 } from "./passage-service";
@@ -16,6 +17,7 @@ import {
 	createClasseSchema,
 	createMatiereSchema,
 	decisionsSchema,
+	enregistrerDecisionsSchema,
 	executerPassageSchema,
 	updateAnneeSchema,
 	updateClasseSchema,
@@ -256,6 +258,9 @@ const passageRouter = createTRPCRouter({
 	preview: protectedProcedure
 		.input(z.object({ decisions: decisionsSchema }))
 		.query(({ ctx, input }) => previsualiserPassage(ctx.db, input.decisions)),
+	enregistrerDecisions: protectedProcedure
+		.input(enregistrerDecisionsSchema)
+		.mutation(({ ctx, input }) => enregistrerDecisions(ctx.db, input.decisions)),
 	executer: protectedProcedure
 		.input(executerPassageSchema)
 		.mutation(({ ctx, input }) => executerPassage(ctx.db, input)),

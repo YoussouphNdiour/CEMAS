@@ -63,3 +63,7 @@ export const updateMatiereSchema = z.object({
 	nom: z.string().min(1).optional(),
 	coefficient: z.number().int().min(1).optional(),
 });
+
+export const enregistrerDecisionsSchema = z.object({
+	decisions: z.record(z.string().uuid(), z.enum(["redouble", "quitte"])),
+});

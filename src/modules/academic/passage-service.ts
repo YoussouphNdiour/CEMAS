@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { grilleFrais } from "@/modules/finance/schema";
-import { eleves, inscriptions } from "@/modules/students/schema";
+import { eleves, inscriptions, passageDecisions } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
+import { aujourdhuiServeur, etatFenetrePassage } from "./fenetre";
 import { type Decision, planifierPassage } from "./passage";
 import { anneesScolaires, classes, niveaux } from "./schema";
 
@@ -60,6 +61,18 @@ async function chargerDonnees(database: Db | Tx, sourceId: string) {
 export async function chargerContexte(database: Db) {
 	const source = await anneeActive(database);
 	const { classesS, elevesS } = await chargerDonnees(database, source.id);
+	const concernes = new Set(elevesS.map((e) => e.id));
+	const decisions = Object.fromEntries(
+		(
+			await database
+				.select()
+				.from(passageDecisions)
+				.where(eq(passageDecisions.anneeScolaireId, source.id))
+		)
+			.filter((d) => concernes.has(d.eleveId))
+			.map((d) => [d.eleveId, d.decision as "redouble" | "quitte"]),
+	);
+	const fenetre = etatFenetrePassage(source.dateFin, aujourdhuiServeur());
 	const m = source.libelle.match(/^(\d{4})\D+(\d{4})$/);
 	const libelle = m
 		? `${Number(m[1]) + 1}-${Number(m[2]) + 1}`
@@ -78,7 +91,30 @@ export async function chargerContexte(database: Db) {
 		},
 		classes: classesS,
 		eleves: elevesS,
+		decisions,
+		fenetre,
 	};
+}
+
+export async function enregistrerDecisions(
+	database: Db,
+	decisions: Record<string, "redouble" | "quitte">,
+) {
+	return database.transaction(async (tx) => {
+		const source = await anneeActive(tx);
+		const { elevesS } = await chargerDonnees(tx, source.id);
+		const concernes = new Set(elevesS.map((e) => e.id));
+		const lignes = Object.entries(decisions).filter(([id]) => concernes.has(id));
+		await tx.delete(passageDecisions).where(eq(passageDecisions.anneeScolaireId, source.id));
+		if (lignes.length) {
+			await tx
+				.insert(passageDecisions)
+				.values(
+					lignes.map(([eleveId, decision]) => ({ eleveId, anneeScolaireId: source.id, decision })),
+				);
+		}
+		return { count: lignes.length };
+	});
 }
 
 /** Vérifie et enregistre la configuration des classes de l'année active. */
@@ -276,6 +312,9 @@ export async function executerPassage(
 					set: { classeId: destination, statut: "confirmee" },
 				});
 		}
+
+		// Préparation consommée
+		await tx.delete(passageDecisions).where(eq(passageDecisions.anneeScolaireId, source.id));
 
 		// 5. Activer la cible, archiver la source
 		await tx.update(anneesScolaires).set({ active: false });
