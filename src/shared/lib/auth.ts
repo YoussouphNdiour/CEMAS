@@ -1,10 +1,10 @@
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { db } from "./db";
 import { users } from "@/modules/auth/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
+import { db } from "./db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
 	...authConfig,
@@ -24,10 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 				if (!user) return null;
 
-				const valid = await bcrypt.compare(
-					credentials.password as string,
-					user.passwordHash,
-				);
+				const valid = await bcrypt.compare(credentials.password as string, user.passwordHash);
 				if (!valid) return null;
 
 				return { id: user.id, email: user.email, name: user.nom };

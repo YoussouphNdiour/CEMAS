@@ -1,10 +1,10 @@
 "use client";
 
+import { CheckCircle2, CircleDot, XCircle } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
+import { cn, formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
 import { PageHeader } from "@/shared/ui";
-import { MOIS_LABELS, cn, formatCFA } from "@/shared/lib/utils";
-import { CheckCircle2, XCircle, CircleDot } from "lucide-react";
 
 const SCHOOL_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
 
@@ -65,10 +65,7 @@ export default function SuiviPage() {
 		<div>
 			<PageHeader
 				title="Suivi des paiements"
-				breadcrumbs={[
-					{ label: "Finances", href: "/finances/paiements" },
-					{ label: "Suivi" },
-				]}
+				breadcrumbs={[{ label: "Finances", href: "/finances/paiements" }, { label: "Suivi" }]}
 			/>
 
 			<div className="mb-6 flex items-center gap-4">
@@ -93,9 +90,7 @@ export default function SuiviPage() {
 
 			{!selectedClasse && (
 				<div className="rounded-xl bg-surface p-12 text-center shadow-sm">
-					<p className="text-muted">
-						Sélectionnez une classe pour voir le suivi des paiements.
-					</p>
+					<p className="text-muted">Sélectionnez une classe pour voir le suivi des paiements.</p>
 				</div>
 			)}
 
@@ -118,15 +113,10 @@ export default function SuiviPage() {
 									const stats = computeUniqueStats(tf.typeFraisId);
 									const pct = stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
 									return (
-										<div
-											key={tf.typeFraisId}
-											className="rounded-xl bg-surface p-5 shadow-sm"
-										>
+										<div key={tf.typeFraisId} className="rounded-xl bg-surface p-5 shadow-sm">
 											<div className="mb-3 flex items-center justify-between">
 												<h3 className="font-semibold">{tf.typeFraisNom}</h3>
-												<span className="text-sm text-muted">
-													{formatCFA(tf.montantDefaut)}
-												</span>
+												<span className="text-sm text-muted">{formatCFA(tf.montantDefaut)}</span>
 											</div>
 											{/* Progress bar */}
 											<div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
@@ -151,9 +141,7 @@ export default function SuiviPage() {
 											{/* Student list */}
 											<div className="space-y-1.5">
 												{students.map((s) => {
-													const f = s.typesFrais.find(
-														(x) => x.typeFraisId === tf.typeFraisId,
-													);
+													const f = s.typesFrais.find((x) => x.typeFraisId === tf.typeFraisId);
 													const isPaid = f?.paid ?? false;
 													return (
 														<div
@@ -199,12 +187,8 @@ export default function SuiviPage() {
 									className="mb-4 overflow-hidden rounded-xl bg-surface shadow-sm"
 								>
 									<div className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
-										<span className="text-sm font-semibold">
-											{tf.typeFraisNom}
-										</span>
-										<span className="text-xs text-muted">
-											{formatCFA(tf.montantDefaut)}/mois
-										</span>
+										<span className="text-sm font-semibold">{tf.typeFraisNom}</span>
+										<span className="text-xs text-muted">{formatCFA(tf.montantDefaut)}/mois</span>
 									</div>
 									<div className="overflow-x-auto">
 										<table className="w-full text-left text-sm">
@@ -229,25 +213,16 @@ export default function SuiviPage() {
 											<tbody>
 												{students.map((student) => {
 													const frais = student.typesFrais.find(
-														(f) =>
-															f.typeFraisId === tf.typeFraisId,
+														(f) => f.typeFraisId === tf.typeFraisId,
 													);
-													const paidCount =
-														frais?.months.filter((m) => m.paid)
-															.length ?? 0;
+													const paidCount = frais?.months.filter((m) => m.paid).length ?? 0;
 													return (
-														<tr
-															key={student.id}
-															className="border-b last:border-b-0"
-														>
+														<tr key={student.id} className="border-b last:border-b-0">
 															<td className="sticky left-0 bg-white px-4 py-2 font-medium whitespace-nowrap">
 																{student.prenom} {student.nom}
 															</td>
 															{frais?.months.map((monthData) => (
-																<td
-																	key={monthData.mois}
-																	className="px-2 py-2 text-center"
-																>
+																<td key={monthData.mois} className="px-2 py-2 text-center">
 																	{monthData.paid ? (
 																		<CircleDot className="mx-auto h-5 w-5 text-green-500" />
 																	) : (

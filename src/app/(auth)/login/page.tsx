@@ -1,9 +1,9 @@
 "use client";
 
+import { GraduationCap } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { GraduationCap } from "lucide-react";
 import { trpc } from "@/shared/lib/trpc-client";
 
 export default function LoginPage() {
@@ -45,9 +45,7 @@ export default function LoginPage() {
 			</div>
 
 			<form onSubmit={handleSubmit} className="space-y-4">
-				{error && (
-					<div className="rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</div>
-				)}
+				{error && <div className="rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</div>}
 				<div>
 					<label htmlFor="email" className="mb-1 block text-sm font-medium">
 						Email

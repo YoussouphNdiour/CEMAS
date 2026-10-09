@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, Button } from "@/shared/ui";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Button, PageHeader } from "@/shared/ui";
 
 export default function NouvelElevePage() {
 	const router = useRouter();
@@ -68,10 +68,7 @@ export default function NouvelElevePage() {
 		<div>
 			<PageHeader
 				title="Nouvelle inscription"
-				breadcrumbs={[
-					{ label: "Élèves", href: "/eleves" },
-					{ label: "Nouvelle inscription" },
-				]}
+				breadcrumbs={[{ label: "Élèves", href: "/eleves" }, { label: "Nouvelle inscription" }]}
 			/>
 
 			{/* Steps indicator */}
@@ -97,9 +94,7 @@ export default function NouvelElevePage() {
 				))}
 			</div>
 
-			{error && (
-				<div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</div>
-			)}
+			{error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-danger">{error}</div>}
 
 			<div className="mx-auto max-w-2xl rounded-xl bg-surface p-6 shadow-sm">
 				{/* Step 1: Info élève */}
@@ -112,9 +107,7 @@ export default function NouvelElevePage() {
 								<input
 									type="text"
 									value={eleveData.prenom}
-									onChange={(e) =>
-										setEleveData({ ...eleveData, prenom: e.target.value })
-									}
+									onChange={(e) => setEleveData({ ...eleveData, prenom: e.target.value })}
 									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 									required
 								/>
@@ -124,9 +117,7 @@ export default function NouvelElevePage() {
 								<input
 									type="text"
 									value={eleveData.nom}
-									onChange={(e) =>
-										setEleveData({ ...eleveData, nom: e.target.value })
-									}
+									onChange={(e) => setEleveData({ ...eleveData, nom: e.target.value })}
 									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 									required
 								/>
@@ -134,9 +125,7 @@ export default function NouvelElevePage() {
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div>
-								<label className="mb-1 block text-sm font-medium">
-									Date de naissance *
-								</label>
+								<label className="mb-1 block text-sm font-medium">Date de naissance *</label>
 								<input
 									type="date"
 									value={eleveData.dateNaissance}
@@ -151,9 +140,7 @@ export default function NouvelElevePage() {
 								/>
 							</div>
 							<div>
-								<label className="mb-1 block text-sm font-medium">
-									Lieu de naissance
-								</label>
+								<label className="mb-1 block text-sm font-medium">Lieu de naissance</label>
 								<input
 									type="text"
 									value={eleveData.lieuNaissance}
@@ -176,9 +163,7 @@ export default function NouvelElevePage() {
 										name="sexe"
 										value="M"
 										checked={eleveData.sexe === "M"}
-										onChange={() =>
-											setEleveData({ ...eleveData, sexe: "M" })
-										}
+										onChange={() => setEleveData({ ...eleveData, sexe: "M" })}
 										className="accent-primary"
 									/>
 									Masculin
@@ -189,9 +174,7 @@ export default function NouvelElevePage() {
 										name="sexe"
 										value="F"
 										checked={eleveData.sexe === "F"}
-										onChange={() =>
-											setEleveData({ ...eleveData, sexe: "F" })
-										}
+										onChange={() => setEleveData({ ...eleveData, sexe: "F" })}
 										className="accent-primary"
 									/>
 									Féminin
@@ -203,9 +186,7 @@ export default function NouvelElevePage() {
 							<input
 								type="text"
 								value={eleveData.adresse}
-								onChange={(e) =>
-									setEleveData({ ...eleveData, adresse: e.target.value })
-								}
+								onChange={(e) => setEleveData({ ...eleveData, adresse: e.target.value })}
 								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 							/>
 						</div>
@@ -222,9 +203,7 @@ export default function NouvelElevePage() {
 								<input
 									type="text"
 									value={parentData.prenom}
-									onChange={(e) =>
-										setParentData({ ...parentData, prenom: e.target.value })
-									}
+									onChange={(e) => setParentData({ ...parentData, prenom: e.target.value })}
 									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 									required
 								/>
@@ -234,9 +213,7 @@ export default function NouvelElevePage() {
 								<input
 									type="text"
 									value={parentData.nom}
-									onChange={(e) =>
-										setParentData({ ...parentData, nom: e.target.value })
-									}
+									onChange={(e) => setParentData({ ...parentData, nom: e.target.value })}
 									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 									required
 								/>
@@ -244,9 +221,7 @@ export default function NouvelElevePage() {
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div>
-								<label className="mb-1 block text-sm font-medium">
-									Téléphone *
-								</label>
+								<label className="mb-1 block text-sm font-medium">Téléphone *</label>
 								<input
 									type="tel"
 									value={parentData.telephone}
@@ -262,9 +237,7 @@ export default function NouvelElevePage() {
 								/>
 							</div>
 							<div>
-								<label className="mb-1 block text-sm font-medium">
-									Téléphone 2
-								</label>
+								<label className="mb-1 block text-sm font-medium">Téléphone 2</label>
 								<input
 									type="tel"
 									value={parentData.telephone2}
@@ -283,9 +256,7 @@ export default function NouvelElevePage() {
 							<input
 								type="text"
 								value={parentData.profession}
-								onChange={(e) =>
-									setParentData({ ...parentData, profession: e.target.value })
-								}
+								onChange={(e) => setParentData({ ...parentData, profession: e.target.value })}
 								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 							/>
 						</div>
@@ -299,9 +270,7 @@ export default function NouvelElevePage() {
 											name="relation"
 											value={r}
 											checked={parentData.relation === r}
-											onChange={() =>
-												setParentData({ ...parentData, relation: r })
-											}
+											onChange={() => setParentData({ ...parentData, relation: r })}
 											className="accent-primary"
 										/>
 										{r === "pere" ? "Père" : r === "mere" ? "Mère" : "Tuteur"}
@@ -338,9 +307,7 @@ export default function NouvelElevePage() {
 							<label className="mb-1 block text-sm font-medium">Classe *</label>
 							<select
 								value={eleveData.classeId}
-								onChange={(e) =>
-									setEleveData({ ...eleveData, classeId: e.target.value })
-								}
+								onChange={(e) => setEleveData({ ...eleveData, classeId: e.target.value })}
 								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 								required
 							>
@@ -358,17 +325,15 @@ export default function NouvelElevePage() {
 							<h3 className="mb-2 font-medium">Récapitulatif</h3>
 							<div className="space-y-1 text-sm">
 								<p>
-									<span className="text-muted">Élève :</span>{" "}
-									{eleveData.prenom} {eleveData.nom}
+									<span className="text-muted">Élève :</span> {eleveData.prenom} {eleveData.nom}
 								</p>
 								<p>
-									<span className="text-muted">Parent :</span>{" "}
-									{parentData.prenom} {parentData.nom} ({parentData.relation})
+									<span className="text-muted">Parent :</span> {parentData.prenom} {parentData.nom}{" "}
+									({parentData.relation})
 								</p>
 								<p>
 									<span className="text-muted">Classe :</span>{" "}
-									{filteredClasses?.find((c) => c.id === eleveData.classeId)
-										?.nom || "—"}
+									{filteredClasses?.find((c) => c.id === eleveData.classeId)?.nom || "—"}
 								</p>
 							</div>
 						</div>
@@ -393,9 +358,7 @@ export default function NouvelElevePage() {
 					) : (
 						<Button
 							onClick={handleSubmit}
-							disabled={
-								!eleveData.classeId || createMutation.isPending
-							}
+							disabled={!eleveData.classeId || createMutation.isPending}
 						>
 							{createMutation.isPending ? "Inscription..." : "Inscrire l'élève"}
 						</Button>

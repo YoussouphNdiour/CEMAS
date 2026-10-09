@@ -1,10 +1,10 @@
 "use client";
 
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
 
 type Niveau = {
 	id: string;
@@ -166,10 +166,7 @@ export default function ClassesPage() {
 		<div>
 			<PageHeader
 				title="Classes"
-				breadcrumbs={[
-					{ label: "Académique" },
-					{ label: "Classes" },
-				]}
+				breadcrumbs={[{ label: "Académique" }, { label: "Classes" }]}
 				action={
 					<Button onClick={openCreate} disabled={!activeAnnee}>
 						<Plus className="h-4 w-4" />
@@ -213,9 +210,7 @@ export default function ClassesPage() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Nom
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
 						<input
 							type="text"
 							value={nom}
@@ -226,9 +221,7 @@ export default function ClassesPage() {
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Niveau
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Niveau</label>
 						<select
 							value={niveauId}
 							onChange={(e) => setNiveauId(e.target.value)}
@@ -245,9 +238,7 @@ export default function ClassesPage() {
 						</select>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Capacité
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Capacité</label>
 						<input
 							type="number"
 							value={capacite}

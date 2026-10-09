@@ -1,11 +1,11 @@
 "use client";
 
+import { ChevronDown, ChevronUp, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
-import { Plus, Pencil, Trash2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCFA } from "@/shared/lib/utils";
+import type { Column } from "@/shared/ui";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
 
 type ItineraireRow = Record<string, unknown> & {
 	id: string;
@@ -189,7 +189,8 @@ export default function ItinerairesPage() {
 		setSelectedItineraireId((prev) => (prev === id ? null : id));
 	}
 
-	const isSavingItineraire = createItineraireMutation.isPending || updateItineraireMutation.isPending;
+	const isSavingItineraire =
+		createItineraireMutation.isPending || updateItineraireMutation.isPending;
 
 	const selectedItineraire = itinerairesList.find((i) => i.id === selectedItineraireId);
 
@@ -206,7 +207,7 @@ export default function ItinerairesPage() {
 		{
 			key: "montantMensuel",
 			label: "Tarif/mois",
-			render: (row) => row.montantMensuel > 0 ? formatCFA(row.montantMensuel) : "-",
+			render: (row) => (row.montantMensuel > 0 ? formatCFA(row.montantMensuel) : "-"),
 		},
 		{
 			key: "arretsCount",
@@ -272,10 +273,7 @@ export default function ItinerairesPage() {
 		<div>
 			<PageHeader
 				title="Itinéraires"
-				breadcrumbs={[
-					{ label: "Transport" },
-					{ label: "Itinéraires" },
-				]}
+				breadcrumbs={[{ label: "Transport" }, { label: "Itinéraires" }]}
 				action={
 					<Button onClick={openCreateItineraire}>
 						<Plus className="h-4 w-4" />
@@ -306,9 +304,7 @@ export default function ItinerairesPage() {
 					</div>
 
 					{arretsList.length === 0 ? (
-						<p className="py-4 text-center text-sm text-muted">
-							Aucun arrêt pour cet itinéraire.
-						</p>
+						<p className="py-4 text-center text-sm text-muted">Aucun arrêt pour cet itinéraire.</p>
 					) : (
 						<div className="overflow-x-auto">
 							<table className="w-full text-left text-sm">
@@ -331,13 +327,9 @@ export default function ItinerairesPage() {
 								<tbody>
 									{arretsList.map((arret) => (
 										<tr key={arret.id} className="border-b last:border-b-0">
-											<td className="whitespace-nowrap px-4 py-3 font-medium">
-												{arret.ordre}
-											</td>
+											<td className="whitespace-nowrap px-4 py-3 font-medium">{arret.ordre}</td>
 											<td className="whitespace-nowrap px-4 py-3">{arret.nom}</td>
-											<td className="whitespace-nowrap px-4 py-3">
-												{arret.heurePassage ?? "-"}
-											</td>
+											<td className="whitespace-nowrap px-4 py-3">{arret.heurePassage ?? "-"}</td>
 											<td className="whitespace-nowrap px-4 py-3">
 												<Button
 													variant="ghost"
@@ -365,9 +357,7 @@ export default function ItinerairesPage() {
 			>
 				<form onSubmit={handleItineraireSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Nom
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
 						<input
 							type="text"
 							required
@@ -379,9 +369,7 @@ export default function ItinerairesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Véhicule
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Véhicule</label>
 						<select
 							value={itineraireForm.vehiculeId}
 							onChange={(e) => setItineraireForm({ ...itineraireForm, vehiculeId: e.target.value })}
@@ -390,7 +378,8 @@ export default function ItinerairesPage() {
 							<option value="">Aucun véhicule</option>
 							{vehiculesList.map((v) => (
 								<option key={v.id} value={v.id}>
-									{v.immatriculation}{v.marque ? ` (${v.marque})` : ""}
+									{v.immatriculation}
+									{v.marque ? ` (${v.marque})` : ""}
 								</option>
 							))}
 						</select>
@@ -404,19 +393,24 @@ export default function ItinerairesPage() {
 							type="number"
 							min={0}
 							value={itineraireForm.montantMensuel || ""}
-							onChange={(e) => setItineraireForm({ ...itineraireForm, montantMensuel: parseInt(e.target.value, 10) || 0 })}
+							onChange={(e) =>
+								setItineraireForm({
+									...itineraireForm,
+									montantMensuel: parseInt(e.target.value, 10) || 0,
+								})
+							}
 							placeholder="Ex: 15000"
 							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 						/>
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Description
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
 						<textarea
 							value={itineraireForm.description}
-							onChange={(e) => setItineraireForm({ ...itineraireForm, description: e.target.value })}
+							onChange={(e) =>
+								setItineraireForm({ ...itineraireForm, description: e.target.value })
+							}
 							rows={3}
 							placeholder="Description optionnelle..."
 							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -428,23 +422,21 @@ export default function ItinerairesPage() {
 							Annuler
 						</Button>
 						<Button type="submit" disabled={isSavingItineraire}>
-							{isSavingItineraire ? "Enregistrement..." : editingItineraireId ? "Modifier" : "Créer"}
+							{isSavingItineraire
+								? "Enregistrement..."
+								: editingItineraireId
+									? "Modifier"
+									: "Créer"}
 						</Button>
 					</div>
 				</form>
 			</FormModal>
 
 			{/* Arret create modal */}
-			<FormModal
-				open={arretModalOpen}
-				onClose={closeArretModal}
-				title="Nouvel arrêt"
-			>
+			<FormModal open={arretModalOpen} onClose={closeArretModal} title="Nouvel arrêt">
 				<form onSubmit={handleArretSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Nom
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
 						<input
 							type="text"
 							required
@@ -456,23 +448,21 @@ export default function ItinerairesPage() {
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Ordre
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Ordre</label>
 						<input
 							type="number"
 							required
 							min={1}
 							value={arretForm.ordre}
-							onChange={(e) => setArretForm({ ...arretForm, ordre: parseInt(e.target.value, 10) || 1 })}
+							onChange={(e) =>
+								setArretForm({ ...arretForm, ordre: parseInt(e.target.value, 10) || 1 })
+							}
 							className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 						/>
 					</div>
 
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Heure de passage
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Heure de passage</label>
 						<input
 							type="time"
 							value={arretForm.heurePassage}
@@ -497,7 +487,8 @@ export default function ItinerairesPage() {
 				open={!!deleteItineraireTarget}
 				onClose={() => setDeleteItineraireTarget(null)}
 				onConfirm={() => {
-					if (deleteItineraireTarget) deleteItineraireMutation.mutate({ id: deleteItineraireTarget.id });
+					if (deleteItineraireTarget)
+						deleteItineraireMutation.mutate({ id: deleteItineraireTarget.id });
 				}}
 				title="Supprimer l'itinéraire"
 				message={

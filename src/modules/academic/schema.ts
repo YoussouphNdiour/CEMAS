@@ -1,5 +1,14 @@
-import { pgTable, uuid, varchar, integer, boolean, date, timestamp, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import {
+	boolean,
+	date,
+	index,
+	integer,
+	pgTable,
+	timestamp,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
 
 export const anneesScolaires = pgTable("annees_scolaires", {
 	id: uuid("id").defaultRandom().primaryKey(),
@@ -18,23 +27,25 @@ export const niveaux = pgTable("niveaux", {
 	ordre: integer("ordre").notNull(),
 });
 
-export const classes = pgTable("classes", {
-	id: uuid("id").defaultRandom().primaryKey(),
-	nom: varchar("nom", { length: 100 }).notNull(),
-	niveauId: uuid("niveau_id")
-		.notNull()
-		.references(() => niveaux.id),
-	capacite: integer("capacite").notNull().default(30),
-	anneeScolaireId: uuid("annee_scolaire_id")
-		.notNull()
-		.references(() => anneesScolaires.id),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-},
-(t) => [
-	index("classes_annee_idx").on(t.anneeScolaireId),
-	index("classes_niveau_idx").on(t.niveauId),
-],
+export const classes = pgTable(
+	"classes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		nom: varchar("nom", { length: 100 }).notNull(),
+		niveauId: uuid("niveau_id")
+			.notNull()
+			.references(() => niveaux.id),
+		capacite: integer("capacite").notNull().default(30),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [
+		index("classes_annee_idx").on(t.anneeScolaireId),
+		index("classes_niveau_idx").on(t.niveauId),
+	],
 );
 
 export const matieres = pgTable("matieres", {

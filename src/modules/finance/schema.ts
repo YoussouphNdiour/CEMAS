@@ -1,17 +1,17 @@
+import { relations } from "drizzle-orm";
 import {
-	pgTable,
-	uuid,
-	varchar,
-	text,
-	integer,
 	boolean,
 	date,
+	index,
+	integer,
+	pgTable,
+	text,
 	timestamp,
 	uniqueIndex,
-	index,
+	uuid,
+	varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { classes, anneesScolaires } from "@/modules/academic/schema";
+import { anneesScolaires, classes } from "@/modules/academic/schema";
 import { eleves } from "@/modules/students/schema";
 
 export const typesFrais = pgTable("types_frais", {
@@ -64,12 +64,7 @@ export const paiements = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	},
 	(t) => [
-		uniqueIndex("paiements_unique_idx").on(
-			t.eleveId,
-			t.typeFraisId,
-			t.anneeScolaireId,
-			t.mois,
-		),
+		uniqueIndex("paiements_unique_idx").on(t.eleveId, t.typeFraisId, t.anneeScolaireId, t.mois),
 		index("paiements_annee_mois_idx").on(t.anneeScolaireId, t.mois),
 		index("paiements_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId),
 	],
@@ -80,23 +75,21 @@ export const categoriesDepenses = pgTable("categories_depenses", {
 	nom: varchar("nom", { length: 100 }).notNull(),
 });
 
-export const depenses = pgTable("depenses", {
-	id: uuid("id").defaultRandom().primaryKey(),
-	categorieId: uuid("categorie_id")
-		.notNull()
-		.references(() => categoriesDepenses.id),
-	anneeScolaireId: uuid("annee_scolaire_id")
-		.references(() => anneesScolaires.id),
-	libelle: varchar("libelle", { length: 200 }).notNull(),
-	montant: integer("montant").notNull(),
-	date: date("date").notNull().defaultNow(),
-	note: text("note"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-},
-(t) => [
-	index("depenses_annee_idx").on(t.anneeScolaireId),
-	index("depenses_date_idx").on(t.date),
-],
+export const depenses = pgTable(
+	"depenses",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		categorieId: uuid("categorie_id")
+			.notNull()
+			.references(() => categoriesDepenses.id),
+		anneeScolaireId: uuid("annee_scolaire_id").references(() => anneesScolaires.id),
+		libelle: varchar("libelle", { length: 200 }).notNull(),
+		montant: integer("montant").notNull(),
+		date: date("date").notNull().defaultNow(),
+		note: text("note"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [index("depenses_annee_idx").on(t.anneeScolaireId), index("depenses_date_idx").on(t.date)],
 );
 
 export const categoriesRecettes = pgTable("categories_recettes", {
@@ -104,23 +97,21 @@ export const categoriesRecettes = pgTable("categories_recettes", {
 	nom: varchar("nom", { length: 100 }).notNull(),
 });
 
-export const recettes = pgTable("recettes", {
-	id: uuid("id").defaultRandom().primaryKey(),
-	categorieId: uuid("categorie_id")
-		.notNull()
-		.references(() => categoriesRecettes.id),
-	anneeScolaireId: uuid("annee_scolaire_id")
-		.references(() => anneesScolaires.id),
-	libelle: varchar("libelle", { length: 200 }).notNull(),
-	montant: integer("montant").notNull(),
-	date: date("date").notNull().defaultNow(),
-	note: text("note"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-},
-(t) => [
-	index("recettes_annee_idx").on(t.anneeScolaireId),
-	index("recettes_date_idx").on(t.date),
-],
+export const recettes = pgTable(
+	"recettes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		categorieId: uuid("categorie_id")
+			.notNull()
+			.references(() => categoriesRecettes.id),
+		anneeScolaireId: uuid("annee_scolaire_id").references(() => anneesScolaires.id),
+		libelle: varchar("libelle", { length: 200 }).notNull(),
+		montant: integer("montant").notNull(),
+		date: date("date").notNull().defaultNow(),
+		note: text("note"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [index("recettes_annee_idx").on(t.anneeScolaireId), index("recettes_date_idx").on(t.date)],
 );
 
 // Relations

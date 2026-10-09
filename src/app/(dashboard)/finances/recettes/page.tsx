@@ -1,11 +1,11 @@
 "use client";
 
+import { DollarSign, Plus } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, DataTable, Button, FormModal, ConfirmDialog, StatCard } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
 import { formatCFA, formatDate } from "@/shared/lib/utils";
-import { Plus, DollarSign } from "lucide-react";
+import type { Column } from "@/shared/ui";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader, StatCard } from "@/shared/ui";
 
 type RecetteRow = {
 	id: string;
@@ -70,7 +70,7 @@ export default function RecettesPage() {
 			categorieId: form.categorieId,
 			anneeScolaireId: activeAnnee.id,
 			libelle: form.libelle,
-			montant: parseInt(form.montant),
+			montant: parseInt(form.montant, 10),
 			date: form.date,
 			note: form.note || undefined,
 		});
@@ -118,10 +118,7 @@ export default function RecettesPage() {
 		<div>
 			<PageHeader
 				title="Recettes"
-				breadcrumbs={[
-					{ label: "Finances", href: "/finances/paiements" },
-					{ label: "Recettes" },
-				]}
+				breadcrumbs={[{ label: "Finances", href: "/finances/paiements" }, { label: "Recettes" }]}
 				action={
 					<Button onClick={() => setShowCreate(true)}>
 						<Plus className="h-4 w-4" />
@@ -131,11 +128,7 @@ export default function RecettesPage() {
 			/>
 
 			<div className="mb-6">
-				<StatCard
-					title="Total des recettes"
-					value={formatCFA(total)}
-					icon={DollarSign}
-				/>
+				<StatCard title="Total des recettes" value={formatCFA(total)} icon={DollarSign} />
 			</div>
 
 			<DataTable

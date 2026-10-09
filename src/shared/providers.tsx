@@ -2,9 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import { trpc } from "@/shared/lib/trpc-client";
 import { SessionProvider } from "next-auth/react";
 import { useState } from "react";
+import { trpc } from "@/shared/lib/trpc-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	const [queryClient] = useState(

@@ -84,6 +84,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** `getParametres()` renvoie les valeurs CEMAS si la table ou la ligne est absente
 - **Conséquences :** L'application reste utilisable même si la migration `0005` n'est pas appliquée
 
+### D-014 — CI/CD GitHub Actions + Portainer
+- **Date :** 2026-10-09
+- **Contexte :** Aucun pipeline ; déploiements manuels par redéploiement Git de la stack Portainer
+- **Décision :** CI (typecheck, lint, build, e2e sur base neuve) à chaque PR et push ; déploiement automatique après une CI verte sur `main` via l'API Portainer, précédé d'un `pg_dump` et suivi d'une vérification de santé
+- **Conséquences :** Secrets `PORTAINER_URL` / `PORTAINER_API_KEY` dans GitHub ; règles Biome historiques en avertissement (dette) ; voir `docs/18_ci_cd.md`
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

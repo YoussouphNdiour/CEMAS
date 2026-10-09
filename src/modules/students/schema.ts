@@ -1,42 +1,44 @@
+import { relations } from "drizzle-orm";
 import {
+	date,
+	index,
+	integer,
 	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+	uniqueIndex,
 	uuid,
 	varchar,
-	text,
-	date,
-	integer,
-	timestamp,
-	primaryKey,
-	uniqueIndex,
-	index,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { classes, anneesScolaires } from "@/modules/academic/schema";
+import { anneesScolaires, classes } from "@/modules/academic/schema";
 
-export const eleves = pgTable("eleves", {
-	id: uuid("id").defaultRandom().primaryKey(),
-	matricule: varchar("matricule", { length: 20 }).unique().notNull(),
-	prenom: varchar("prenom", { length: 100 }).notNull(),
-	nom: varchar("nom", { length: 100 }).notNull(),
-	dateNaissance: date("date_naissance").notNull(),
-	lieuNaissance: varchar("lieu_naissance", { length: 200 }),
-	sexe: varchar("sexe", { length: 1 }).notNull(),
-	adresse: text("adresse"),
-	photoUrl: text("photo_url"),
-	classeId: uuid("classe_id")
-		.notNull()
-		.references(() => classes.id),
-	anneeScolaireId: uuid("annee_scolaire_id")
-		.notNull()
-		.references(() => anneesScolaires.id),
-	statut: varchar("statut", { length: 20 }).notNull().default("actif"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-},
-(t) => [
-	index("eleves_annee_classe_idx").on(t.anneeScolaireId, t.classeId),
-	index("eleves_annee_idx").on(t.anneeScolaireId),
-],
+export const eleves = pgTable(
+	"eleves",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		matricule: varchar("matricule", { length: 20 }).unique().notNull(),
+		prenom: varchar("prenom", { length: 100 }).notNull(),
+		nom: varchar("nom", { length: 100 }).notNull(),
+		dateNaissance: date("date_naissance").notNull(),
+		lieuNaissance: varchar("lieu_naissance", { length: 200 }),
+		sexe: varchar("sexe", { length: 1 }).notNull(),
+		adresse: text("adresse"),
+		photoUrl: text("photo_url"),
+		classeId: uuid("classe_id")
+			.notNull()
+			.references(() => classes.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id),
+		statut: varchar("statut", { length: 20 }).notNull().default("actif"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [
+		index("eleves_annee_classe_idx").on(t.anneeScolaireId, t.classeId),
+		index("eleves_annee_idx").on(t.anneeScolaireId),
+	],
 );
 
 export const parents = pgTable("parents", {

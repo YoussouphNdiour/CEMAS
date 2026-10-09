@@ -1,10 +1,10 @@
 "use client";
 
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { Button, PageHeader, DataTable, FormModal, ConfirmDialog } from "@/shared/ui";
 import type { Column } from "@/shared/ui";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Button, ConfirmDialog, DataTable, FormModal, PageHeader } from "@/shared/ui";
 
 type Niveau = {
 	id: string;
@@ -153,10 +153,7 @@ export default function MatieresPage() {
 		<div>
 			<PageHeader
 				title="Matières"
-				breadcrumbs={[
-					{ label: "Académique" },
-					{ label: "Matières" },
-				]}
+				breadcrumbs={[{ label: "Académique" }, { label: "Matières" }]}
 				action={
 					<Button onClick={openCreate}>
 						<Plus className="h-4 w-4" />
@@ -194,9 +191,7 @@ export default function MatieresPage() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Nom
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Nom</label>
 						<input
 							type="text"
 							value={nom}
@@ -207,9 +202,7 @@ export default function MatieresPage() {
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Coefficient
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Coefficient</label>
 						<input
 							type="number"
 							value={coefficient}
@@ -220,9 +213,7 @@ export default function MatieresPage() {
 						/>
 					</div>
 					<div>
-						<label className="mb-1 block text-sm font-medium text-gray-700">
-							Niveau
-						</label>
+						<label className="mb-1 block text-sm font-medium text-gray-700">Niveau</label>
 						<select
 							value={niveauId}
 							onChange={(e) => setNiveauId(e.target.value)}

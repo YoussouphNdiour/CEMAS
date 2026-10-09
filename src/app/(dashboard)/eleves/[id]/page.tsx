@@ -1,10 +1,10 @@
 "use client";
 
+import { ArrowLeft, Briefcase, MapPin, Phone, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, Button, StatusBadge } from "@/shared/ui";
 import { formatDate } from "@/shared/lib/utils";
-import { ArrowLeft, User, Phone, MapPin, Briefcase } from "lucide-react";
+import { Button, PageHeader, StatusBadge } from "@/shared/ui";
 
 export default function EleveDetailPage() {
 	const { id } = useParams<{ id: string }>();
@@ -38,10 +38,7 @@ export default function EleveDetailPage() {
 		<div>
 			<PageHeader
 				title={`${s.prenom} ${s.nom}`}
-				breadcrumbs={[
-					{ label: "Élèves", href: "/eleves" },
-					{ label: `${s.prenom} ${s.nom}` },
-				]}
+				breadcrumbs={[{ label: "Élèves", href: "/eleves" }, { label: `${s.prenom} ${s.nom}` }]}
 				action={
 					<Button variant="ghost" onClick={() => router.push("/eleves")}>
 						<ArrowLeft className="h-4 w-4" />
@@ -93,11 +90,7 @@ export default function EleveDetailPage() {
 											{p.prenom} {p.nom}
 										</span>
 										<span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-											{p.relation === "pere"
-												? "Père"
-												: p.relation === "mere"
-													? "Mère"
-													: "Tuteur"}
+											{p.relation === "pere" ? "Père" : p.relation === "mere" ? "Mère" : "Tuteur"}
 										</span>
 									</div>
 									<div className="space-y-1.5 text-sm">

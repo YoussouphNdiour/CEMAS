@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/utils";
 import { EmptyState } from "@/shared/ui/empty-state";
 
@@ -107,9 +107,7 @@ export function DataTable<T extends Record<string, unknown>>({
 								>
 									<span className="inline-flex items-center gap-1">
 										{col.label}
-										{col.sortable && sortKey === col.key && (
-											<span>{sortAsc ? "↑" : "↓"}</span>
-										)}
+										{col.sortable && sortKey === col.key && <span>{sortAsc ? "↑" : "↓"}</span>}
 									</span>
 								</th>
 							))}
@@ -119,7 +117,10 @@ export function DataTable<T extends Record<string, unknown>>({
 						{paginated.length === 0 ? (
 							<tr>
 								<td colSpan={columns.length} className="px-4 py-8">
-									<EmptyState title="Aucun résultat" description="Essayez de modifier votre recherche." />
+									<EmptyState
+										title="Aucun résultat"
+										description="Essayez de modifier votre recherche."
+									/>
 								</td>
 							</tr>
 						) : (

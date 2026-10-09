@@ -1,21 +1,15 @@
+import { and, desc, eq } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
-import { db } from "@/shared/lib/db";
-import {
-	anneesScolaires,
-	niveaux,
-	classes,
-	matieres,
-} from "./schema";
+import { anneesScolaires, classes, matieres, niveaux } from "./schema";
 import {
 	createAnneeSchema,
-	updateAnneeSchema,
 	createClasseSchema,
-	updateClasseSchema,
 	createMatiereSchema,
+	updateAnneeSchema,
+	updateClasseSchema,
 	updateMatiereSchema,
 } from "./validation";
-import { eq, and, desc } from "drizzle-orm";
-import { z } from "zod";
 
 const niveauxRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
@@ -32,38 +26,32 @@ const anneesRouter = createTRPCRouter({
 		});
 	}),
 
-	create: protectedProcedure
-		.input(createAnneeSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [annee] = await ctx.db
-				.insert(anneesScolaires)
-				.values({
-					libelle: input.libelle,
-					dateDebut: input.dateDebut,
-					dateFin: input.dateFin,
-				})
-				.returning();
-			return annee;
-		}),
+	create: protectedProcedure.input(createAnneeSchema).mutation(async ({ ctx, input }) => {
+		const [annee] = await ctx.db
+			.insert(anneesScolaires)
+			.values({
+				libelle: input.libelle,
+				dateDebut: input.dateDebut,
+				dateFin: input.dateFin,
+			})
+			.returning();
+		return annee;
+	}),
 
-	update: protectedProcedure
-		.input(updateAnneeSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
-			const [annee] = await ctx.db
-				.update(anneesScolaires)
-				.set(data)
-				.where(eq(anneesScolaires.id, id))
-				.returning();
-			return annee;
-		}),
+	update: protectedProcedure.input(updateAnneeSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
+		const [annee] = await ctx.db
+			.update(anneesScolaires)
+			.set(data)
+			.where(eq(anneesScolaires.id, id))
+			.returning();
+		return annee;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await ctx.db
-				.delete(anneesScolaires)
-				.where(eq(anneesScolaires.id, input.id));
+			await ctx.db.delete(anneesScolaires).where(eq(anneesScolaires.id, input.id));
 			return { success: true };
 		}),
 
@@ -80,9 +68,7 @@ const anneesRouter = createTRPCRouter({
 			}
 			await ctx.db.transaction(async (tx) => {
 				// Deactivate all
-				await tx
-					.update(anneesScolaires)
-					.set({ active: false });
+				await tx.update(anneesScolaires).set({ active: false });
 				// Activate selected
 				await tx
 					.update(anneesScolaires)
@@ -117,10 +103,12 @@ const anneesRouter = createTRPCRouter({
 const classesRouter = createTRPCRouter({
 	list: protectedProcedure
 		.input(
-			z.object({
-				anneeScolaireId: z.string().uuid().optional(),
-				niveauId: z.string().uuid().optional(),
-			}).optional(),
+			z
+				.object({
+					anneeScolaireId: z.string().uuid().optional(),
+					niveauId: z.string().uuid().optional(),
+				})
+				.optional(),
 		)
 		.query(async ({ ctx, input }) => {
 			const conditions = [];
@@ -137,32 +125,24 @@ const classesRouter = createTRPCRouter({
 			});
 		}),
 
-	create: protectedProcedure
-		.input(createClasseSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [classe] = await ctx.db
-				.insert(classes)
-				.values({
-					nom: input.nom,
-					niveauId: input.niveauId,
-					capacite: input.capacite,
-					anneeScolaireId: input.anneeScolaireId,
-				})
-				.returning();
-			return classe;
-		}),
+	create: protectedProcedure.input(createClasseSchema).mutation(async ({ ctx, input }) => {
+		const [classe] = await ctx.db
+			.insert(classes)
+			.values({
+				nom: input.nom,
+				niveauId: input.niveauId,
+				capacite: input.capacite,
+				anneeScolaireId: input.anneeScolaireId,
+			})
+			.returning();
+		return classe;
+	}),
 
-	update: protectedProcedure
-		.input(updateClasseSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
-			const [classe] = await ctx.db
-				.update(classes)
-				.set(data)
-				.where(eq(classes.id, id))
-				.returning();
-			return classe;
-		}),
+	update: protectedProcedure.input(updateClasseSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
+		const [classe] = await ctx.db.update(classes).set(data).where(eq(classes.id, id)).returning();
+		return classe;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
@@ -175,44 +155,40 @@ const classesRouter = createTRPCRouter({
 const matieresRouter = createTRPCRouter({
 	list: protectedProcedure
 		.input(
-			z.object({
-				niveauId: z.string().uuid().optional(),
-			}).optional(),
+			z
+				.object({
+					niveauId: z.string().uuid().optional(),
+				})
+				.optional(),
 		)
 		.query(async ({ ctx, input }) => {
 			return ctx.db.query.matieres.findMany({
-				where: input?.niveauId
-					? eq(matieres.niveauId, input.niveauId)
-					: undefined,
+				where: input?.niveauId ? eq(matieres.niveauId, input.niveauId) : undefined,
 				with: { niveau: true },
 			});
 		}),
 
-	create: protectedProcedure
-		.input(createMatiereSchema)
-		.mutation(async ({ ctx, input }) => {
-			const [matiere] = await ctx.db
-				.insert(matieres)
-				.values({
-					nom: input.nom,
-					coefficient: input.coefficient,
-					niveauId: input.niveauId,
-				})
-				.returning();
-			return matiere;
-		}),
+	create: protectedProcedure.input(createMatiereSchema).mutation(async ({ ctx, input }) => {
+		const [matiere] = await ctx.db
+			.insert(matieres)
+			.values({
+				nom: input.nom,
+				coefficient: input.coefficient,
+				niveauId: input.niveauId,
+			})
+			.returning();
+		return matiere;
+	}),
 
-	update: protectedProcedure
-		.input(updateMatiereSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { id, ...data } = input;
-			const [matiere] = await ctx.db
-				.update(matieres)
-				.set(data)
-				.where(eq(matieres.id, id))
-				.returning();
-			return matiere;
-		}),
+	update: protectedProcedure.input(updateMatiereSchema).mutation(async ({ ctx, input }) => {
+		const { id, ...data } = input;
+		const [matiere] = await ctx.db
+			.update(matieres)
+			.set(data)
+			.where(eq(matieres.id, id))
+			.returning();
+		return matiere;
+	}),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))

@@ -1,9 +1,9 @@
 "use client";
 
+import { CreditCard, DollarSign, Receipt, TrendingUp } from "lucide-react";
 import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, StatCard } from "@/shared/ui";
 import { formatCFA } from "@/shared/lib/utils";
-import { CreditCard, Receipt, DollarSign, TrendingUp } from "lucide-react";
+import { PageHeader, StatCard } from "@/shared/ui";
 
 export default function BilanPage() {
 	const annees = trpc.academic.annees.list.useQuery();
@@ -20,10 +20,7 @@ export default function BilanPage() {
 		<div>
 			<PageHeader
 				title="Bilan financier"
-				breadcrumbs={[
-					{ label: "Finances", href: "/finances/paiements" },
-					{ label: "Bilan" },
-				]}
+				breadcrumbs={[{ label: "Finances", href: "/finances/paiements" }, { label: "Bilan" }]}
 			/>
 
 			{activeAnnee && (
@@ -51,11 +48,7 @@ export default function BilanPage() {
 					value={formatCFA(d?.totalRecettes ?? 0)}
 					icon={DollarSign}
 				/>
-				<StatCard
-					title="Total dépenses"
-					value={formatCFA(d?.totalDepenses ?? 0)}
-					icon={Receipt}
-				/>
+				<StatCard title="Total dépenses" value={formatCFA(d?.totalDepenses ?? 0)} icon={Receipt} />
 				<StatCard
 					title="Solde"
 					value={formatCFA(d?.solde ?? 0)}

@@ -1,6 +1,12 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
-	"organizeImports": { "enabled": true },
+	"$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"formatter": {
 		"indentStyle": "tab",
 		"lineWidth": 100
@@ -13,7 +19,30 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"preset": "recommended",
+			"a11y": {
+				"noLabelWithoutControl": "warn",
+				"useButtonType": "warn",
+				"noAutofocus": "warn",
+				"noStaticElementInteractions": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "warn"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "warn"
+			},
+			"complexity": {
+				"noImportantStyles": "warn"
+			},
+			"correctness": {
+				"noUnusedVariables": "warn"
+			}
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
 		}
 	}
 }

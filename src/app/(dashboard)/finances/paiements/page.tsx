@@ -1,12 +1,12 @@
 "use client";
 
+import { CreditCard, Download, Receipt } from "lucide-react";
 import { useState } from "react";
-import { trpc } from "@/shared/lib/trpc-client";
-import { PageHeader, DataTable, Button, MonthPicker, StatCard } from "@/shared/ui";
-import type { Column } from "@/shared/ui";
-import { formatCFA, MOIS_LABELS, formatDate } from "@/shared/lib/utils";
-import { CreditCard, Receipt, Download } from "lucide-react";
 import { generateRecuPdf } from "@/shared/lib/generate-recu-pdf";
+import { trpc } from "@/shared/lib/trpc-client";
+import { formatCFA, formatDate, MOIS_LABELS } from "@/shared/lib/utils";
+import type { Column } from "@/shared/ui";
+import { Button, DataTable, MonthPicker, PageHeader, StatCard } from "@/shared/ui";
 
 type PaiementRow = Record<string, unknown> & {
 	id: string;
@@ -144,10 +144,7 @@ export default function PaiementsPage() {
 		<div>
 			<PageHeader
 				title="Paiements"
-				breadcrumbs={[
-					{ label: "Finances", href: "/finances/bilan" },
-					{ label: "Paiements" },
-				]}
+				breadcrumbs={[{ label: "Finances", href: "/finances/bilan" }, { label: "Paiements" }]}
 			/>
 
 			{!activeAnnee && (
@@ -195,9 +192,7 @@ export default function PaiementsPage() {
 						</div>
 
 						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Type de frais
-							</label>
+							<label className="mb-1 block text-sm font-medium text-gray-700">Type de frais</label>
 							<select
 								value={selectedTypeFraisId}
 								onChange={(e) => setSelectedTypeFraisId(e.target.value)}
@@ -214,16 +209,12 @@ export default function PaiementsPage() {
 						</div>
 
 						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Mois
-							</label>
+							<label className="mb-1 block text-sm font-medium text-gray-700">Mois</label>
 							<MonthPicker value={paymentMois} onChange={setPaymentMois} />
 						</div>
 
 						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Montant (FCFA)
-							</label>
+							<label className="mb-1 block text-sm font-medium text-gray-700">Montant (FCFA)</label>
 							<input
 								type="number"
 								required
@@ -239,10 +230,7 @@ export default function PaiementsPage() {
 						<Button
 							type="submit"
 							disabled={
-								createMutation.isPending ||
-								!selectedEleveId ||
-								!selectedTypeFraisId ||
-								montant <= 0
+								createMutation.isPending || !selectedEleveId || !selectedTypeFraisId || montant <= 0
 							}
 						>
 							<CreditCard className="h-4 w-4" />
@@ -274,9 +262,7 @@ export default function PaiementsPage() {
 					<MonthPicker value={selectedMois} onChange={setSelectedMois} />
 				</div>
 				<div>
-					<label className="mb-1 block text-sm font-medium text-gray-700">
-						Type de frais
-					</label>
+					<label className="mb-1 block text-sm font-medium text-gray-700">Type de frais</label>
 					<select
 						value={filterTypeFraisId}
 						onChange={(e) => setFilterTypeFraisId(e.target.value)}
