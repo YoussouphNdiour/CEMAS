@@ -1,7 +1,17 @@
 "use client";
 
-import { Banknote, CheckCircle, FileText, Gift, MinusCircle, Users } from "lucide-react";
+import {
+	Banknote,
+	CheckCircle,
+	FileDown,
+	FileText,
+	Gift,
+	MinusCircle,
+	Printer,
+	Users,
+} from "lucide-react";
 import { useState } from "react";
+import { downloadFichesPaiePdf } from "@/shared/lib/generate-fiche-paie-pdf";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA } from "@/shared/lib/utils";
 import type { Column } from "@/shared/ui";
@@ -39,6 +49,7 @@ export default function BulletinsPage() {
 
 	const bulletinsQuery = trpc.payroll.bulletins.list.useQuery({ mois, annee });
 	const statsQuery = trpc.payroll.bulletins.stats.useQuery({ mois, annee });
+	const parametres = trpc.settings.get.useQuery();
 
 	const generateMutation = trpc.payroll.bulletins.generate.useMutation({
 		onSuccess: () => {
@@ -193,23 +204,38 @@ export default function BulletinsPage() {
 		{
 			key: "actions",
 			label: "Actions",
-			render: (row) =>
-				!row.paye ? (
+			render: (row) => (
+				<div className="flex items-center gap-2">
+					{!row.paye ? (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={(e) => {
+								e.stopPropagation();
+								markPaidMutation.mutate({ id: row.id });
+							}}
+							disabled={markPaidMutation.isPending}
+						>
+							<CheckCircle className="h-4 w-4" />
+							Marquer paye
+						</Button>
+					) : (
+						<span className="text-xs text-muted">Paye le {row.datePaiement}</span>
+					)}
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
+						disabled={!parametres.data}
 						onClick={(e) => {
 							e.stopPropagation();
-							markPaidMutation.mutate({ id: row.id });
+							if (parametres.data) downloadFichesPaiePdf([row], parametres.data);
 						}}
-						disabled={markPaidMutation.isPending}
 					>
-						<CheckCircle className="h-4 w-4" />
-						Marquer paye
+						<FileDown className="h-4 w-4" />
+						Fiche
 					</Button>
-				) : (
-					<span className="text-xs text-muted">Paye le {row.datePaiement}</span>
-				),
+				</div>
+			),
 		},
 	];
 
@@ -243,6 +269,17 @@ export default function BulletinsPage() {
 				>
 					<FileText className="h-4 w-4" />
 					{generateMutation.isPending ? "Generation..." : "Generer les bulletins"}
+				</Button>
+				<Button
+					variant="outline"
+					disabled={!bulletinsQuery.data?.length || !parametres.data}
+					onClick={() => {
+						if (parametres.data && bulletinsQuery.data)
+							downloadFichesPaiePdf(bulletinsQuery.data, parametres.data);
+					}}
+				>
+					<Printer className="h-4 w-4" />
+					Imprimer les fiches du mois ({bulletinsQuery.data?.length ?? 0})
 				</Button>
 			</div>
 
