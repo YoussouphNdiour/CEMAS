@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { eleves } from "@/modules/students/schema";
@@ -160,6 +161,26 @@ const classesRouter = createTRPCRouter({
 
 	update: protectedProcedure.input(updateClasseSchema).mutation(async ({ ctx, input }) => {
 		const { id, ...data } = input;
+		if (data.finDeCycle) data.classeSuivanteId = null;
+		if (data.classeSuivanteId) {
+			const [classe] = await ctx.db.select().from(classes).where(eq(classes.id, id));
+			const [suivante] = await ctx.db
+				.select()
+				.from(classes)
+				.where(eq(classes.id, data.classeSuivanteId));
+			if (
+				!classe ||
+				!suivante ||
+				suivante.id === classe.id ||
+				suivante.anneeScolaireId !== classe.anneeScolaireId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "La classe suivante doit être une autre classe de la même année.",
+				});
+			}
+			data.finDeCycle = false;
+		}
 		const [classe] = await ctx.db.update(classes).set(data).where(eq(classes.id, id)).returning();
 		return classe;
 	}),

@@ -26,7 +26,7 @@ test.describe("02 - Module Academique", () => {
 			await page.getByRole("button", { name: "Créer" }).click();
 
 			// Verifier que l'annee apparait dans la table
-			await expect(page.getByText("2026-2027")).toBeVisible({ timeout: 10_000 });
+			await expect(page.getByText("2026-2027").first()).toBeVisible({ timeout: 10_000 });
 		});
 
 		test("activer une annee scolaire", async ({ page }) => {

@@ -50,6 +50,13 @@
       "when": 1791536250350,
       "tag": "0006_dusty_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791565438882,
+      "tag": "0007_flippant_zarda",
+      "breakpoints": true
     }
   ]
 }
