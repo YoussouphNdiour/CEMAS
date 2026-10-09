@@ -47,3 +47,34 @@ export async function selectOption(page: Page, label: string, optionText: string
 	const sel = container.locator("select");
 	await sel.selectOption({ label: optionText });
 }
+
+/** Appel tRPC (batch, sans transformer) depuis la session du navigateur. */
+export async function trpc<T>(
+	page: Page,
+	path: string,
+	input?: unknown,
+	mutation = false,
+): Promise<T> {
+	const res = await page.evaluate(
+		async ([path, input, mutation]) => {
+			const url = mutation
+				? `/api/trpc/${path}?batch=1`
+				: `/api/trpc/${path}?batch=1&input=${encodeURIComponent(JSON.stringify({ 0: input }))}`;
+			const r = await fetch(
+				url,
+				mutation
+					? {
+							method: "POST",
+							headers: { "content-type": "application/json" },
+							body: JSON.stringify({ 0: input }),
+						}
+					: {},
+			);
+			return r.json();
+		},
+		[path, input, mutation] as const,
+	);
+	const [first] = res as [{ result?: { data: T }; error?: { message: string } }];
+	if (!first.result) throw new Error(`${path}: ${first.error?.message}`);
+	return first.result.data;
+}

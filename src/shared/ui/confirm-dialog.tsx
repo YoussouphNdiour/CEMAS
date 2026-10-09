@@ -9,6 +9,9 @@ interface ConfirmDialogProps {
 	title: string;
 	message: string;
 	loading?: boolean;
+	confirmLabel?: string;
+	loadingLabel?: string;
+	confirmVariant?: "danger" | "primary";
 }
 
 export function ConfirmDialog({
@@ -18,20 +21,30 @@ export function ConfirmDialog({
 	title,
 	message,
 	loading,
+	confirmLabel = "Supprimer",
+	loadingLabel = "Suppression...",
+	confirmVariant = "danger",
 }: ConfirmDialogProps) {
 	if (!open) return null;
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-			<div className="w-full max-w-sm rounded-xl bg-surface p-6 shadow-xl">
-				<h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+			<div
+				role="alertdialog"
+				aria-modal="true"
+				aria-labelledby="confirm-dialog-title"
+				className="w-full max-w-sm rounded-xl bg-surface p-6 shadow-xl"
+			>
+				<h3 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900">
+					{title}
+				</h3>
 				<p className="mt-2 text-sm text-muted">{message}</p>
 				<div className="mt-6 flex items-center justify-end gap-3">
 					<Button variant="ghost" onClick={onClose} disabled={loading}>
 						Annuler
 					</Button>
-					<Button variant="danger" onClick={onConfirm} disabled={loading}>
-						{loading ? "Suppression..." : "Supprimer"}
+					<Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
+						{loading ? loadingLabel : confirmLabel}
 					</Button>
 				</div>
 			</div>
