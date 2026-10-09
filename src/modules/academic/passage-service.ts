@@ -109,6 +109,13 @@ export async function enregistrerDecisions(
 		const lignes = Object.entries(decisions).filter(([id]) => concernes.has(id));
 		await tx.delete(passageDecisions).where(eq(passageDecisions.anneeScolaireId, source.id));
 		if (lignes.length) {
+			// Restes éventuels d'une autre année pour ces élèves (clé primaire = élève)
+			await tx.delete(passageDecisions).where(
+				inArray(
+					passageDecisions.eleveId,
+					lignes.map(([id]) => id),
+				),
+			);
 			await tx
 				.insert(passageDecisions)
 				.values(
@@ -184,14 +191,28 @@ export async function controlesPassage(database: Db) {
 	};
 }
 
-export async function executerPassage(
-	database: Db,
-	input: {
-		cible: { libelle: string; dateDebut: string; dateFin: string };
-		decisions: Record<string, Decision>;
-		confirmations: { classes: true; decisions: true; grille: true };
-	},
-) {
+type EntreePassage = {
+	cible: { libelle: string; dateDebut: string; dateFin: string };
+	decisions: Record<string, Decision>;
+	confirmations: { classes: true; decisions: true; grille: true };
+};
+
+/** Un seul passage à la fois dans ce processus (l'application tourne dans un seul conteneur). */
+let passageEnCours = false;
+
+export async function executerPassage(database: Db, input: EntreePassage) {
+	if (passageEnCours) {
+		throw new TRPCError({ code: "CONFLICT", message: "Un passage est déjà en cours." });
+	}
+	passageEnCours = true;
+	try {
+		return await executerPassageSansConcurrence(database, input);
+	} finally {
+		passageEnCours = false;
+	}
+}
+
+async function executerPassageSansConcurrence(database: Db, input: EntreePassage) {
 	const avant = await controlesPassage(database);
 	if (avant.fenetre.etat !== "ouvert") {
 		throw new TRPCError({
@@ -204,6 +225,11 @@ export async function executerPassage(
 			code: "BAD_REQUEST",
 			message: "Aucune sauvegarde de moins de 24 h : faites une sauvegarde avant le passage.",
 		});
+	}
+	// Plan vérifié avant la sauvegarde : pas de fichier inutile si le passage est refusé
+	const planAvant = await previsualiserPassage(database, input.decisions);
+	if (planAvant.erreurs.length) {
+		throw new TRPCError({ code: "BAD_REQUEST", message: planAvant.erreurs.join(" ; ") });
 	}
 	const sauvegardeAvantPassage = (await sauvegarder("prepassage")).nom;
 	return database.transaction(async (tx) => {

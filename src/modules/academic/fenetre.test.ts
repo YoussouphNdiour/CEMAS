@@ -60,8 +60,17 @@ describe("sauvegardes", () => {
 				f("prepassage-20271001-090000.dump", "2027-10-01T09:00:00Z"),
 				f("autre.txt", "2027-10-02T00:00:00Z"),
 				f("cemas-x.dump.tmp", "2027-10-02T00:00:00Z"),
+				f("cemas-20271001-100000123-a1b2c3.dump.tmp", "2027-10-03T00:00:00Z"),
 			])?.nom,
 		).toBe("prepassage-20271001-090000.dump");
+	});
+	it("reconnaît les noms des sauvegardes faites depuis l'application (ms + suffixe)", () => {
+		expect(
+			choisirDerniereSauvegarde([
+				f("cemas-20271001-020000.dump", "2027-10-01T02:00:00Z"),
+				f("prepassage-20271001-090000123-a1b2c3.dump", "2027-10-01T09:00:00Z"),
+			])?.nom,
+		).toBe("prepassage-20271001-090000123-a1b2c3.dump");
 	});
 	it("aucune sauvegarde", () => {
 		expect(choisirDerniereSauvegarde([])).toBeNull();

@@ -424,6 +424,11 @@ export default function PassagePage() {
 					<div className="space-y-6">
 						<h2 className="text-lg font-semibold">5. Contrôles et lancement</h2>
 						{controles.isLoading && <p className="text-sm text-muted">Vérification...</p>}
+						{controles.error && (
+							<p className="text-sm text-danger">
+								Contrôles impossibles : {controles.error.message}
+							</p>
+						)}
 						{controles.data && (
 							<ul className="space-y-3 text-sm">
 								<li

@@ -72,7 +72,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: mkdir -p /tmp/cemas-backups && pg_dump --version
+      - name: Dossier de sauvegardes et pg_dump >= 16
+        run: |
+          mkdir -p /tmp/cemas-backups
+          pg_dump --version
+          test "$(pg_dump --version | grep -oE '[0-9]+' | head -1)" -ge 16
       - run: pnpm db:migrate
       - run: pnpm db:seed
       # Functional suites 01..99 (the 00-guide specs generate documentation screenshots)

@@ -46,7 +46,7 @@ export interface FichierSauvegarde {
 	taille: number;
 }
 
-const MOTIF = /^(cemas|prepassage)-\d{8}-\d{6}\.dump$/;
+const MOTIF = /^(cemas|prepassage)-\d{8}-\d{6}(\d{3}-[0-9a-f]{6})?\.dump$/;
 
 export function choisirDerniereSauvegarde(fichiers: FichierSauvegarde[]): FichierSauvegarde | null {
 	return (
