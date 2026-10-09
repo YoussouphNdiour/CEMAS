@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Parametres } from "@/modules/settings/service";
+import { dessinerEnTeteEcole, formatMontantPdf, PDF_COULEURS } from "./pdf-entete";
 import { MOIS_LABELS } from "./utils";
 
 interface RecuData {
@@ -17,13 +18,8 @@ interface RecuData {
 	parentTel: string | null;
 }
 
-// School colors
-const PRIMARY = { r: 102, g: 93, b: 157 }; // #665d9d
-const SECONDARY = { r: 251, g: 198, b: 22 }; // #fbc616
-
-function formatMontantPdf(amount: number): string {
-	return `${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
-}
+const PRIMARY = PDF_COULEURS.primaire;
+const SECONDARY = PDF_COULEURS.secondaire;
 
 function formatDateFr(dateStr: string): string {
 	const d = new Date(dateStr);
@@ -38,52 +34,7 @@ export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 	const doc = new jsPDF({ unit: "mm", format: "a5" });
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const margin = 15;
-	let y = 12;
-
-	// ── Yellow accent bar at top ──
-	doc.setFillColor(SECONDARY.r, SECONDARY.g, SECONDARY.b);
-	doc.rect(0, 0, pageWidth, 4, "F");
-
-	y += 4;
-
-	// ── Header ──
-	doc.setFontSize(20);
-	doc.setFont("helvetica", "bold");
-	doc.setTextColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
-	doc.text(ecole.sigle, pageWidth / 2, y, { align: "center" });
-	y += 7;
-	doc.setFontSize(9);
-	doc.setFont("helvetica", "normal");
-	doc.setTextColor(80, 80, 80);
-	doc.text(ecole.nom, pageWidth / 2, y, { align: "center" });
-	y += 4;
-	if (ecole.adresse) {
-		doc.text(ecole.adresse, pageWidth / 2, y, { align: "center" });
-		y += 4;
-	}
-	const coordonnees = [ecole.telephone1, ecole.telephone2, ecole.email].filter(Boolean).join(" | ");
-	if (coordonnees) {
-		doc.text(coordonnees, pageWidth / 2, y, { align: "center" });
-		y += 4;
-	}
-	y += 2;
-
-	// ── Contacts ──
-	if (ecole.contactsEntete) {
-		doc.setFontSize(7);
-		doc.setTextColor(100, 100, 100);
-		doc.text(ecole.contactsEntete, pageWidth / 2, y, {
-			align: "center",
-			maxWidth: pageWidth - 2 * margin,
-		});
-		y += 6;
-	}
-
-	// ── Divider ──
-	doc.setDrawColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
-	doc.setLineWidth(0.8);
-	doc.line(margin, y, pageWidth - margin, y);
-	y += 8;
+	let y = dessinerEnTeteEcole(doc, ecole, { marge: margin });
 
 	// ── Title ──
 	doc.setFontSize(14);

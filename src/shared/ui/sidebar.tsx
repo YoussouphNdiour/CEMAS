@@ -18,7 +18,9 @@ import {
 	MapPin,
 	Receipt,
 	Settings,
+	Table,
 	TrendingUp,
+	TriangleAlert,
 	Truck,
 	UserCheck,
 	UserPlus,
@@ -61,6 +63,8 @@ const navItems: NavItem[] = [
 		children: [
 			{ label: "Paiements", href: "/finances/paiements", icon: CreditCard },
 			{ label: "Suivi", href: "/finances/suivi", icon: TrendingUp },
+			{ label: "Impayés", href: "/finances/impayes", icon: TriangleAlert },
+			{ label: "Grille tarifaire", href: "/finances/grille", icon: Table },
 			{ label: "Dépenses", href: "/finances/depenses", icon: Receipt },
 			{ label: "Recettes", href: "/finances/recettes", icon: DollarSign },
 			{ label: "Bilan", href: "/finances/bilan", icon: FileText },

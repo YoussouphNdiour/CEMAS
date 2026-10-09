@@ -181,6 +181,18 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Input :** `{ classeId: uuid, typeFraisId: uuid, anneeScolaireId: uuid, montantMensuel: number }`
 - **Description :** Crée ou met à jour la grille tarifaire
 
+### `finance.grilleFrais.upsertMany`
+- **Type :** Mutation
+- **Input :** `{ anneeScolaireId: uuid, cellules: { classeId, typeFraisId, montant }[] }` — 1 à 200 cellules, montant entier ≥ 0
+- **Description :** Crée ou met à jour plusieurs cellules dans une transaction
+- **Output :** `{ count: number }`
+
+### `finance.impayes.list`
+- **Type :** Query
+- **Input :** `{ anneeScolaireId: uuid, classeId?: uuid, niveauId?: uuid }`
+- **Output :** `{ lignes: LigneImpaye[], totalDu, totalPaye, totalReste, classesMontantDefaut: { classeId, classeNom, frais: string[] }[] }`
+- `LigneImpaye` : élève (`id, matricule, prenom, nom, classeId, classeNom, niveauId, telephone, parentNom`) + `du, paye, reste, moisImpayes: { typeFraisId, typeFraisNom, mois|null, annee|null, montant }[]` ; seulement `reste > 0`, tri par reste décroissant
+
 ### `finance.paiements.create`
 - **Type :** Mutation
 - **Input :** `{ eleveId: uuid, typeFraisId: uuid, anneeScolaireId: uuid, mois: 1-12, montant: number }`
@@ -363,7 +375,7 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 ### `dashboard.stats`
 - **Type :** Query
 - **Input :** `{ anneeScolaireId: uuid }`
-- **Output :** `{ totalEleves, totalClasses, totalPaiements, totalDepenses, totalEmployes, masseSalariale }`
+- **Output :** `{ totalEleves, totalClasses, totalPaiements, totalDepenses, totalEmployes, masseSalariale, totalImpayes }` (`totalImpayes` = `finance.impayes.list.totalReste`)
 
 ### `dashboard.studentsByNiveau`
 - **Type :** Query

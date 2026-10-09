@@ -54,12 +54,23 @@
 | Fonctionnalité | Priorité | Description |
 |---------------|----------|-------------|
 | Types de frais | P0 | Liste des types de frais (scolarité, inscription, etc.) avec montant par défaut |
-| Grille tarifaire | P0 | Montant mensuel par classe × type de frais × année scolaire (upsert) |
+| Grille tarifaire | P0 | Page `/finances/grille` : montant par classe × frais obligatoire de l'année active ; cases vides = montant par défaut (signalé) ; « Appliquer au niveau » |
+| Impayés | P0 | Page `/finances/impayes` : élèves actifs avec un reste à payer (dû, payé, reste, mois impayés, téléphone du contact principal), filtres niveau/classe, totaux |
+| Relances | P0 | Lettre de relance PDF (A4) par élève ou pour une sélection (une page par élève), en-tête de l'école |
 | Paiements | P0 | Enregistrement d'un paiement mensuel par élève avec numéro de reçu auto-généré |
 | Suivi paiements | P0 | Grille visuelle par classe : élève × mois (Oct-Jul), pastilles vert/rouge |
 | Dépenses | P0 | CRUD des dépenses avec catégorie, libellé, montant, date, note |
 | Recettes | P0 | CRUD des recettes (hors paiements scolarité) avec catégorie |
 | Bilan | P0 | Vue consolidée : paiements + recettes − dépenses − salaires payés = solde, avec détail par mois |
+
+### Détail : Impayés
+- Élèves : statut `actif`, classe de l'année active ; frais : types `obligatoire` uniquement
+- Mois dus : du mois de début de l'année au mois courant inclus (plafonné à la fin de l'année)
+- Frais mensuel : un mois avec un paiement est **soldé**, quel que soit le montant (remises)
+- Frais unique (`mensuel = false`, ex. Inscription) : dû une fois, soldé par tout paiement de ce frais dans l'année
+- Montant : grille de la classe, sinon montant par défaut du frais (classe signalée sur la page)
+- Dû = mensuels × mois dus + uniques ; Payé = paiements réels (avances comprises) ; Reste = mois impayés + uniques non payés
+- Calcul : `src/modules/finance/impayes.ts` (pur, Vitest) via `getImpayes` (`impayes-service.ts`)
 
 ### Détail : Paiements
 - Numéro de reçu auto-généré : `REC-{année}-{seq 4 chiffres}`
@@ -122,7 +133,7 @@
 
 | Fonctionnalité | Priorité | Description |
 |---------------|----------|-------------|
-| KPI | P0 | 6 indicateurs : élèves, classes, paiements, dépenses, employés, masse salariale |
+| KPI | P0 | 7 indicateurs : élèves, classes, paiements, dépenses, impayés (lien vers la page), employés, masse salariale |
 | Graphique barres | P0 | Paiements mensuels (Recharts BarChart) |
 | Graphique camembert | P0 | Répartition élèves par niveau (Recharts PieChart) |
 | Paiements récents | P0 | Tableau des 10 derniers paiements |

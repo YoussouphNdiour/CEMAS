@@ -1,6 +1,15 @@
 "use client";
 
-import { Banknote, Briefcase, GraduationCap, Receipt, TrendingUp, Users } from "lucide-react";
+import {
+	Banknote,
+	Briefcase,
+	GraduationCap,
+	Receipt,
+	TrendingUp,
+	TriangleAlert,
+	Users,
+} from "lucide-react";
+import Link from "next/link";
 import {
 	Bar,
 	BarChart,
@@ -72,11 +81,14 @@ export default function DashboardPage() {
 			)}
 
 			{/* KPI Cards */}
-			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard title="Élèves" value={String(d?.totalEleves ?? 0)} icon={Users} />
 				<StatCard title="Classes" value={String(d?.totalClasses ?? 0)} icon={GraduationCap} />
 				<StatCard title="Paiements" value={formatCFA(d?.totalPaiements ?? 0)} icon={TrendingUp} />
 				<StatCard title="Dépenses" value={formatCFA(d?.totalDepenses ?? 0)} icon={Receipt} />
+				<Link href="/finances/impayes">
+					<StatCard title="Impayés" value={formatCFA(d?.totalImpayes ?? 0)} icon={TriangleAlert} />
+				</Link>
 				<StatCard title="Employés" value={String(d?.totalEmployes ?? 0)} icon={Briefcase} />
 				<StatCard
 					title="Masse salariale"

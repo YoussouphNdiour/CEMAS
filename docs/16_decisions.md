@@ -96,6 +96,18 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Solde = paiements + recettes − dépenses − salaires payés. Détail mensuel rattaché à la date d'encaissement/décaissement ; octobre → juillet toujours affichés, autres mois s'ils ont des mouvements. Salaires de l'année = bulletins payés dont la période est dans l'année scolaire
 - **Conséquences :** Le tableau mensuel montre la trésorerie réelle, pas le mois de scolarité concerné ; ajout de Vitest pour les calculs (lancé en CI)
 
+### D-016 — Impayés : un mois payé est soldé
+- **Date :** 2026-10-09
+- **Contexte :** Montants réellement payés variables (remises, fratries) ; une comptabilité stricte créerait de faux impayés
+- **Décision :** Un mois de frais mensuel pour lequel un paiement est enregistré est soldé, quel que soit le montant ; un frais unique est soldé par tout paiement de ce frais dans l'année
+- **Conséquences :** Pas de suivi des paiements partiels ; Dû − Payé peut différer du Reste (expliqué sur la page)
+
+### D-017 — Grille tarifaire : montant par défaut signalé
+- **Date :** 2026-10-09
+- **Contexte :** Grille vide en production, montants réels différents des défauts
+- **Décision :** Écran de saisie de la grille ; en l'absence de montant, le calcul utilise le montant par défaut du frais et la page Impayés signale les classes concernées
+- **Conséquences :** Les impayés sont exacts une fois la grille remplie
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.
