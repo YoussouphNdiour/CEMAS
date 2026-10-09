@@ -4,7 +4,7 @@
 
 ```
 PR ou push ──► CI (.github/workflows/ci.yml)
-               ├─ checks : typecheck → lint (Biome) → build
+               ├─ checks : typecheck → lint (Biome) → tests unitaires (Vitest) → build
                └─ e2e    : Postgres 16 neuf → migrate → seed → Playwright (e2e/01..07)
 
 push sur main + CI verte ──► Deploy (.github/workflows/deploy.yml)

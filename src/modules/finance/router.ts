@@ -1,11 +1,15 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, type SQL, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { classes } from "@/modules/academic/schema";
+import { anneesScolaires, classes } from "@/modules/academic/schema";
+import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
 import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber } from "@/shared/lib/utils";
+import { buildBilanMensuel, totauxBilan } from "./bilan";
 import {
 	categoriesDepenses,
 	categoriesRecettes,
@@ -420,36 +424,74 @@ const recettesRouter = createTRPCRouter({
 });
 
 const bilanRouter = createTRPCRouter({
+	/**
+	 * Bilan de l'année scolaire, vue trésorerie : chaque montant est rattaché au mois où l'argent
+	 * a bougé. Solde = paiements + recettes − dépenses − salaires payés.
+	 */
 	summary: protectedProcedure
 		.input(z.object({ anneeScolaireId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const [paiementsSum] = await ctx.db
-				.select({
-					total: sql<number>`COALESCE(SUM(${paiements.montant}), 0)`,
-				})
+			const [annee] = await ctx.db
+				.select({ dateDebut: anneesScolaires.dateDebut, dateFin: anneesScolaires.dateFin })
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.id, input.anneeScolaireId));
+			if (!annee) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Année scolaire introuvable" });
+			}
+
+			const parMois = (date: SQL | AnyPgColumn, montant: AnyPgColumn) => ({
+				annee: sql<number>`EXTRACT(YEAR FROM ${date})::int`,
+				mois: sql<number>`EXTRACT(MONTH FROM ${date})::int`,
+				montant: sql<number>`COALESCE(SUM(${montant}), 0)::int`,
+			});
+
+			const paiementsMois = await ctx.db
+				.select(parMois(paiements.datePaiement, paiements.montant))
 				.from(paiements)
-				.where(eq(paiements.anneeScolaireId, input.anneeScolaireId));
+				.where(eq(paiements.anneeScolaireId, input.anneeScolaireId))
+				.groupBy(sql`1, 2`);
 
-			const [depensesSum] = await ctx.db
-				.select({
-					total: sql<number>`COALESCE(SUM(${depenses.montant}), 0)`,
-				})
-				.from(depenses)
-				.where(eq(depenses.anneeScolaireId, input.anneeScolaireId));
-
-			const [recettesSum] = await ctx.db
-				.select({
-					total: sql<number>`COALESCE(SUM(${recettes.montant}), 0)`,
-				})
+			const recettesMois = await ctx.db
+				.select(parMois(recettes.date, recettes.montant))
 				.from(recettes)
-				.where(eq(recettes.anneeScolaireId, input.anneeScolaireId));
+				.where(eq(recettes.anneeScolaireId, input.anneeScolaireId))
+				.groupBy(sql`1, 2`);
 
-			const totalPaiements = Number(paiementsSum.total);
-			const totalDepenses = Number(depensesSum.total);
-			const totalRecettes = Number(recettesSum.total);
-			const solde = totalPaiements + totalRecettes - totalDepenses;
+			const depensesMois = await ctx.db
+				.select(parMois(depenses.date, depenses.montant))
+				.from(depenses)
+				.where(eq(depenses.anneeScolaireId, input.anneeScolaireId))
+				.groupBy(sql`1, 2`);
 
-			return { totalPaiements, totalDepenses, totalRecettes, solde };
+			// Bulletins payés dont la période tombe dans l'année scolaire (pas de colonne d'année
+			// scolaire sur les bulletins) ; rattachés à la date de paiement, sinon au mois du bulletin.
+			const periode = sql`make_date(${bulletinsPaie.annee}, ${bulletinsPaie.mois}, 1)`;
+			const salairesMois = await ctx.db
+				.select(
+					parMois(
+						sql`COALESCE(${bulletinsPaie.datePaiement}, ${periode})`,
+						bulletinsPaie.netAPayer,
+					),
+				)
+				.from(bulletinsPaie)
+				.where(
+					and(
+						eq(bulletinsPaie.paye, true),
+						sql`${periode} BETWEEN date_trunc('month', ${annee.dateDebut}::date) AND ${annee.dateFin}::date`,
+					),
+				)
+				.groupBy(sql`1, 2`);
+
+			const mois = buildBilanMensuel({
+				dateDebut: annee.dateDebut,
+				dateFin: annee.dateFin,
+				paiements: paiementsMois,
+				recettes: recettesMois,
+				depenses: depensesMois,
+				salaires: salairesMois,
+			});
+
+			return { ...totauxBilan(mois), mois };
 		}),
 });
 
