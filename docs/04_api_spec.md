@@ -110,11 +110,25 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Input :** `{ decisions: Record<eleveId, "passe" | "redouble" | "quitte"> }` (absent = passe)
 - **Output :** `{ erreurs, mouvements, parClasse, effectifsPrevus }` — sans écriture
 
+### `academic.passage.enregistrerDecisions`
+- **Type :** Mutation
+- **Input :** `{ decisions: Record<eleveId, "redouble" | "quitte"> }` — remplace les décisions de l'année active (élèves concernés uniquement)
+- **Output :** `{ count }`
+
+### `academic.passage.controles`
+- **Type :** Query
+- **Output :** `{ fenetre: { etat: "aucun"|"preparation"|"ouvert", ouverture, debutPreparation }, sauvegarde: { nom, date, taille } | null, sauvegardeRecente, sauvegardesConfigurees, totalImpayes }`
+
+### `academic.passage.sauvegarder`
+- **Type :** Mutation — `pg_dump -Fc` immédiat vers `BACKUP_DIR` (`cemas-…dump`), vérifié par `pg_restore -l`
+- **Output :** `{ nom, taille }` ; erreur « Sauvegardes non configurées » si `BACKUP_DIR` est absent
+
 ### `academic.passage.executer`
 - **Type :** Mutation
-- **Input :** `{ cible: { libelle, dateDebut, dateFin }, decisions }`
+- **Input :** `{ cible: { libelle, dateDebut, dateFin }, decisions, confirmations: { classes: true, decisions: true, grille: true } }`
+- **Gardes (avant toute écriture) :** fenêtre `ouvert` (« Passage disponible à partir du … ») ; sauvegarde de moins de 24 h ; sauvegarde `prepassage-…dump` réussie
 - **Description :** Transaction unique (voir `02_features.md`) ; refus `BAD_REQUEST` si une classe n'est pas configurée, une décision vise un élève non concerné, ou la cible est l'année active
-- **Output :** `{ anneeId, promus, redoublants, sortants, departs, classesCreees, grilleCopiee }`
+- **Output :** `{ anneeId, promus, redoublants, sortants, departs, classesCreees, grilleCopiee, sauvegardeAvantPassage }`
 
 ### `academic.classes.delete`
 - **Type :** Mutation
@@ -397,6 +411,10 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Type :** Query
 - **Input :** `{ anneeScolaireId: uuid }`
 - **Output :** `{ totalEleves, totalClasses, totalPaiements, totalDepenses, totalEmployes, masseSalariale, totalImpayes }` (`totalImpayes` = `finance.impayes.list.totalReste`)
+
+### `dashboard.rappelPassage`
+- **Type :** Query
+- **Output :** `null` ou `{ etat: "preparation" | "ouvert", ouverture, dateFin, libelleSource, libelleCible, classesAConfigurer }` (bandeau du tableau de bord)
 
 ### `dashboard.studentsByNiveau`
 - **Type :** Query

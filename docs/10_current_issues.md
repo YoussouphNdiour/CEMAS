@@ -48,7 +48,7 @@ Mis à jour le 2026-10-09.
 - Pas d'upload de photo élève (`photo_url` sans interface)
 - Pas de calcul des charges sociales en paie
 - Transport : capacité du véhicule non contrôlée, affectations à refaire chaque année
-- Pas de notifications (email, SMS) — rappels uniquement par bandeaux
+- Pas de notifications (email, SMS) — rappels du passage d'année par bandeaux uniquement (décision D-020)
 - Sauvegardes sur le même serveur que la base (pas de copie hors serveur)
 - Pas de logs d'audit, pas de mode hors ligne
 - 90 avertissements Biome historiques (libellés de formulaires non associés, boutons sans `type`…)

@@ -15,6 +15,12 @@ Script : `scripts/backup/backup.sh` ; image : `scripts/backup/Dockerfile` ; conf
 
 **Limite** : les sauvegardes sont sur le même serveur. Elles protègent contre une erreur de manipulation, pas contre la perte du serveur. Télécharger régulièrement une copie (voir ci-dessous) en attendant une copie automatique hors serveur.
 
+## Sauvegardes déclenchées depuis l'application
+
+- Le conteneur `cemas-app-1` monte le même volume (`/backups`, variable `BACKUP_DIR`) et dispose de `pg_dump`.
+- Assistant de passage, étape 5 : « Faire une sauvegarde maintenant » crée `cemas-AAAAMMJJ-HHMMSS.dump` (purgé après 30 jours comme les autres).
+- Juste avant le passage, l'application crée `prepassage-AAAAMMJJ-HHMMSS.dump` : **jamais purgé automatiquement**. C'est le point de retour si le passage doit être annulé (restauration ci-dessous).
+
 ## Vérifier que les sauvegardes fonctionnent
 
 Portainer → Containers → `cemas-backup-1` → **Logs** : une ligne par sauvegarde, par exemple

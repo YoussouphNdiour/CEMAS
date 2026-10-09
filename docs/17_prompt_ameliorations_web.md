@@ -8,7 +8,7 @@
 | 2. Impayés et relances | ✅ en production | #6 | `superpowers/specs/2026-10-09-lot2-impayes-relances-design.md` |
 | 3. Fiche de paie imprimable | ✅ en production | #8 | (lot borné, design en conversation) |
 | 4. Passage à l'année suivante | ✅ en production | #10 | `superpowers/specs/2026-10-09-lot4-passage-annee-design.md` |
-| 4b. Encadrement du passage | 🟡 design validé | — | fenêtre après la fin d'année, contrôles avant passage, bandeaux (sans email) |
+| 4b. Encadrement du passage | ✅ (PR en cours) | — | `superpowers/specs/2026-10-09-lot4b-encadrement-passage-design.md` |
 | 5. Sauvegarde automatique | ✅ en production | #9 | `docs/19_sauvegardes.md` |
 | 6. Bilan incluant les salaires | ✅ en production | #3 | (lot borné) |
 | 7. Capacité des classes | ✅ en production | #4 | (lot borné) |
