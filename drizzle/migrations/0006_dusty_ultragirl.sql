@@ -1,0 +1,1 @@
+ALTER TABLE "eleve_parents" ADD COLUMN "principal" boolean DEFAULT true NOT NULL;

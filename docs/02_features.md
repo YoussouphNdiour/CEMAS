@@ -41,6 +41,7 @@
 - Données parent : prénom, nom, téléphone (+ optionnel), profession, adresse, relation (père/mère/tuteur)
 - Création simultanée de l'inscription dans la table `inscriptions` avec statut `confirmee`
 - Lien parent-élève via table de jointure `eleve_parents`
+- 2e contact optionnel (bloc « Ajouter un 2e contact ») ; le premier est le contact **principal** (utilisé sur les reçus). Un 2e contact peut aussi être ajouté depuis la fiche élève (2 contacts max)
 - Capacité : le choix de classe affiche le remplissage ; une classe pleine affiche un avertissement et l'inscription demande une confirmation (pas de blocage)
 
 ### Détail : Statuts élève

@@ -219,7 +219,7 @@ const paiementsRouter = createTRPCRouter({
 				})
 				.from(eleveParents)
 				.innerJoin(parents, eq(eleveParents.parentId, parents.id))
-				.where(eq(eleveParents.eleveId, row.eleveId));
+				.where(and(eq(eleveParents.eleveId, row.eleveId), eq(eleveParents.principal, true)));
 
 			return {
 				...row,

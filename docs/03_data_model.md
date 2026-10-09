@@ -119,6 +119,7 @@ Une seule ligne (`id = 1`), créée par la migration `0005`.
 |---------|------|-------------|-------------|
 | eleve_id | uuid | FK → eleves, ON DELETE CASCADE | |
 | parent_id | uuid | FK → parents, ON DELETE CASCADE | |
+| principal | boolean | NOT NULL, default true | Contact principal (reçus, relances) ; le 2e contact a `false`. 2 contacts max par élève |
 | | | PK(eleve_id, parent_id) | Clé primaire composite |
 
 ### `inscriptions`

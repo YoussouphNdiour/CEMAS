@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	boolean,
 	date,
 	index,
 	integer,
@@ -62,6 +63,8 @@ export const eleveParents = pgTable(
 		parentId: uuid("parent_id")
 			.notNull()
 			.references(() => parents.id, { onDelete: "cascade" }),
+		/** Contact principal (reçus, relances). Le 2e contact a principal = false. */
+		principal: boolean("principal").notNull().default(true),
 	},
 	(t) => [primaryKey({ columns: [t.eleveId, t.parentId] })],
 );

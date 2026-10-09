@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
@@ -7,7 +8,38 @@ import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateMatricule } from "@/shared/lib/utils";
 import { eleveParents, eleves, inscriptions, parents } from "./schema";
-import { createStudentSchema, studentFiltersSchema, updateStudentSchema } from "./validation";
+import {
+	addParentSchema,
+	createStudentSchema,
+	type ParentInput,
+	studentFiltersSchema,
+	updateStudentSchema,
+} from "./validation";
+
+const MAX_CONTACTS = 2;
+
+/** Insère un parent et le lie à l'élève. */
+async function insertContact(
+	tx: Pick<typeof db, "insert">,
+	eleveId: string,
+	parent: ParentInput,
+	principal: boolean,
+) {
+	const [created] = await tx
+		.insert(parents)
+		.values({
+			prenom: parent.prenom,
+			nom: parent.nom,
+			telephone: parent.telephone,
+			telephone2: parent.telephone2 || null,
+			profession: parent.profession || null,
+			adresse: parent.adresse || null,
+			relation: parent.relation,
+		})
+		.returning();
+	await tx.insert(eleveParents).values({ eleveId, parentId: created.id, principal });
+	return created;
+}
 
 export const studentsRouter = createTRPCRouter({
 	list: protectedProcedure.input(studentFiltersSchema).query(async ({ input }) => {
@@ -91,10 +123,12 @@ export const studentsRouter = createTRPCRouter({
 					profession: parents.profession,
 					adresse: parents.adresse,
 					relation: parents.relation,
+					principal: eleveParents.principal,
 				})
 				.from(parents)
 				.innerJoin(eleveParents, eq(parents.id, eleveParents.parentId))
-				.where(eq(eleveParents.eleveId, input.id));
+				.where(eq(eleveParents.eleveId, input.id))
+				.orderBy(desc(eleveParents.principal), parents.createdAt);
 
 			return { ...student, parents: studentParents };
 		}),
@@ -119,20 +153,6 @@ export const studentsRouter = createTRPCRouter({
 			);
 			const matricule = generateMatricule(prefixeMatricule, year, seq);
 
-			// Insert parent
-			const [parent] = await tx
-				.insert(parents)
-				.values({
-					prenom: input.parent.prenom,
-					nom: input.parent.nom,
-					telephone: input.parent.telephone,
-					telephone2: input.parent.telephone2 || null,
-					profession: input.parent.profession || null,
-					adresse: input.parent.adresse || null,
-					relation: input.parent.relation,
-				})
-				.returning();
-
 			// Insert student
 			const [student] = await tx
 				.insert(eleves)
@@ -149,11 +169,11 @@ export const studentsRouter = createTRPCRouter({
 				})
 				.returning();
 
-			// Link parent to student
-			await tx.insert(eleveParents).values({
-				eleveId: student.id,
-				parentId: parent.id,
-			});
+			// Contacts: principal, then optional second contact
+			await insertContact(tx, student.id, input.parent, true);
+			if (input.parent2) {
+				await insertContact(tx, student.id, input.parent2, false);
+			}
 
 			// Create inscription
 			await tx.insert(inscriptions).values({
@@ -182,6 +202,30 @@ export const studentsRouter = createTRPCRouter({
 
 		const [updated] = await db.update(eleves).set(updateData).where(eq(eleves.id, id)).returning();
 		return updated;
+	}),
+
+	/** Ajoute le 2e contact d'un élève existant (2 contacts au maximum). */
+	addParent: protectedProcedure.input(addParentSchema).mutation(async ({ input }) => {
+		return await db.transaction(async (tx) => {
+			const [eleve] = await tx
+				.select({ id: eleves.id })
+				.from(eleves)
+				.where(eq(eleves.id, input.eleveId));
+			if (!eleve) throw new TRPCError({ code: "NOT_FOUND", message: "Élève non trouvé" });
+
+			const [{ total }] = await tx
+				.select({ total: count() })
+				.from(eleveParents)
+				.where(eq(eleveParents.eleveId, input.eleveId));
+			if (total >= MAX_CONTACTS) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Cet élève a déjà ${MAX_CONTACTS} contacts.`,
+				});
+			}
+
+			return insertContact(tx, input.eleveId, input.parent, total === 0);
+		});
 	}),
 
 	delete: protectedProcedure
