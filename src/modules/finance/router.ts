@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { anneesScolaires, classes } from "@/modules/academic/schema";
+import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
@@ -15,6 +15,8 @@ import {
 	categoriesDepenses,
 	categoriesRecettes,
 	depenses,
+	echeancier,
+	forfaitLignes,
 	grilleFrais,
 	paiements,
 	recettes,
@@ -24,6 +26,7 @@ import {
 	createDepenseSchema,
 	createPaiementSchema,
 	createRecetteSchema,
+	enregistrerTarifsSchema,
 	grilleFraisSchema,
 	impayesFiltersSchema,
 	upsertGrilleSchema,
@@ -527,6 +530,134 @@ const impayesRouter = createTRPCRouter({
 	),
 });
 
+/** Ordre scolaire des mois (octobre → septembre) pour l'affichage de l'échéancier. */
+const ORDRE_SCOLAIRE = (m: number) => (m >= 9 ? m - 9 : m + 3);
+
+const tarifsRouter = createTRPCRouter({
+	list: protectedProcedure
+		.input(z.object({ anneeScolaireId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const lesNiveaux = await ctx.db.select().from(niveaux).orderBy(niveaux.ordre);
+			const lignes = await ctx.db
+				.select()
+				.from(forfaitLignes)
+				.where(eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId))
+				.orderBy(forfaitLignes.ordre);
+			const mois = await ctx.db
+				.select()
+				.from(echeancier)
+				.where(eq(echeancier.anneeScolaireId, input.anneeScolaireId));
+			return lesNiveaux.map((n) => {
+				const l = lignes
+					.filter((x) => x.niveauId === n.id)
+					.map((x) => ({
+						libelle: x.libelle,
+						montant: x.montant,
+						ordre: x.ordre,
+						typeFraisId: x.typeFraisId,
+					}));
+				return {
+					niveauId: n.id,
+					niveauNom: n.nom,
+					ordre: n.ordre,
+					lignes: l,
+					total: l.reduce((t, x) => t + x.montant, 0),
+					echeancier: mois
+						.filter((x) => x.niveauId === n.id)
+						.map((x) => ({ mois: x.mois, montant: x.montant }))
+						.sort((a, b) => ORDRE_SCOLAIRE(a.mois) - ORDRE_SCOLAIRE(b.mois)),
+				};
+			});
+		}),
+
+	enregistrer: protectedProcedure
+		.input(enregistrerTarifsSchema)
+		.mutation(async ({ ctx, input }) => {
+			return ctx.db.transaction(async (tx) => {
+				const cle = and(
+					eq(forfaitLignes.niveauId, input.niveauId),
+					eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
+				);
+				await tx.delete(forfaitLignes).where(cle);
+				await tx
+					.delete(echeancier)
+					.where(
+						and(
+							eq(echeancier.niveauId, input.niveauId),
+							eq(echeancier.anneeScolaireId, input.anneeScolaireId),
+						),
+					);
+				if (input.lignes.length) {
+					await tx.insert(forfaitLignes).values(
+						input.lignes.map((l, i) => ({
+							niveauId: input.niveauId,
+							anneeScolaireId: input.anneeScolaireId,
+							libelle: l.libelle,
+							montant: l.montant,
+							ordre: i,
+							typeFraisId: l.typeFraisId,
+						})),
+					);
+				}
+				if (input.echeancier.length) {
+					await tx.insert(echeancier).values(
+						input.echeancier.map((e) => ({
+							niveauId: input.niveauId,
+							anneeScolaireId: input.anneeScolaireId,
+							mois: e.mois,
+							montant: e.montant,
+						})),
+					);
+				}
+				return { lignes: input.lignes.length, mois: input.echeancier.length };
+			});
+		}),
+
+	/** Tarifs de l'élève (niveau de sa classe, année active) pour proposer les montants à la saisie. */
+	pourEleve: protectedProcedure
+		.input(z.object({ eleveId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const [annee] = await ctx.db
+				.select({ id: anneesScolaires.id })
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.active, true));
+			const [eleve] = await ctx.db
+				.select({ niveauId: classes.niveauId })
+				.from(eleves)
+				.innerJoin(classes, eq(eleves.classeId, classes.id))
+				.where(eq(eleves.id, input.eleveId));
+			if (!annee || !eleve) return { forfait: null, lignes: [], echeancier: {} };
+			const lignes = await ctx.db
+				.select({
+					libelle: forfaitLignes.libelle,
+					montant: forfaitLignes.montant,
+					typeFraisId: forfaitLignes.typeFraisId,
+				})
+				.from(forfaitLignes)
+				.where(
+					and(
+						eq(forfaitLignes.niveauId, eleve.niveauId),
+						eq(forfaitLignes.anneeScolaireId, annee.id),
+					),
+				)
+				.orderBy(forfaitLignes.ordre);
+			const mois = await ctx.db
+				.select({ mois: echeancier.mois, montant: echeancier.montant })
+				.from(echeancier)
+				.where(
+					and(eq(echeancier.niveauId, eleve.niveauId), eq(echeancier.anneeScolaireId, annee.id)),
+				);
+			return {
+				forfait: lignes.length ? lignes.reduce((t, l) => t + l.montant, 0) : null,
+				lignes,
+				echeancier: Object.fromEntries(mois.map((m) => [m.mois, m.montant])) as Record<
+					number,
+					number
+				>,
+			};
+		}),
+});
+
 export const financeRouter = createTRPCRouter({
 	typesFrais: typesFraisRouter,
 	grilleFrais: grilleFraisRouter,
@@ -536,4 +667,5 @@ export const financeRouter = createTRPCRouter({
 	recettes: recettesRouter,
 	bilan: bilanRouter,
 	impayes: impayesRouter,
+	tarifs: tarifsRouter,
 });

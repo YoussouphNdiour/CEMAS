@@ -5,13 +5,14 @@ import {
 	index,
 	integer,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	uniqueIndex,
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
-import { anneesScolaires, classes } from "@/modules/academic/schema";
+import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { eleves } from "@/modules/students/schema";
 
 export const typesFrais = pgTable("types_frais", {
@@ -145,3 +146,36 @@ export const recettesRelations = relations(recettes, ({ one }) => ({
 		references: [anneesScolaires.id],
 	}),
 }));
+
+export const forfaitLignes = pgTable(
+	"forfait_lignes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		niveauId: uuid("niveau_id")
+			.notNull()
+			.references(() => niveaux.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		libelle: varchar("libelle", { length: 60 }).notNull(),
+		montant: integer("montant").notNull(),
+		ordre: integer("ordre").notNull(),
+		typeFraisId: uuid("type_frais_id").references(() => typesFrais.id),
+	},
+	(t) => [index("forfait_lignes_niveau_annee_idx").on(t.niveauId, t.anneeScolaireId)],
+);
+
+export const echeancier = pgTable(
+	"echeancier",
+	{
+		niveauId: uuid("niveau_id")
+			.notNull()
+			.references(() => niveaux.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		mois: integer("mois").notNull(),
+		montant: integer("montant").notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.niveauId, t.anneeScolaireId, t.mois] })],
+);

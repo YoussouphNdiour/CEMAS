@@ -1,8 +1,15 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { anneesScolaires, classes, matieres, niveaux } from "@/modules/academic/schema";
 import { users } from "@/modules/auth/schema";
-import { categoriesDepenses, categoriesRecettes, typesFrais } from "@/modules/finance/schema";
+import {
+	categoriesDepenses,
+	categoriesRecettes,
+	echeancier,
+	forfaitLignes,
+	typesFrais,
+} from "@/modules/finance/schema";
+import { TARIFS_DEFAUT } from "@/modules/finance/tarifs-defaut";
 import { PARAMETRES_DEFAUT } from "@/modules/settings/defaults";
 import { parametresEcole } from "@/modules/settings/schema";
 import { db } from "./db";
@@ -193,6 +200,52 @@ async function seed() {
 				{ nom: "Divers" },
 			]);
 		console.log("✅ 4 catégories de recettes créées");
+	}
+
+	// Tarifs par niveau (fiches d'inscription) si absents pour l'année active
+	const [anneeActive] = await db
+		.select()
+		.from(anneesScolaires)
+		.where(eq(anneesScolaires.active, true));
+	if (anneeActive) {
+		const tf = await db.select().from(typesFrais);
+		const typeParNom = new Map(tf.map((t) => [t.nom, t.id]));
+		for (const n of await db.select().from(niveaux)) {
+			const defaut = TARIFS_DEFAUT[n.nom];
+			if (!defaut) continue;
+			const deja = await db
+				.select({ id: forfaitLignes.id })
+				.from(forfaitLignes)
+				.where(
+					and(eq(forfaitLignes.niveauId, n.id), eq(forfaitLignes.anneeScolaireId, anneeActive.id)),
+				)
+				.limit(1);
+			const dejaEch = await db
+				.select({ mois: echeancier.mois })
+				.from(echeancier)
+				.where(and(eq(echeancier.niveauId, n.id), eq(echeancier.anneeScolaireId, anneeActive.id)))
+				.limit(1);
+			if (deja.length || dejaEch.length) continue;
+			await db.insert(forfaitLignes).values(
+				defaut.lignes.map((l, i) => ({
+					niveauId: n.id,
+					anneeScolaireId: anneeActive.id,
+					libelle: l.libelle,
+					montant: l.montant,
+					ordre: i,
+					typeFraisId: l.typeFrais ? (typeParNom.get(l.typeFrais) ?? null) : null,
+				})),
+			);
+			await db.insert(echeancier).values(
+				Object.entries(defaut.echeancier).map(([mois, montant]) => ({
+					niveauId: n.id,
+					anneeScolaireId: anneeActive.id,
+					mois: Number(mois),
+					montant,
+				})),
+			);
+			console.log(`✅ Tarifs ${n.nom} insérés`);
+		}
 	}
 
 	console.log("✅ Seed terminé !");

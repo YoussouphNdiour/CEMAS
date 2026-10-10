@@ -58,3 +58,30 @@ export const impayesFiltersSchema = z.object({
 	classeId: z.string().uuid().optional(),
 	niveauId: z.string().uuid().optional(),
 });
+
+export const enregistrerTarifsSchema = z.object({
+	anneeScolaireId: z.string().uuid(),
+	niveauId: z.string().uuid(),
+	lignes: z
+		.array(
+			z.object({
+				libelle: z.string().trim().min(1, "Libellé requis").max(60),
+				montant: z.number().int().min(0, "Montant positif requis"),
+				typeFraisId: z.string().uuid().nullable(),
+			}),
+		)
+		.max(10),
+	echeancier: z
+		.array(
+			z.object({
+				mois: z
+					.number()
+					.int()
+					.min(1)
+					.max(12)
+					.refine((m) => m !== 10, "Octobre est inclus dans le forfait d'inscription"),
+				montant: z.number().int().min(0),
+			}),
+		)
+		.max(11),
+});
