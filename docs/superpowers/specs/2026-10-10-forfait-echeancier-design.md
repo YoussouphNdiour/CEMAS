@@ -102,3 +102,30 @@ Pour un élève actif de l'année, niveau `N` :
 ## 10. Vérification en production (après déploiement, lecture seule)
 - Forfaits et échéanciers 2026-2027 présents pour les 4 niveaux.
 - Impayés : les élèves ayant payé le forfait complet n'ont plus d'octobre impayé ; JOSHUA NGOMA reste 40 000, EDOUARD MICHEL NDIONE reste 5 000 (ou à corriger si erreur de saisie).
+
+## 11. Avenant (2026-10-10) — Réductions par élève
+
+Décisions : types **Fratrie (à partir de 4 enfants)**, **Enfant du personnel**, **Réduction négociée**, **Gratuité / bourse** ; portée **au choix** (forfait, mensualités, les deux) ; forme **montant ou pourcentage**. La fratrie n'est pas détectée automatiquement (pas de lien entre familles) : type choisi à la main. Les réductions existantes (ex. JOSHUA NGOMA) sont saisies par le directeur depuis la fiche élève.
+
+### Table `reductions` (migration 0010)
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | uuid | PK |
+| `eleve_id` | uuid | FK → eleves ON DELETE CASCADE, NOT NULL |
+| `annee_scolaire_id` | uuid | FK → annees_scolaires ON DELETE CASCADE, NOT NULL |
+| `type` | varchar(20) | `fratrie` \| `personnel` \| `negociee` \| `bourse` |
+| `portee` | varchar(12) | `forfait` \| `mensualites` \| `les_deux` |
+| `mode` | varchar(12) | `montant` \| `pourcentage` |
+| `valeur` | integer | montant FCFA ≥ 0, ou pourcentage 1–100 |
+| `motif` | varchar(200) | nullable |
+| | | UNIQUE (eleve_id, annee_scolaire_id) — une réduction par élève et par année |
+
+### Règles
+- Montant réduit = `max(0, tarif − réduction)` ; réduction en montant = valeur (par mois pour les mensualités) ; en pourcentage = arrondi de `tarif × valeur / 100`.
+- Appliquée au forfait si portée `forfait`/`les_deux`, à chaque mensualité si `mensualites`/`les_deux` (y compris en repli sur la grille).
+- Impayés, relances, KPI, montant proposé à la saisie : calculés après réduction.
+- Reçu d'inscription : ligne « Réduction (type) : −X » sous le détail du forfait.
+
+### Interface
+- Fiche élève : section « Réduction » (année active) — ajouter / modifier / supprimer (type, portée, forme, valeur, motif).
+- Finances → « Réductions » : liste des élèves avec réduction (élève, classe, type, portée, valeur, motif, montant accordé sur l'année) et total.

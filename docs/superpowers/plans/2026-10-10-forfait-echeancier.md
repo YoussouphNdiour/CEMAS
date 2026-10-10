@@ -341,3 +341,23 @@ Run: `pnpm test` → FAIL.
 
 ## Après le plan
 PR → CI → fusion → déploiement (sauvegarde préalable, seed des tarifs). Vérification production en lecture seule : 4 niveaux configurés ; impayés : plus d'octobre impayé pour les forfaits complets ; JOSHUA NGOMA reste 40 000, EDOUARD MICHEL NDIONE reste 5 000.
+
+---
+
+### Task 2b (avenant) : Réductions par élève — à exécuter avant la Task 3
+
+**Files:** Create `src/modules/finance/reductions.ts` (+ `.test.ts`) ; Modify `schema.ts`, `validation.ts`, `router.ts`, `impayes.ts`, `impayes.test.ts`, `impayes-service.ts` ; migration `0010` ; e2e `16-reductions.spec.ts`
+
+**Interfaces — Produces:**
+```ts
+export type Reduction = { type: "fratrie" | "personnel" | "negociee" | "bourse"; portee: "forfait" | "mensualites" | "les_deux"; mode: "montant" | "pourcentage"; valeur: number };
+export function montantReduit(tarif: number, r: Reduction | null | undefined, cible: "forfait" | "mensualite"): number;
+export function montantReduction(tarif: number, r: Reduction | null | undefined, cible: "forfait" | "mensualite"): number; // tarif − montantReduit
+```
+- `calculerImpayes` accepte `reductions?: (Reduction & { eleveId: string })[]` ; forfait et mensualités (échéancier ou repli) réduits.
+- tRPC `finance.reductions.get({ eleveId })`, `.enregistrer({ eleveId, type, portee, mode, valeur, motif? })` (année active, upsert), `.supprimer({ eleveId })`, `.list({ anneeScolaireId })` → lignes avec `montantAnnuel` (réduction sur forfait + mensualités de l'échéancier).
+- `finance.tarifs.pourEleve` renvoie forfait et échéancier **après réduction** + `reduction` (ou null) + `forfaitBrut`.
+
+Steps : Vitest `montantReduit` (montant, pourcentage, plafonné à 0, portée non concernée) → impl ; Vitest impayés avec réduction (forfait 80 000 − 40 000 payé 40 000 → à jour ; 50 % sur mensualités) → impl ; table + migration + validation (`valeur` ≤ 100 si pourcentage) + routeur ; e2e 16 API (enregistrer, impayés à jour, supprimer) ; commit `feat(finance): per-student reductions`.
+
+La Task 3 utilise ensuite les montants réduits ; le reçu ajoute la ligne de réduction ; la Task 4 ajoute la section de la fiche élève et la page « Réductions ».
