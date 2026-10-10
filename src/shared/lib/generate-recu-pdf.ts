@@ -16,6 +16,10 @@ interface RecuData {
 	parentPrenom: string | null;
 	parentNom: string | null;
 	parentTel: string | null;
+	/** Composition du forfait d'inscription (paiement « Inscription » d'un niveau configuré). */
+	detailForfait?: { libelle: string; montant: number }[] | null;
+	/** Réduction appliquée au forfait. */
+	reduction?: { libelle: string; montant: number } | null;
 }
 
 const PRIMARY = PDF_COULEURS.primaire;
@@ -30,7 +34,7 @@ function formatDateFr(dateStr: string): string {
 	});
 }
 
-export function generateRecuPdf(data: RecuData, ecole: Parametres) {
+export function buildRecuPdf(data: RecuData, ecole: Parametres): jsPDF {
 	const doc = new jsPDF({ unit: "mm", format: "a5" });
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const margin = 15;
@@ -89,11 +93,45 @@ export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 	// ── Payment details box ──
 	doc.setDrawColor(200, 200, 200);
 	doc.setFillColor(255, 255, 255);
-	doc.roundedRect(margin, y - 2, pageWidth - margin * 2, 24, 2, 2, "S");
+	const lignesDetail = data.detailForfait?.length
+		? data.detailForfait.length + 1 + (data.reduction && data.reduction.montant > 0 ? 2 : 0)
+		: 0;
+	const hauteurCadre = 24 + (lignesDetail ? 10 + lignesDetail * 4 : 0);
+	doc.roundedRect(margin, y - 2, pageWidth - margin * 2, hauteurCadre, 2, 2, "S");
 
 	y += 5;
 	addRow("Type de frais :", data.typeFraisNom);
 	addRow("Mois concerne :", MOIS_LABELS[data.mois] ?? String(data.mois));
+
+	// ── Détail du forfait d'inscription ──
+	if (data.detailForfait?.length) {
+		y += 5;
+		const droite = pageWidth - margin - 4;
+		doc.setFontSize(8);
+		doc.setFont("helvetica", "bold");
+		doc.setTextColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
+		doc.text("Détail du forfait", margin + 4, y);
+		y += 4.5;
+		doc.setFont("helvetica", "normal");
+		doc.setTextColor(60, 60, 60);
+		const ligne = (libelle: string, montant: string) => {
+			doc.text(libelle, margin + 6, y);
+			doc.text(montant, droite, y, { align: "right" });
+			y += 4;
+		};
+		for (const l of data.detailForfait) ligne(l.libelle, formatMontantPdf(l.montant));
+		const total = data.detailForfait.reduce((t, l) => t + l.montant, 0);
+		doc.setFont("helvetica", "bold");
+		ligne("Total du forfait", formatMontantPdf(total));
+		if (data.reduction && data.reduction.montant > 0) {
+			doc.setFont("helvetica", "normal");
+			ligne(data.reduction.libelle, `- ${formatMontantPdf(data.reduction.montant)}`);
+			doc.setFont("helvetica", "bold");
+			ligne("Forfait après réduction", formatMontantPdf(total - data.reduction.montant));
+		}
+		doc.setTextColor(0, 0, 0);
+		y += 5;
+	}
 
 	// ── Amount highlight (primary color) ──
 	y += 4;
@@ -136,5 +174,9 @@ export function generateRecuPdf(data: RecuData, ecole: Parametres) {
 		{ align: "center" },
 	);
 
-	doc.save(`recu-${data.numeroRecu}.pdf`);
+	return doc;
+}
+
+export function generateRecuPdf(data: RecuData, ecole: Parametres) {
+	buildRecuPdf(data, ecole).save(`recu-${data.numeroRecu}.pdf`);
 }

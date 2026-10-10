@@ -60,7 +60,9 @@
 | Fonctionnalité | Priorité | Description |
 |---------------|----------|-------------|
 | Types de frais | P0 | Liste des types de frais (scolarité, inscription, etc.) avec montant par défaut |
-| Grille tarifaire | P0 | Page `/finances/grille` : montant par classe × frais obligatoire de l'année active ; cases vides = montant par défaut (signalé) ; « Appliquer au niveau » |
+| Tarifs par niveau | P0 | Page `/finances/tarifs` : forfait d'inscription (lignes : frais généraux, uniforme, fournitures, mensualité d'octobre… ; un type de frais peut être associé à une ligne, ex. Fourniture) et échéancier mensuel (novembre → mai par défaut, octobre inclus dans le forfait) par niveau et par année |
+| Réductions | P0 | Une réduction par élève et par année (fratrie à partir de 4 enfants, enfant du personnel, négociée, gratuité/bourse), sur le forfait, les mensualités ou les deux, en montant ou en pourcentage ; saisie sur la fiche élève, liste `/finances/reductions` |
+| Grille tarifaire (ancienne) | P1 | Page `/finances/grille` : montant par classe × frais obligatoire de l'année active ; cases vides = montant par défaut (signalé) ; « Appliquer au niveau » |
 | Impayés | P0 | Page `/finances/impayes` : élèves actifs avec un reste à payer (dû, payé, reste, mois impayés, téléphone du contact principal), filtres niveau/classe, totaux |
 | Relances | P0 | Lettre de relance PDF (A4) par élève ou pour une sélection (une page par élève), en-tête de l'école |
 | Paiements | P0 | Enregistrement d'un paiement mensuel par élève avec numéro de reçu auto-généré |
@@ -69,12 +71,20 @@
 | Recettes | P0 | CRUD des recettes (hors paiements scolarité) avec catégorie |
 | Bilan | P0 | Vue consolidée : paiements + recettes − dépenses − salaires payés = solde, avec détail par mois |
 
+### Détail : Forfait, échéancier et réductions
+- Le paiement « Inscription » est le **forfait** du niveau (total de la fiche, mensualité d'octobre comprise) ; la secrétaire le saisit en une fois ; le montant est proposé selon le niveau de l'élève (après réduction) et le reçu affiche le détail du forfait et la réduction
+- Formulaire de paiement : les types de frais affichent les montants du niveau de l'élève choisi (« Inscription — forfait 65 000 », « Scolarité — 24 000 (janvier) », « inclus dans le forfait ») ; aucun montant par défaut avant le choix de l'élève ; avertissements (frais déjà dans le forfait, octobre inclus, mois non dû)
+- Valeurs 2026-2027 (fiches) : Crèche 80 000 puis 40 000/mois ; Préscolaire 67 000 puis 20 000 ; Élémentaire 65 000 puis 20 000 (nov-déc) et 24 000 (janv-mai) ; Moyen 70 000 puis 25 000 et 30 000. Juin réparti sur janvier-mai, rien en juillet
+- Réduction : montant réduit = max(0, tarif − réduction) ; un montant fixe s'applique par mois pour les mensualités
+
 ### Détail : Impayés
 - Élèves : statut `actif`, classe de l'année active ; frais : types `obligatoire` uniquement
 - Mois dus : du mois de début de l'année au mois courant inclus (plafonné à la fin de l'année)
 - Frais mensuel : un mois avec un paiement est **soldé**, quel que soit le montant (remises)
 - Frais unique (`mensuel = false`, ex. Inscription) : dû une fois, soldé par tout paiement de ce frais dans l'année
-- Montant : grille de la classe, sinon montant par défaut du frais (classe signalée sur la page)
+- Montant : **tarifs du niveau** (forfait et échéancier, après réduction) ; à défaut grille de la classe, sinon montant par défaut du frais (classe signalée)
+- Forfait : reste = forfait − (paiements Inscription + paiements des types associés, ex. Fourniture) ; un forfait payé en partie reste dû
+- Scolarité : seuls les mois de l'échéancier sont dus (octobre inclus dans le forfait) ; suivi des paiements : octobre « Inclus », mois hors échéancier « — »
 - Dû = mensuels × mois dus + uniques ; Payé = paiements réels (avances comprises) ; Reste = mois impayés + uniques non payés
 - Calcul : `src/modules/finance/impayes.ts` (pur, Vitest) via `getImpayes` (`impayes-service.ts`)
 

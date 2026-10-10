@@ -1,3 +1,5 @@
+import { montantReduit, type Reduction } from "./reductions";
+
 export interface EleveImpayeInput {
 	id: string;
 	matricule: string;
@@ -51,6 +53,9 @@ const MOIS_COURTS = [
 	"Nov",
 	"Déc",
 ];
+/** Le forfait d'inscription correspond au type de frais « Inscription ». */
+export const estForfait = (f: { nom: string }) => f.nom === "Inscription";
+
 const cle = (annee: number, mois: number) => annee * 100 + mois;
 const anneeMois = (date: string) => date.split("-").slice(0, 2).map(Number) as [number, number];
 
@@ -79,17 +84,32 @@ export function calculerImpayes(p: {
 	frais: FraisInput[];
 	grille: { classeId: string; typeFraisId: string; montant: number }[];
 	paiements: { eleveId: string; typeFraisId: string; mois: number; montant: number }[];
+	/** Forfait d'inscription par niveau (total des lignes, types dont les paiements comptent). */
+	forfaits?: { niveauId: string; total: number; typesAssocies: string[] }[];
+	/** Échéancier mensuel par niveau (mois absent = non dû). */
+	echeanciers?: { niveauId: string; mois: number; montant: number }[];
+	/** Réduction de l'élève pour l'année (une au plus). */
+	reductions?: (Reduction & { eleveId: string })[];
 }): ResultatImpayes {
 	const dus = moisDus(p.dateDebut, p.dateFin, p.aujourdhui);
 	const grille = new Map(p.grille.map((g) => [`${g.classeId}:${g.typeFraisId}`, g.montant]));
 	const payes = new Map<string, Set<number>>(); // `${eleveId}:${typeFraisId}` -> mois payés
-	const totalPayeEleve = new Map<string, number>();
+	const sommeParType = new Map<string, number>(); // `${eleveId}:${typeFraisId}` -> somme versée
 	for (const pa of p.paiements) {
 		const k = `${pa.eleveId}:${pa.typeFraisId}`;
 		if (!payes.has(k)) payes.set(k, new Set());
 		payes.get(k)?.add(pa.mois);
-		totalPayeEleve.set(pa.eleveId, (totalPayeEleve.get(pa.eleveId) ?? 0) + pa.montant);
+		sommeParType.set(k, (sommeParType.get(k) ?? 0) + pa.montant);
 	}
+	const reductionParEleve = new Map((p.reductions ?? []).map((r) => [r.eleveId, r]));
+	const forfaitParNiveau = new Map((p.forfaits ?? []).map((f) => [f.niveauId, f]));
+	const echeancierParNiveau = new Map<string, Map<number, number>>();
+	for (const e of p.echeanciers ?? []) {
+		if (!echeancierParNiveau.has(e.niveauId)) echeancierParNiveau.set(e.niveauId, new Map());
+		echeancierParNiveau.get(e.niveauId)?.set(e.mois, e.montant);
+	}
+	const verse = (eleveId: string, typeFraisId: string) =>
+		sommeParType.get(`${eleveId}:${typeFraisId}`) ?? 0;
 	const defauts = new Map<string, { classeId: string; classeNom: string; frais: string[] }>();
 
 	const lignes: LigneImpaye[] = [];
@@ -100,9 +120,65 @@ export function calculerImpayes(p: {
 		let du = 0;
 		let reste = 0;
 		const moisImpayes: MoisImpaye[] = [];
+		const forfait = forfaitParNiveau.get(e.niveauId);
+		const ech = echeancierParNiveau.get(e.niveauId);
+		let paye = 0;
+		const red = reductionParEleve.get(e.id);
 		for (const f of p.frais) {
+			paye += verse(e.id, f.id);
+			// Forfait d'inscription du niveau (frais « Inscription » uniquement) :
+			// reste = forfait − versé (Inscription + types associés, sans compter deux fois l'Inscription)
+			if (!f.mensuel && forfait && estForfait(f)) {
+				const verseForfait =
+					verse(e.id, f.id) +
+					forfait.typesAssocies
+						.filter((id) => id !== f.id)
+						.reduce((t, id) => t + verse(e.id, id), 0);
+				const totalForfait = montantReduit(forfait.total, red, "forfait");
+				du += totalForfait;
+				const r = Math.max(0, totalForfait - verseForfait);
+				if (r > 0) {
+					reste += r;
+					moisImpayes.push({
+						typeFraisId: f.id,
+						typeFraisNom: `${f.nom} (forfait)`,
+						mois: null,
+						annee: null,
+						montant: r,
+					});
+				}
+				continue;
+			}
+			// Forfait sans échéancier : aucune mensualité due (octobre est dans le forfait)
+			if (f.mensuel && forfait && !ech) continue;
+			// Échéancier du niveau : seuls ses mois sont dus, au montant du mois
+			if (f.mensuel && ech) {
+				const moisPayesEch = payes.get(`${e.id}:${f.id}`);
+				for (const { annee, mois } of dus) {
+					const brut = ech.get(mois);
+					if (brut === undefined) continue;
+					const montantMois = montantReduit(brut, red, "mensualite");
+					if (montantMois === 0) continue;
+					du += montantMois;
+					if (!moisPayesEch?.has(mois)) {
+						reste += montantMois;
+						moisImpayes.push({
+							typeFraisId: f.id,
+							typeFraisNom: f.nom,
+							mois,
+							annee,
+							montant: montantMois,
+						});
+					}
+				}
+				continue;
+			}
 			const montantGrille = grille.get(`${e.classeId}:${f.id}`);
-			const montant = montantGrille ?? f.montantDefaut;
+			const montant = montantReduit(
+				montantGrille ?? f.montantDefaut,
+				red,
+				f.mensuel ? "mensualite" : "forfait",
+			);
 			// Frais gratuit pour cette classe
 			if (montant === 0) continue;
 			if (montantGrille === undefined) {
@@ -137,8 +213,13 @@ export function calculerImpayes(p: {
 				}
 			}
 		}
-		if (reste > 0)
-			lignes.push({ ...e, du, paye: totalPayeEleve.get(e.id) ?? 0, reste, moisImpayes });
+		// Les paiements des types associés au forfait (ex. fournitures) comptent aussi dans « Payé »
+		for (const id of (forfait?.typesAssocies ?? []).filter(
+			(t) => !p.frais.some((f) => f.id === t),
+		)) {
+			paye += verse(e.id, id);
+		}
+		if (reste > 0) lignes.push({ ...e, du, paye, reste, moisImpayes });
 	}
 
 	lignes.sort(

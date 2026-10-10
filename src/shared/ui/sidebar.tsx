@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	BadgePercent,
 	Banknote,
 	BookOpen,
 	BookOpenCheck,
@@ -64,7 +65,8 @@ const navItems: NavItem[] = [
 			{ label: "Paiements", href: "/finances/paiements", icon: CreditCard },
 			{ label: "Suivi", href: "/finances/suivi", icon: TrendingUp },
 			{ label: "Impayés", href: "/finances/impayes", icon: TriangleAlert },
-			{ label: "Grille tarifaire", href: "/finances/grille", icon: Table },
+			{ label: "Tarifs par niveau", href: "/finances/tarifs", icon: Table },
+			{ label: "Réductions", href: "/finances/reductions", icon: BadgePercent },
 			{ label: "Dépenses", href: "/finances/depenses", icon: Receipt },
 			{ label: "Recettes", href: "/finances/recettes", icon: DollarSign },
 			{ label: "Bilan", href: "/finances/bilan", icon: FileText },

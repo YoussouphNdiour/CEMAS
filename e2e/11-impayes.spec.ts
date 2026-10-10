@@ -51,12 +51,25 @@ async function contexte(page: Page) {
 	return { annee, niveau, sco, ins, classe, eleve };
 }
 
-/** Nombre de mois dus à la date du jour (mêmes règles que le serveur). */
-function nbMoisDus(dateDebut: string): number {
-	const [a0, m0] = dateDebut.split("-").map(Number);
-	const now = new Date();
-	const n = (now.getUTCFullYear() - a0) * 12 + (now.getUTCMonth() + 1 - m0) + 1;
-	return Math.max(0, Math.min(10, n));
+/** Dû selon les tarifs du niveau : forfait + mois de l'échéancier écoulés (mêmes règles que le serveur). */
+async function duSelonTarifs(page: Page, anneeId: string, niveauId: string, dateDebut: string) {
+	const tarifs = await trpc<
+		{ niveauId: string; total: number; echeancier: { mois: number; montant: number }[] }[]
+	>(page, "finance.tarifs.list", { anneeScolaireId: anneeId });
+	const t = tarifs.find((x) => x.niveauId === niveauId);
+	if (!t) throw new Error("Tarifs du niveau absents");
+	const ech = new Map(t.echeancier.map((e) => [e.mois, e.montant]));
+	let [a, m] = dateDebut.split("-").map(Number);
+	const fin = new Date().getUTCFullYear() * 100 + new Date().getUTCMonth() + 1;
+	let mensualites = 0;
+	while (a * 100 + m <= fin) {
+		mensualites += ech.get(m) ?? 0;
+		if (m === 12) {
+			a++;
+			m = 1;
+		} else m++;
+	}
+	return { forfait: t.total, mensualites };
 }
 
 test.describe("11 - Impayés et relances", () => {
@@ -65,7 +78,7 @@ test.describe("11 - Impayés et relances", () => {
 	});
 
 	test("API : grille, reste calculé, paiement de l'inscription", async ({ page }) => {
-		const { annee, sco, ins, classe, eleve } = await contexte(page);
+		const { annee, niveau, sco, ins, classe, eleve } = await contexte(page);
 		await expect(
 			trpc(
 				page,
@@ -96,9 +109,15 @@ test.describe("11 - Impayés et relances", () => {
 			anneeScolaireId: annee.id,
 			classeId: classe.id,
 		});
-		const n = nbMoisDus(annee.dateDebut);
+		// Le niveau a des tarifs (forfait + échéancier) : ils priment sur la grille de la classe
+		const { forfait, mensualites } = await duSelonTarifs(
+			page,
+			annee.id,
+			niveau.id,
+			annee.dateDebut,
+		);
 		expect(avant.lignes).toHaveLength(1);
-		expect(avant.lignes[0]).toMatchObject({ id: eleve.id, reste: 21_000 * n + 61_000, paye: 0 });
+		expect(avant.lignes[0]).toMatchObject({ id: eleve.id, reste: forfait + mensualites, paye: 0 });
 		expect(avant.classesMontantDefaut).toEqual([]);
 
 		await trpc(
@@ -117,8 +136,10 @@ test.describe("11 - Impayés et relances", () => {
 			anneeScolaireId: annee.id,
 			classeId: classe.id,
 		});
-		if (n === 0) expect(apres.lignes).toHaveLength(0);
-		else expect(apres.lignes[0]).toMatchObject({ reste: 21_000 * n, paye: 55_000 });
+		expect(apres.lignes[0]).toMatchObject({
+			reste: Math.max(0, forfait - 55_000) + mensualites,
+			paye: 55_000,
+		});
 
 		// Filtre sans élève : liste vide, totaux à zéro
 		const vide = await trpc<Resultat>(page, "finance.impayes.list", {
@@ -182,7 +203,7 @@ test.describe("11 - Impayés et relances", () => {
 		const ligne = page.getByRole("row", { name: new RegExp(nomClasse) }).first();
 		await expect(ligne).toContainText("Inscription");
 		await expect(ligne).toContainText("77 999 99 99");
-		await expect(page.getByText(/montant par défaut/)).toBeVisible();
+		await expect(ligne).toContainText("Inscription (forfait)");
 
 		const download = page.waitForEvent("download");
 		await ligne.getByRole("button", { name: "Lettre" }).click();

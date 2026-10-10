@@ -60,6 +60,7 @@ COPY --from=builder /app/src/modules/transport/schema.ts ./src/modules/transport
 COPY --from=builder /app/src/modules/payroll/schema.ts ./src/modules/payroll/schema.ts
 COPY --from=builder /app/src/modules/settings/schema.ts ./src/modules/settings/schema.ts
 COPY --from=builder /app/src/modules/settings/defaults.ts ./src/modules/settings/defaults.ts
+COPY --from=builder /app/src/modules/finance/tarifs-defaut.ts ./src/modules/finance/tarifs-defaut.ts
 
 EXPOSE 3000
 

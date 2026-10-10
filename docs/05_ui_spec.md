@@ -129,7 +129,14 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Tableau : case à cocher, matricule, élève, classe, dû, payé, reste, mois impayés, téléphone du contact principal, bouton « Lettre » ; pied avec totaux
 - Bouton « Lettres de relance (N) » : un PDF A4, une page par élève sélectionné
 
-### Finances - Grille tarifaire (`/finances/grille`)
+### Finances - Tarifs par niveau (`/finances/tarifs`)
+- Une carte par niveau : lignes du forfait (libellé, montant, type associé), total ; échéancier novembre → juillet (octobre inclus), raccourcis « Remplir nov-déc » / « Remplir janv-mai » ; « Enregistrer »
+
+### Finances - Réductions (`/finances/reductions`)
+- Tableau : élève, classe, type, portée, valeur, motif, montant accordé sur l'année ; total
+- Saisie depuis la fiche élève (section « Réduction », fenêtre type / porte sur / forme / valeur / motif)
+
+### Finances - Grille tarifaire (`/finances/grille`, ancienne méthode)
 - Tableau classes × frais obligatoires, cellules numériques (placeholder = montant par défaut, badge « à renseigner »)
 - « Appliquer au niveau » par ligne ; « Enregistrer » (seules les cases modifiées)
 

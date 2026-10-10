@@ -169,3 +169,173 @@ describe("libelleMoisImpayes", () => {
 		).toBe("Scolarité : Nov, Déc · Inscription");
 	});
 });
+
+describe("forfait et échéancier", () => {
+	const FOUR = "four";
+	const forfaits = [{ niveauId: "n1", total: 67_000, typesAssocies: [FOUR] }];
+	const echeanciers = [
+		{ niveauId: "n1", mois: 11, montant: 20_000 },
+		{ niveauId: "n1", mois: 12, montant: 20_000 },
+		{ niveauId: "n1", mois: 1, montant: 24_000 },
+		{ niveauId: "n1", mois: 5, montant: 24_000 },
+	];
+	const base2 = { ...ANNEE, frais: [SCO, INS], grille: [], paiements: [], forfaits, echeanciers };
+
+	it("forfait payé en Inscription + Fourniture associée : à jour ; octobre non dû", () => {
+		const r = calculerImpayes({
+			...base2,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [
+				{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 60_000 },
+				{ eleveId: "e1", typeFraisId: FOUR, mois: 10, montant: 7_000 },
+			],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+
+	it("forfait partiel : reste = forfait − payé", () => {
+		const r = calculerImpayes({
+			...base2,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 40_000 }],
+		});
+		expect(r.lignes[0]).toMatchObject({ du: 67_000, paye: 40_000, reste: 27_000 });
+		expect(r.lignes[0].moisImpayes).toEqual([
+			{
+				typeFraisId: "ins",
+				typeFraisNom: "Inscription (forfait)",
+				mois: null,
+				annee: null,
+				montant: 27_000,
+			},
+		]);
+	});
+
+	it("paiement supérieur au forfait : reste jamais négatif", () => {
+		const r = calculerImpayes({
+			...base2,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 70_000 }],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+
+	it("scolarité selon l'échéancier : novembre 20 000, janvier 24 000 ; juin/juillet non dus", () => {
+		const r = calculerImpayes({
+			...base2,
+			aujourdhui: "2027-07-15",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
+		});
+		expect(r.lignes[0].moisImpayes.map((m) => [m.mois, m.montant])).toEqual([
+			[11, 20_000],
+			[12, 20_000],
+			[1, 24_000],
+			[5, 24_000],
+		]);
+		expect(r.lignes[0].reste).toBe(88_000);
+	});
+
+	it("niveau non configuré : repli sur la grille / le défaut", () => {
+		const r = calculerImpayes({
+			...base2,
+			aujourdhui: "2026-10-20",
+			eleves: [{ ...eleve("e2"), niveauId: "autre" }],
+		});
+		expect(r.lignes[0]).toMatchObject({ reste: 25_000 + 50_000 });
+	});
+});
+
+describe("réductions", () => {
+	const forfaits = [{ niveauId: "n1", total: 80_000, typesAssocies: [] }];
+	const echeanciers = [{ niveauId: "n1", mois: 11, montant: 40_000 }];
+	const base3 = { ...ANNEE, frais: [SCO, INS], grille: [], paiements: [], forfaits, echeanciers };
+
+	it("réduction de 40 000 sur le forfait : élève ayant payé 40 000 à jour", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 40_000 }],
+			reductions: [
+				{ eleveId: "e1", type: "negociee", portee: "forfait", mode: "montant", valeur: 40_000 },
+			],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+
+	it("50 % sur les mensualités : novembre dû 20 000", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2026-11-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 80_000 }],
+			reductions: [
+				{ eleveId: "e1", type: "fratrie", portee: "mensualites", mode: "pourcentage", valeur: 50 },
+			],
+		});
+		expect(r.lignes[0].moisImpayes).toEqual([
+			{ typeFraisId: "sco", typeFraisNom: "Scolarité", mois: 11, annee: 2026, montant: 20_000 },
+		]);
+		expect(r.lignes[0].du).toBe(80_000 + 20_000);
+	});
+
+	it("gratuité totale : jamais en impayé", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2027-05-20",
+			eleves: [eleve("e1")],
+			paiements: [],
+			reductions: [
+				{ eleveId: "e1", type: "bourse", portee: "les_deux", mode: "pourcentage", valeur: 100 },
+			],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+});
+
+describe("forfait — robustesse (relecture)", () => {
+	const forfaits = [{ niveauId: "n1", total: 67_000, typesAssocies: ["four"] }];
+	const echeanciers = [{ niveauId: "n1", mois: 11, montant: 20_000 }];
+	const ASSU = { id: "assu", nom: "Assurance", montantDefaut: 3_000, mensuel: false };
+	const base4 = { ...ANNEE, grille: [], paiements: [], forfaits, echeanciers };
+
+	it("un autre frais obligatoire unique n'est pas traité comme le forfait", () => {
+		const r = calculerImpayes({
+			...base4,
+			frais: [SCO, INS, ASSU],
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
+		});
+		expect(r.lignes[0]).toMatchObject({ du: 67_000 + 3_000, reste: 3_000 });
+		expect(r.lignes[0].moisImpayes.map((m) => m.typeFraisNom)).toEqual(["Assurance"]);
+	});
+
+	it("le type du forfait lui-même n'est pas compté deux fois s'il est aussi associé", () => {
+		const r = calculerImpayes({
+			...base4,
+			forfaits: [{ niveauId: "n1", total: 67_000, typesAssocies: ["ins", "four"] }],
+			frais: [SCO, INS],
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 40_000 }],
+		});
+		expect(r.lignes[0]).toMatchObject({ reste: 27_000 });
+	});
+
+	it("forfait sans échéancier : aucune mensualité due (pas de repli qui rendrait octobre dû)", () => {
+		const r = calculerImpayes({
+			...base4,
+			echeanciers: [],
+			frais: [SCO, INS],
+			aujourdhui: "2027-07-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+});

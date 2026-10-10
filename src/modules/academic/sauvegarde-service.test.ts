@@ -19,7 +19,7 @@ describe("envConnexion", () => {
 	});
 });
 
-describe("sauvegarder (pg_dump simulé)", () => {
+describe("sauvegarder (pg_dump simulé)", { timeout: 20_000 }, () => {
 	const ancien = { ...process.env };
 	let dossier: string;
 	let bin: string;

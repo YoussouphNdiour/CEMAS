@@ -5,13 +5,14 @@ import {
 	index,
 	integer,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	uniqueIndex,
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
-import { anneesScolaires, classes } from "@/modules/academic/schema";
+import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { eleves } from "@/modules/students/schema";
 
 export const typesFrais = pgTable("types_frais", {
@@ -145,3 +146,57 @@ export const recettesRelations = relations(recettes, ({ one }) => ({
 		references: [anneesScolaires.id],
 	}),
 }));
+
+export const forfaitLignes = pgTable(
+	"forfait_lignes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		niveauId: uuid("niveau_id")
+			.notNull()
+			.references(() => niveaux.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		libelle: varchar("libelle", { length: 60 }).notNull(),
+		montant: integer("montant").notNull(),
+		ordre: integer("ordre").notNull(),
+		typeFraisId: uuid("type_frais_id").references(() => typesFrais.id),
+	},
+	(t) => [index("forfait_lignes_niveau_annee_idx").on(t.niveauId, t.anneeScolaireId)],
+);
+
+export const echeancier = pgTable(
+	"echeancier",
+	{
+		niveauId: uuid("niveau_id")
+			.notNull()
+			.references(() => niveaux.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		mois: integer("mois").notNull(),
+		montant: integer("montant").notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.niveauId, t.anneeScolaireId, t.mois] })],
+);
+
+/** Réduction accordée à un élève pour une année (une au plus). */
+export const reductions = pgTable(
+	"reductions",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		eleveId: uuid("eleve_id")
+			.notNull()
+			.references(() => eleves.id, { onDelete: "cascade" }),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		type: varchar("type", { length: 20 }).notNull(),
+		portee: varchar("portee", { length: 12 }).notNull(),
+		mode: varchar("mode", { length: 12 }).notNull(),
+		valeur: integer("valeur").notNull(),
+		motif: varchar("motif", { length: 200 }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [uniqueIndex("reductions_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId)],
+);
