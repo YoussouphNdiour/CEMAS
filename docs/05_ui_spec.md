@@ -130,7 +130,9 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Bouton « Lettres de relance (N) » : un PDF A4, une page par élève sélectionné
 
 ### Finances - Tarifs par niveau (`/finances/tarifs`)
-- Une carte par niveau : lignes du forfait (libellé, montant, type associé), total ; échéancier novembre → juillet (octobre inclus), raccourcis « Remplir nov-déc » / « Remplir janv-mai » ; « Enregistrer »
+- Une carte par niveau : lignes du forfait (libellé, montant, type associé), total ; échéancier novembre → juillet (octobre inclus), raccourcis « Remplir nov-déc » / « Remplir janv-mai » ; « Enregistrer » (messages clairs : type associé obligatoire, mois en double)
+- Saisie d'un paiement « Inscription » : option « forfait X, reste Y » et montant proposé = reste dû ; forfait soldé → option « forfait soldé », avertissement « Forfait déjà soldé », aucun montant proposé
+- Suivi des paiements : en-têtes au tarif du niveau de la classe (forfait, fourchette de l'échéancier)
 
 ### Finances - Réductions (`/finances/reductions`)
 - Tableau : élève, classe, type, portée, valeur, motif, montant accordé sur l'année ; total

@@ -146,6 +146,26 @@ test.describe("16 - Réductions par élève", () => {
 		const tarif = await trpc<{ forfait: number }>(page, "finance.tarifs.pourEleve", {
 			eleveId: eleve.id,
 		});
+		// Une partie du forfait déjà versée : on propose le reste dû
+		const fraisSaisie = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		await trpc(
+			page,
+			"finance.paiements.create",
+			{
+				eleveId: eleve.id,
+				typeFraisId: fraisSaisie.find((f) => f.nom === "Inscription")?.id,
+				anneeScolaireId: annee.id,
+				mois: 10,
+				montant: 20_000,
+			},
+			true,
+		);
+		const avecVersement = await trpc<{ resteForfait: number | null }>(
+			page,
+			"finance.tarifs.pourEleve",
+			{ eleveId: eleve.id },
+		);
+		expect(avecVersement.resteForfait).toBe(tarif.forfait - 20_000);
 
 		await page.goto("/finances/paiements");
 		await waitForLoad(page);
@@ -158,7 +178,7 @@ test.describe("16 - Réductions par élève", () => {
 		const optionInscription = typeSelect.locator("option", { hasText: /Inscription — forfait/ });
 		await expect(optionInscription).toHaveCount(1);
 		await typeSelect.selectOption((await optionInscription.getAttribute("value")) ?? "");
-		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(String(tarif.forfait));
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(String(tarif.forfait - 20_000));
 
 		// Un montant saisi à la main n'est pas écrasé quand on change le mois
 		await page.getByLabel("Montant (FCFA)").fill("30000");
@@ -170,6 +190,17 @@ test.describe("16 - Réductions par élève", () => {
 		await moisPaiement.selectOption("11");
 		await page.waitForTimeout(500);
 		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue("30000");
+
+		// Après l'enregistrement, un nouveau paiement du même élève propose le nouveau reste
+		await page.getByRole("button", { name: "Enregistrer le paiement" }).click();
+		await expect(page.getByText(/généré avec succès/)).toBeVisible();
+		await expect(page.getByPlaceholder("Tapez le nom de l'élève...")).toHaveValue("");
+		await page.getByPlaceholder("Tapez le nom de l'élève...").fill(nom);
+		await page.locator("button").filter({ hasText: nom }).first().click();
+		await typeSelect.selectOption((await optionInscription.getAttribute("value")) ?? "");
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(
+			String(tarif.forfait - 20_000 - 30_000),
+		);
 	});
 
 	test("fiche élève : ajouter une réduction, la retrouver dans la page Réductions", async ({
@@ -226,5 +257,143 @@ test.describe("16 - Réductions par élève", () => {
 		await expect(page.getByRole("row", { name: new RegExp(nom) })).toContainText(
 			"4e enfant de la famille",
 		);
+	});
+	test("forfait soldé : pas de montant proposé, message explicite (M3)", async ({ page }) => {
+		await login(page);
+		const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+		const annee = annees.find((a) => a.active);
+		if (!annee) throw new Error("Aucune année active");
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const elem = niveaux.find((n) => n.nom === "Élémentaire") ?? niveaux[0];
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: `SOLDE-${Date.now()}`, niveauId: elem.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		const nom = `Solde${Date.now()}`;
+		const eleve = await trpc<{ id: string }>(
+			page,
+			"students.create",
+			{
+				prenom: "Gratuit",
+				nom,
+				dateNaissance: "2016-01-01",
+				sexe: "F",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "G", telephone: "77 000 00 19", relation: "mere" },
+			},
+			true,
+		);
+		await trpc(
+			page,
+			"finance.reductions.enregistrer",
+			{ eleveId: eleve.id, type: "bourse", portee: "forfait", mode: "pourcentage", valeur: 100 },
+			true,
+		);
+		await page.goto("/finances/paiements");
+		await waitForLoad(page);
+		await page.getByPlaceholder("Tapez le nom de l'élève...").fill(nom);
+		await page.locator("button").filter({ hasText: nom }).first().click();
+		const typeSelect = page.getByLabel("Type de frais");
+		const option = typeSelect.locator("option", { hasText: /Inscription/ });
+		await expect(option).toContainText("soldé");
+		// Un montant proposé pour un autre type ne reste pas affiché sur le forfait soldé
+		const sco = typeSelect.locator("option", { hasText: /Scolarité/ });
+		await page
+			.locator("form")
+			.filter({ has: page.locator("#paiement-type") })
+			.locator("select")
+			.nth(1)
+			.selectOption("11");
+		await typeSelect.selectOption((await sco.getAttribute("value")) ?? "");
+		await expect(page.getByLabel("Montant (FCFA)")).not.toHaveValue("");
+		await typeSelect.selectOption((await option.getAttribute("value")) ?? "");
+		await expect(page.getByText("Forfait déjà soldé")).toBeVisible();
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue("");
+	});
+
+	test("réduction : le tableau de bord est rafraîchi sans recharger la page (M8)", async ({
+		page,
+	}) => {
+		await login(page);
+		const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+		const annee = annees.find((a) => a.active);
+		if (!annee) throw new Error("Aucune année active");
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const creche = niveaux.find((n) => n.nom === "Crèche") ?? niveaux[0];
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: `KPI-${Date.now()}`, niveauId: creche.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		const nom = `Kpi${Date.now()}`;
+		await trpc(
+			page,
+			"students.create",
+			{
+				prenom: "Tableau",
+				nom,
+				dateNaissance: "2023-01-01",
+				sexe: "M",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "K", telephone: "77 000 00 20", relation: "pere" },
+			},
+			true,
+		);
+		const carte = page.getByRole("main").locator('a[href="/finances/impayes"]');
+		const chiffres = async () => (await carte.innerText()).replace(/\D/g, "");
+		await page.goto("/");
+		await waitForLoad(page);
+		await expect(carte).toContainText("FCFA");
+		const avant = await chiffres();
+
+		const sidebar = page.getByRole("navigation");
+		await sidebar.getByRole("link", { name: "Élèves", exact: true }).click();
+		await page.getByPlaceholder("Rechercher un élève...").fill(nom);
+		await page.getByRole("row", { name: new RegExp(nom) }).click();
+		await page.getByRole("button", { name: "Ajouter une réduction" }).click();
+		const dialog = page.getByRole("dialog");
+		await dialog.getByLabel("Type").selectOption("bourse");
+		await dialog.getByLabel("Porte sur").selectOption("les_deux");
+		await dialog.getByLabel("Forme").selectOption("pourcentage");
+		await dialog.getByLabel("Valeur").fill("100");
+		await dialog.getByRole("button", { name: "Enregistrer" }).click();
+		await expect(page.getByRole("region", { name: "Réduction" })).toContainText("100 %");
+
+		await sidebar.getByRole("link", { name: "Tableau de bord" }).click();
+		await expect(carte).toContainText("FCFA");
+		await expect.poll(chiffres, { timeout: 5_000 }).not.toBe(avant);
+	});
+	test("base de données : valeurs de réduction invalides refusées (M5)", async () => {
+		const url = process.env.DATABASE_URL;
+		if (!url) throw new Error("DATABASE_URL requis pour ce test");
+		const { default: postgres } = await import("postgres");
+		const sql = postgres(url, { max: 1 });
+		try {
+			const [ref] = await sql`
+				select e.id eleve, a.id annee from eleves e, annees_scolaires a where a.active limit 1`;
+			for (const [type, mode, valeur] of [
+				["inconnu", "montant", 1000],
+				["bourse", "pourcentage", 150],
+				["bourse", "montant", 0],
+				["bourse", "autre", 10],
+			] as const) {
+				await expect(
+					sql.begin(async (tx) => {
+						await tx`delete from reductions where eleve_id = ${ref.eleve} and annee_scolaire_id = ${ref.annee}`;
+						await tx`
+							insert into reductions (eleve_id, annee_scolaire_id, type, portee, mode, valeur)
+							values (${ref.eleve}, ${ref.annee}, ${type}, 'forfait', ${mode}, ${valeur})`;
+						throw new Error("annuler");
+					}),
+				).rejects.toThrow(/violates check constraint/);
+			}
+		} finally {
+			await sql.end();
+		}
 	});
 });

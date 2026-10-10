@@ -47,6 +47,8 @@ function CarteNiveau({
 		onSuccess: () => {
 			utils.finance.tarifs.list.invalidate();
 			utils.finance.impayes.list.invalidate();
+			utils.finance.tarifs.pourEleve.invalidate();
+			utils.dashboard.stats.invalidate();
 		},
 	});
 

@@ -2,6 +2,7 @@
 
 import { CreditCard, Download, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { estForfait } from "@/modules/finance/impayes";
 import { generateRecuPdf } from "@/shared/lib/generate-recu-pdf";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA, formatDate, MOIS_LABELS } from "@/shared/lib/utils";
@@ -55,8 +56,13 @@ export default function PaiementsPage() {
 	/** Libellé adapté à l'élève : montant de son niveau, sinon aucun montant (pas de valeur par défaut trompeuse). */
 	function libelleType(tf: (typeof typesFraisList)[number]): string {
 		if (!selectedEleveId || !tarif.data) return tf.nom;
-		if (tf.nom === "Inscription" && tarif.data.forfait !== null) {
-			return `${tf.nom} — forfait ${formatCFA(tarif.data.forfait)}${tarif.data.reduction ? " (après réduction)" : ""}`;
+		if (estForfait(tf) && tarif.data.forfait !== null) {
+			if (tarif.data.resteForfait === 0) return `${tf.nom} — forfait soldé`;
+			const reste =
+				tarif.data.resteForfait !== null && tarif.data.resteForfait < tarif.data.forfait
+					? `, reste ${formatCFA(tarif.data.resteForfait)}`
+					: "";
+			return `${tf.nom} — forfait ${formatCFA(tarif.data.forfait)}${tarif.data.reduction ? " (après réduction)" : ""}${reste}`;
 		}
 		if (tf.mensuel && tf.obligatoire && aEcheancier) {
 			if (paymentMois === 10 && tarif.data.forfait !== null)
@@ -75,12 +81,14 @@ export default function PaiementsPage() {
 	useEffect(() => {
 		if (!tarif.data || !typeChoisi) return;
 		if (montantManuel.current === `${selectedEleveId}:${typeChoisi.id}`) return;
-		const parMois = typeChoisi.mensuel && typeChoisi.nom !== "Inscription";
-		const cle = `${selectedEleveId}:${typeChoisi.id}${parMois ? `:${paymentMois}` : ""}`;
+		const forfait = estForfait(typeChoisi) && tarif.data.forfait !== null;
+		const parMois = typeChoisi.mensuel && !estForfait(typeChoisi);
+		// Le reste dû fait partie de la clé : après un paiement, le nouveau reste est proposé
+		const cle = `${selectedEleveId}:${typeChoisi.id}${parMois ? `:${paymentMois}` : ""}${forfait ? `:${tarif.data.resteForfait}` : ""}`;
 		if (derniereSuggestion.current === cle) return;
 		let propose: number | undefined;
-		if (typeChoisi.nom === "Inscription" && tarif.data.forfait !== null)
-			propose = tarif.data.forfait;
+		// Forfait : reste dû ; soldé → champ vidé (aucun montant proposé)
+		if (forfait) propose = tarif.data.resteForfait ?? undefined;
 		else if (typeChoisi.mensuel && typeChoisi.obligatoire)
 			propose = tarif.data.echeancier[paymentMois];
 		if (propose !== undefined) {
@@ -91,6 +99,8 @@ export default function PaiementsPage() {
 
 	const avertissement = (() => {
 		if (!typeChoisi || !tarif.data) return null;
+		if (estForfait(typeChoisi) && tarif.data.resteForfait === 0)
+			return "Forfait déjà soldé pour cet élève : vérifiez avant d'enregistrer un nouveau paiement.";
 		if (inclusDansForfait(typeChoisi.id))
 			return "Déjà compris dans le forfait d'inscription de cet élève : ne l'enregistrez à part que s'il n'a pas été payé avec l'inscription.";
 		if (typeChoisi.mensuel && typeChoisi.obligatoire && aEcheancier) {
@@ -128,7 +138,12 @@ export default function PaiementsPage() {
 			setSelectedTypeFraisId("");
 			setMontant(0);
 			setSearchEleve("");
+			derniereSuggestion.current = "";
+			montantManuel.current = "";
 			utils.finance.paiements.listByMonth.invalidate();
+			utils.finance.tarifs.pourEleve.invalidate();
+			utils.finance.impayes.list.invalidate();
+			utils.dashboard.stats.invalidate();
 		},
 	});
 

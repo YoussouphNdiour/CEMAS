@@ -32,6 +32,7 @@ export function ReductionEleve({ eleveId }: { eleveId: string }) {
 		utils.finance.reductions.list.invalidate();
 		utils.finance.impayes.list.invalidate();
 		utils.finance.tarifs.pourEleve.invalidate({ eleveId });
+		utils.dashboard.stats.invalidate();
 	};
 	const enregistrer = trpc.finance.reductions.enregistrer.useMutation({
 		onSuccess: () => {

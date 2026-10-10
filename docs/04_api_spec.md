@@ -226,19 +226,19 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Type :** Query — `{ anneeScolaireId }` → par niveau : `{ niveauId, niveauNom, ordre, lignes[], total, echeancier[] }`
 
 ### `finance.tarifs.enregistrer`
-- **Type :** Mutation — `{ anneeScolaireId, niveauId, lignes: { libelle, montant ≥ 0, typeFraisId|null }[], echeancier: { mois (≠ 10), montant }[] }` ; remplace forfait et échéancier du niveau (transaction)
+- **Type :** Mutation — `{ anneeScolaireId, niveauId, lignes: { libelle, montant ≥ 0, typeFraisId|null }[], echeancier: { mois (≠ 10), montant }[] }` ; remplace forfait et échéancier du niveau (transaction). Refus : type associé obligatoire ou inconnu (« Seuls les frais facultatifs… »), mois en double (« Mois en double : Janvier »), niveau ou année inconnus (« Niveau ou année introuvable »)
 
 ### `finance.tarifs.pourEleve`
-- **Type :** Query — `{ eleveId }` → `{ forfait (après réduction) | null, forfaitBrut, lignes, echeancier (après réduction), reduction | null }` (année active)
+- **Type :** Query — `{ eleveId }` → `{ forfait (après réduction) | null, resteForfait | null, forfaitBrut, lignes, echeancier (après réduction), reduction | null }` (année active) ; `resteForfait` = forfait − versé (Inscription + types associés plafonnés), proposé à la saisie
 
 ### `finance.reductions.get` / `enregistrer` / `supprimer` / `list`
-- `enregistrer` : `{ eleveId, type, portee, mode, valeur (≤ 100 si pourcentage), motif? }` (année active, une par élève) ; `list({ anneeScolaireId })` : élèves avec réduction et `montantAnnuel` accordé
+- `enregistrer` : `{ eleveId, type, portee, mode, valeur (≤ 100 si pourcentage), motif? }` (année active, une par élève) ; `list({ anneeScolaireId })` : élèves avec réduction et `montantAnnuel` accordé (forfait et échéancier du niveau, sinon grille de la classe comme les impayés)
 
 ### `finance.paiements.getRecuData`
 - Pour une inscription d'un niveau avec forfait : `detailForfait: { libelle, montant }[]` et `reduction: { libelle, montant } | null`
 
 ### `finance.suivi.byClasse`
-- Chaque mois porte `statut: "paye" | "impaye" | "inclus" | "non_du"` (octobre inclus dans le forfait ; mois hors échéancier non dus)
+- Chaque mois porte `statut: "paye" | "impaye" | "inclus" | "non_du"` (octobre inclus dans le forfait ; mois hors échéancier non dus) ; chaque type porte `montantMin`/`montantMax`, tarif du niveau affiché en en-tête
 
 ### `finance.impayes.list`
 - **Type :** Query

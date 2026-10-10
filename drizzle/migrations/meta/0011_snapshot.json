@@ -1,0 +1,2588 @@
+{
+  "id": "5762ab2d-e8cc-4411-ac2b-680d2e5aeb3b",
+  "prevId": "ee2dd9e9-cdc4-4818-9d41-54d979a6741f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.annees_scolaires": {
+      "name": "annees_scolaires",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin": {
+          "name": "date_fin",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "archived": {
+          "name": "archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.classes": {
+      "name": "classes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "niveau_id": {
+          "name": "niveau_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacite": {
+          "name": "capacite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "classe_suivante_id": {
+          "name": "classe_suivante_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fin_de_cycle": {
+          "name": "fin_de_cycle",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "classes_annee_idx": {
+          "name": "classes_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "classes_niveau_idx": {
+          "name": "classes_niveau_idx",
+          "columns": [
+            {
+              "expression": "niveau_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "classes_niveau_id_niveaux_id_fk": {
+          "name": "classes_niveau_id_niveaux_id_fk",
+          "tableFrom": "classes",
+          "tableTo": "niveaux",
+          "columnsFrom": [
+            "niveau_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "classes_classe_suivante_id_classes_id_fk": {
+          "name": "classes_classe_suivante_id_classes_id_fk",
+          "tableFrom": "classes",
+          "tableTo": "classes",
+          "columnsFrom": [
+            "classe_suivante_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "classes_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "classes_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "classes",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.matieres": {
+      "name": "matieres",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coefficient": {
+          "name": "coefficient",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "niveau_id": {
+          "name": "niveau_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "matieres_niveau_id_niveaux_id_fk": {
+          "name": "matieres_niveau_id_niveaux_id_fk",
+          "tableFrom": "matieres",
+          "tableTo": "niveaux",
+          "columnsFrom": [
+            "niveau_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.niveaux": {
+      "name": "niveaux",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordre": {
+          "name": "ordre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'directeur'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.categories_depenses": {
+      "name": "categories_depenses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.categories_recettes": {
+      "name": "categories_recettes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.depenses": {
+      "name": "depenses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "categorie_id": {
+          "name": "categorie_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "depenses_annee_idx": {
+          "name": "depenses_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "depenses_date_idx": {
+          "name": "depenses_date_idx",
+          "columns": [
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "depenses_categorie_id_categories_depenses_id_fk": {
+          "name": "depenses_categorie_id_categories_depenses_id_fk",
+          "tableFrom": "depenses",
+          "tableTo": "categories_depenses",
+          "columnsFrom": [
+            "categorie_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "depenses_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "depenses_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "depenses",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.echeancier": {
+      "name": "echeancier",
+      "schema": "",
+      "columns": {
+        "niveau_id": {
+          "name": "niveau_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mois": {
+          "name": "mois",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "echeancier_niveau_id_niveaux_id_fk": {
+          "name": "echeancier_niveau_id_niveaux_id_fk",
+          "tableFrom": "echeancier",
+          "tableTo": "niveaux",
+          "columnsFrom": [
+            "niveau_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "echeancier_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "echeancier_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "echeancier",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "echeancier_niveau_id_annee_scolaire_id_mois_pk": {
+          "name": "echeancier_niveau_id_annee_scolaire_id_mois_pk",
+          "columns": [
+            "niveau_id",
+            "annee_scolaire_id",
+            "mois"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.forfait_lignes": {
+      "name": "forfait_lignes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "niveau_id": {
+          "name": "niveau_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordre": {
+          "name": "ordre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_frais_id": {
+          "name": "type_frais_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "forfait_lignes_niveau_annee_idx": {
+          "name": "forfait_lignes_niveau_annee_idx",
+          "columns": [
+            {
+              "expression": "niveau_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "forfait_lignes_niveau_id_niveaux_id_fk": {
+          "name": "forfait_lignes_niveau_id_niveaux_id_fk",
+          "tableFrom": "forfait_lignes",
+          "tableTo": "niveaux",
+          "columnsFrom": [
+            "niveau_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "forfait_lignes_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "forfait_lignes_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "forfait_lignes",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "forfait_lignes_type_frais_id_types_frais_id_fk": {
+          "name": "forfait_lignes_type_frais_id_types_frais_id_fk",
+          "tableFrom": "forfait_lignes",
+          "tableTo": "types_frais",
+          "columnsFrom": [
+            "type_frais_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.grille_frais": {
+      "name": "grille_frais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "classe_id": {
+          "name": "classe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_frais_id": {
+          "name": "type_frais_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_mensuel": {
+          "name": "montant_mensuel",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "grille_frais_unique_idx": {
+          "name": "grille_frais_unique_idx",
+          "columns": [
+            {
+              "expression": "classe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type_frais_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "grille_frais_annee_idx": {
+          "name": "grille_frais_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "grille_frais_classe_id_classes_id_fk": {
+          "name": "grille_frais_classe_id_classes_id_fk",
+          "tableFrom": "grille_frais",
+          "tableTo": "classes",
+          "columnsFrom": [
+            "classe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "grille_frais_type_frais_id_types_frais_id_fk": {
+          "name": "grille_frais_type_frais_id_types_frais_id_fk",
+          "tableFrom": "grille_frais",
+          "tableTo": "types_frais",
+          "columnsFrom": [
+            "type_frais_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "grille_frais_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "grille_frais_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "grille_frais",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.paiements": {
+      "name": "paiements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_frais_id": {
+          "name": "type_frais_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mois": {
+          "name": "mois",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_paiement": {
+          "name": "date_paiement",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "numero_recu": {
+          "name": "numero_recu",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "paiements_unique_idx": {
+          "name": "paiements_unique_idx",
+          "columns": [
+            {
+              "expression": "eleve_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type_frais_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mois",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "paiements_annee_mois_idx": {
+          "name": "paiements_annee_mois_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mois",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "paiements_eleve_annee_idx": {
+          "name": "paiements_eleve_annee_idx",
+          "columns": [
+            {
+              "expression": "eleve_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "paiements_eleve_id_eleves_id_fk": {
+          "name": "paiements_eleve_id_eleves_id_fk",
+          "tableFrom": "paiements",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "paiements_type_frais_id_types_frais_id_fk": {
+          "name": "paiements_type_frais_id_types_frais_id_fk",
+          "tableFrom": "paiements",
+          "tableTo": "types_frais",
+          "columnsFrom": [
+            "type_frais_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "paiements_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "paiements_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "paiements",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "paiements_numero_recu_unique": {
+          "name": "paiements_numero_recu_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "numero_recu"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.recettes": {
+      "name": "recettes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "categorie_id": {
+          "name": "categorie_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "recettes_annee_idx": {
+          "name": "recettes_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "recettes_date_idx": {
+          "name": "recettes_date_idx",
+          "columns": [
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "recettes_categorie_id_categories_recettes_id_fk": {
+          "name": "recettes_categorie_id_categories_recettes_id_fk",
+          "tableFrom": "recettes",
+          "tableTo": "categories_recettes",
+          "columnsFrom": [
+            "categorie_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "recettes_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "recettes_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "recettes",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reductions": {
+      "name": "reductions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "portee": {
+          "name": "portee",
+          "type": "varchar(12)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "varchar(12)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valeur": {
+          "name": "valeur",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motif": {
+          "name": "motif",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reductions_eleve_annee_idx": {
+          "name": "reductions_eleve_annee_idx",
+          "columns": [
+            {
+              "expression": "eleve_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reductions_eleve_id_eleves_id_fk": {
+          "name": "reductions_eleve_id_eleves_id_fk",
+          "tableFrom": "reductions",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "reductions_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "reductions_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "reductions",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reductions_type_check": {
+          "name": "reductions_type_check",
+          "value": "\"reductions\".\"type\" in ('fratrie', 'personnel', 'negociee', 'bourse')"
+        },
+        "reductions_portee_check": {
+          "name": "reductions_portee_check",
+          "value": "\"reductions\".\"portee\" in ('forfait', 'mensualites', 'les_deux')"
+        },
+        "reductions_mode_check": {
+          "name": "reductions_mode_check",
+          "value": "\"reductions\".\"mode\" in ('montant', 'pourcentage')"
+        },
+        "reductions_valeur_check": {
+          "name": "reductions_valeur_check",
+          "value": "\"reductions\".\"valeur\" >= 1 and (\"reductions\".\"mode\" <> 'pourcentage' or \"reductions\".\"valeur\" <= 100)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.types_frais": {
+      "name": "types_frais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_defaut": {
+          "name": "montant_defaut",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "obligatoire": {
+          "name": "obligatoire",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "mensuel": {
+          "name": "mensuel",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bulletins_paie": {
+      "name": "bulletins_paie",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "employe_id": {
+          "name": "employe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mois": {
+          "name": "mois",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee": {
+          "name": "annee",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "salaire_base": {
+          "name": "salaire_base",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "primes": {
+          "name": "primes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "retenues": {
+          "name": "retenues",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "net_a_payer": {
+          "name": "net_a_payer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_paiement": {
+          "name": "date_paiement",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paye": {
+          "name": "paye",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "bulletins_paie_unique_idx": {
+          "name": "bulletins_paie_unique_idx",
+          "columns": [
+            {
+              "expression": "employe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mois",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "bulletins_annee_mois_idx": {
+          "name": "bulletins_annee_mois_idx",
+          "columns": [
+            {
+              "expression": "annee",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mois",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "bulletins_paie_employe_id_employes_id_fk": {
+          "name": "bulletins_paie_employe_id_employes_id_fk",
+          "tableFrom": "bulletins_paie",
+          "tableTo": "employes",
+          "columnsFrom": [
+            "employe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.employes": {
+      "name": "employes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "matricule": {
+          "name": "matricule",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prenom": {
+          "name": "prenom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "poste": {
+          "name": "poste",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "salaire_base": {
+          "name": "salaire_base",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_embauche": {
+          "name": "date_embauche",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'actif'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "employes_matricule_unique": {
+          "name": "employes_matricule_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "matricule"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parametres_ecole": {
+      "name": "parametres_ecole",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sigle": {
+          "name": "sigle",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telephone1": {
+          "name": "telephone1",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telephone2": {
+          "name": "telephone2",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contacts_entete": {
+          "name": "contacts_entete",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefixe_matricule": {
+          "name": "prefixe_matricule",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefixe_recu": {
+          "name": "prefixe_recu",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefixe_employe": {
+          "name": "prefixe_employe",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "parametres_ecole_single_row": {
+          "name": "parametres_ecole_single_row",
+          "value": "\"parametres_ecole\".\"id\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.eleve_parents": {
+      "name": "eleve_parents",
+      "schema": "",
+      "columns": {
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "principal": {
+          "name": "principal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "eleve_parents_eleve_id_eleves_id_fk": {
+          "name": "eleve_parents_eleve_id_eleves_id_fk",
+          "tableFrom": "eleve_parents",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "eleve_parents_parent_id_parents_id_fk": {
+          "name": "eleve_parents_parent_id_parents_id_fk",
+          "tableFrom": "eleve_parents",
+          "tableTo": "parents",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "eleve_parents_eleve_id_parent_id_pk": {
+          "name": "eleve_parents_eleve_id_parent_id_pk",
+          "columns": [
+            "eleve_id",
+            "parent_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eleves": {
+      "name": "eleves",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "matricule": {
+          "name": "matricule",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prenom": {
+          "name": "prenom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_naissance": {
+          "name": "date_naissance",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lieu_naissance": {
+          "name": "lieu_naissance",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sexe": {
+          "name": "sexe",
+          "type": "varchar(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classe_id": {
+          "name": "classe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'actif'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "eleves_annee_classe_idx": {
+          "name": "eleves_annee_classe_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "classe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "eleves_annee_idx": {
+          "name": "eleves_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "eleves_classe_id_classes_id_fk": {
+          "name": "eleves_classe_id_classes_id_fk",
+          "tableFrom": "eleves",
+          "tableTo": "classes",
+          "columnsFrom": [
+            "classe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "eleves_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "eleves_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "eleves",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "eleves_matricule_unique": {
+          "name": "eleves_matricule_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "matricule"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inscriptions": {
+      "name": "inscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classe_id": {
+          "name": "classe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_inscription": {
+          "name": "date_inscription",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "montant_inscription": {
+          "name": "montant_inscription",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "statut": {
+          "name": "statut",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en_attente'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "inscriptions_eleve_annee_idx": {
+          "name": "inscriptions_eleve_annee_idx",
+          "columns": [
+            {
+              "expression": "eleve_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inscriptions_annee_idx": {
+          "name": "inscriptions_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inscriptions_eleve_id_eleves_id_fk": {
+          "name": "inscriptions_eleve_id_eleves_id_fk",
+          "tableFrom": "inscriptions",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "inscriptions_classe_id_classes_id_fk": {
+          "name": "inscriptions_classe_id_classes_id_fk",
+          "tableFrom": "inscriptions",
+          "tableTo": "classes",
+          "columnsFrom": [
+            "classe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "inscriptions_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "inscriptions_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "inscriptions",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parents": {
+      "name": "parents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "prenom": {
+          "name": "prenom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telephone_2": {
+          "name": "telephone_2",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profession": {
+          "name": "profession",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "relation": {
+          "name": "relation",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.passage_decisions": {
+      "name": "passage_decisions",
+      "schema": "",
+      "columns": {
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision": {
+          "name": "decision",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "passage_decisions_eleve_id_eleves_id_fk": {
+          "name": "passage_decisions_eleve_id_eleves_id_fk",
+          "tableFrom": "passage_decisions",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "passage_decisions_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "passage_decisions_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "passage_decisions",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.affectations_transport": {
+      "name": "affectations_transport",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "eleve_id": {
+          "name": "eleve_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itineraire_id": {
+          "name": "itineraire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arret_id": {
+          "name": "arret_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_scolaire_id": {
+          "name": "annee_scolaire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "affectations_transport_unique_idx": {
+          "name": "affectations_transport_unique_idx",
+          "columns": [
+            {
+              "expression": "eleve_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "affectations_itineraire_annee_idx": {
+          "name": "affectations_itineraire_annee_idx",
+          "columns": [
+            {
+              "expression": "itineraire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "affectations_annee_idx": {
+          "name": "affectations_annee_idx",
+          "columns": [
+            {
+              "expression": "annee_scolaire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "affectations_transport_eleve_id_eleves_id_fk": {
+          "name": "affectations_transport_eleve_id_eleves_id_fk",
+          "tableFrom": "affectations_transport",
+          "tableTo": "eleves",
+          "columnsFrom": [
+            "eleve_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "affectations_transport_itineraire_id_itineraires_id_fk": {
+          "name": "affectations_transport_itineraire_id_itineraires_id_fk",
+          "tableFrom": "affectations_transport",
+          "tableTo": "itineraires",
+          "columnsFrom": [
+            "itineraire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "affectations_transport_arret_id_arrets_id_fk": {
+          "name": "affectations_transport_arret_id_arrets_id_fk",
+          "tableFrom": "affectations_transport",
+          "tableTo": "arrets",
+          "columnsFrom": [
+            "arret_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "affectations_transport_annee_scolaire_id_annees_scolaires_id_fk": {
+          "name": "affectations_transport_annee_scolaire_id_annees_scolaires_id_fk",
+          "tableFrom": "affectations_transport",
+          "tableTo": "annees_scolaires",
+          "columnsFrom": [
+            "annee_scolaire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.arrets": {
+      "name": "arrets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "itineraire_id": {
+          "name": "itineraire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordre": {
+          "name": "ordre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heure_passage": {
+          "name": "heure_passage",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "arrets_itineraire_idx": {
+          "name": "arrets_itineraire_idx",
+          "columns": [
+            {
+              "expression": "itineraire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "arrets_itineraire_id_itineraires_id_fk": {
+          "name": "arrets_itineraire_id_itineraires_id_fk",
+          "tableFrom": "arrets",
+          "tableTo": "itineraires",
+          "columnsFrom": [
+            "itineraire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.itineraires": {
+      "name": "itineraires",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicule_id": {
+          "name": "vehicule_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "montant_mensuel": {
+          "name": "montant_mensuel",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "itineraires_vehicule_id_vehicules_id_fk": {
+          "name": "itineraires_vehicule_id_vehicules_id_fk",
+          "tableFrom": "itineraires",
+          "tableTo": "vehicules",
+          "columnsFrom": [
+            "vehicule_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicules": {
+      "name": "vehicules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "immatriculation": {
+          "name": "immatriculation",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "marque": {
+          "name": "marque",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacite": {
+          "name": "capacite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chauffeur_nom": {
+          "name": "chauffeur_nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chauffeur_tel": {
+          "name": "chauffeur_tel",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicules_immatriculation_unique": {
+          "name": "vehicules_immatriculation_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "immatriculation"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -37,3 +37,32 @@ export function montantReduction(
 ): number {
 	return tarif - montantReduit(tarif, r, cible);
 }
+
+/**
+ * Montant accordé sur l'année, selon les mêmes règles que les impayés : forfait et échéancier
+ * du niveau s'il en a, sinon grille de la classe (frais uniques + mensualités × nombre de mois).
+ */
+export function montantAnnuelReduction(
+	r: Reduction,
+	t: {
+		forfait: number | null;
+		echeancier: number[] | null;
+		uniques: number[];
+		mensuels: number[];
+		nbMois: number;
+	},
+): number {
+	const somme = (xs: number[], cible: "forfait" | "mensualite", fois = 1) =>
+		xs.reduce((s, x) => s + montantReduction(x, r, cible) * fois, 0);
+	// Avec forfait, `uniques` ne contient que les autres frais uniques (l'Inscription est le forfait)
+	const forfait =
+		(t.forfait !== null ? montantReduction(t.forfait, r, "forfait") : 0) +
+		somme(t.uniques, "forfait");
+	// L'échéancier s'applique à chaque frais mensuel obligatoire ; forfait sans échéancier : rien
+	const mensualites = t.echeancier
+		? somme(t.echeancier, "mensualite") * t.mensuels.length
+		: t.forfait !== null
+			? 0
+			: somme(t.mensuels, "mensualite", t.nbMois);
+	return forfait + mensualites;
+}

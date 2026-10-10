@@ -9,11 +9,13 @@ import { eleveParents, eleves, inscriptions, parents } from "@/modules/students/
 import type { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
-import { generateRecuNumber } from "@/shared/lib/utils";
+import { generateRecuNumber, MOIS_LABELS } from "@/shared/lib/utils";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
+import { associesDesLignes, estForfait, moisDus, verseSurForfait } from "./impayes";
 import { getImpayes } from "./impayes-service";
 import {
 	LIBELLES_TYPE_REDUCTION,
+	montantAnnuelReduction,
 	montantReduction,
 	montantReduit,
 	type Reduction,
@@ -262,7 +264,7 @@ const paiementsRouter = createTRPCRouter({
 			// Inscription : détail du forfait du niveau et réduction éventuelle
 			let detailForfait: { libelle: string; montant: number }[] | null = null;
 			let reduction: { libelle: string; montant: number } | null = null;
-			if (row.typeFraisNom === "Inscription") {
+			if (estForfait({ nom: row.typeFraisNom })) {
 				// Niveau de l'élève l'année du paiement (inscription), sinon celui de sa classe actuelle
 				const [insc] = await ctx.db
 					.select({ niveauId: classes.niveauId })
@@ -393,7 +395,7 @@ const suiviRouter = createTRPCRouter({
 				.where(eq(classes.id, input.classeId));
 			const moisEcheancier = classe
 				? await ctx.db
-						.select({ mois: echeancier.mois })
+						.select({ mois: echeancier.mois, montant: echeancier.montant })
 						.from(echeancier)
 						.where(
 							and(
@@ -402,9 +404,9 @@ const suiviRouter = createTRPCRouter({
 							),
 						)
 				: [];
-			const [ligneForfait] = classe
+			const lignesForfait = classe
 				? await ctx.db
-						.select({ id: forfaitLignes.id })
+						.select({ montant: forfaitLignes.montant, typeFraisId: forfaitLignes.typeFraisId })
 						.from(forfaitLignes)
 						.where(
 							and(
@@ -412,10 +414,35 @@ const suiviRouter = createTRPCRouter({
 								eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
 							),
 						)
-						.limit(1)
 				: [];
+			const grilleClasse = await ctx.db
+				.select({ typeFraisId: grilleFrais.typeFraisId, montant: grilleFrais.montantMensuel })
+				.from(grilleFrais)
+				.where(
+					and(
+						eq(grilleFrais.classeId, input.classeId),
+						eq(grilleFrais.anneeScolaireId, input.anneeScolaireId),
+					),
+				);
 			const dus = new Set(moisEcheancier.map((m) => m.mois));
-			const ctxStatut = { forfait: !!ligneForfait, dus };
+			const ctxStatut = { forfait: lignesForfait.length > 0, dus };
+			// Montant affiché en en-tête : tarif du niveau (forfait, échéancier, ligne associée), sinon grille ou défaut
+			const tarifEnTete = (tf: (typeof fraisTypes)[number]) => {
+				const associees = lignesForfait.filter((l) => l.typeFraisId === tf.id);
+				let montants: number[];
+				if (estForfait(tf) && lignesForfait.length)
+					montants = [lignesForfait.reduce((t, l) => t + l.montant, 0)];
+				else if (tf.mensuel && tf.obligatoire && moisEcheancier.length)
+					montants = moisEcheancier.map((m) => m.montant);
+				// Forfait sans échéancier : aucune mensualité due
+				else if (tf.mensuel && tf.obligatoire && lignesForfait.length) montants = [0];
+				else if (associees.length) montants = [associees.reduce((t, l) => t + l.montant, 0)];
+				else
+					montants = [
+						grilleClasse.find((g) => g.typeFraisId === tf.id)?.montant ?? tf.montantDefaut,
+					];
+				return { montantMin: Math.min(...montants), montantMax: Math.max(...montants) };
+			};
 
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
@@ -430,6 +457,7 @@ const suiviRouter = createTRPCRouter({
 						typeFraisNom: tf.nom,
 						mensuel: tf.mensuel,
 						montantDefaut: tf.montantDefaut,
+						...tarifEnTete(tf),
 						paid: paidMonths ? paidMonths.size > 0 : false,
 						months,
 					};
@@ -698,6 +726,7 @@ const reductionsRouter = createTRPCRouter({
 					nom: eleves.nom,
 					matricule: eleves.matricule,
 					classeNom: classes.nom,
+					classeId: classes.id,
 					niveauId: classes.niveauId,
 				})
 				.from(reductions)
@@ -713,17 +742,40 @@ const reductionsRouter = createTRPCRouter({
 				.select()
 				.from(echeancier)
 				.where(eq(echeancier.anneeScolaireId, input.anneeScolaireId));
+			const [annee] = await ctx.db
+				.select({ dateDebut: anneesScolaires.dateDebut, dateFin: anneesScolaires.dateFin })
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.id, input.anneeScolaireId));
+			const nbMois = annee ? moisDus(annee.dateDebut, annee.dateFin, annee.dateFin).length : 0;
+			const obligatoires = await ctx.db
+				.select()
+				.from(typesFrais)
+				.where(eq(typesFrais.obligatoire, true));
+			const grille = await ctx.db
+				.select()
+				.from(grilleFrais)
+				.where(eq(grilleFrais.anneeScolaireId, input.anneeScolaireId));
 			return rows.map((r) => {
 				const red = r as unknown as Reduction;
-				const forfait = lignes
-					.filter((l) => l.niveauId === r.niveauId)
-					.reduce((t, l) => t + l.montant, 0);
-				const mensualites = mois
-					.filter((m) => m.niveauId === r.niveauId)
-					.reduce((t, m) => t + montantReduction(m.montant, red, "mensualite"), 0);
+				const ls = lignes.filter((l) => l.niveauId === r.niveauId);
+				const ms = mois.filter((m) => m.niveauId === r.niveauId);
+				const forfait = ls.length ? ls.reduce((t, l) => t + l.montant, 0) : null;
+				// Repli sur la grille de la classe (sinon montant par défaut), comme les impayés
+				const tarifGrille = (tf: (typeof obligatoires)[number]) =>
+					grille.find((g) => g.classeId === r.classeId && g.typeFraisId === tf.id)
+						?.montantMensuel ?? tf.montantDefaut;
+				const { classeId: _c, niveauId: _n, ...ligne } = r;
 				return {
-					...r,
-					montantAnnuel: montantReduction(forfait, red, "forfait") + mensualites,
+					...ligne,
+					montantAnnuel: montantAnnuelReduction(red, {
+						forfait,
+						echeancier: ms.length ? ms.map((m) => m.montant) : null,
+						uniques: obligatoires
+							.filter((tf) => !tf.mensuel && !(forfait !== null && estForfait(tf)))
+							.map(tarifGrille),
+						mensuels: obligatoires.filter((tf) => tf.mensuel).map(tarifGrille),
+						nbMois,
+					}),
 				};
 			});
 		}),
@@ -769,6 +821,25 @@ const tarifsRouter = createTRPCRouter({
 	enregistrer: protectedProcedure
 		.input(enregistrerTarifsSchema)
 		.mutation(async ({ ctx, input }) => {
+			const vus = new Set<number>();
+			for (const e of input.echeancier) {
+				if (vus.has(e.mois))
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Mois en double : ${MOIS_LABELS[e.mois]}`,
+					});
+				vus.add(e.mois);
+			}
+			const [niveau] = await ctx.db
+				.select({ id: niveaux.id })
+				.from(niveaux)
+				.where(eq(niveaux.id, input.niveauId));
+			const [annee] = await ctx.db
+				.select({ id: anneesScolaires.id })
+				.from(anneesScolaires)
+				.where(eq(anneesScolaires.id, input.anneeScolaireId));
+			if (!niveau || !annee)
+				throw new TRPCError({ code: "NOT_FOUND", message: "Niveau ou année introuvable" });
 			const associes = input.lignes.flatMap((l) => (l.typeFraisId ? [l.typeFraisId] : []));
 			if (associes.length) {
 				const facultatifs = new Set(
@@ -843,6 +914,7 @@ const tarifsRouter = createTRPCRouter({
 			if (!annee || !eleve)
 				return {
 					forfait: null,
+					resteForfait: null,
 					forfaitBrut: null,
 					lignes: [],
 					echeancier: {} as Record<number, number>,
@@ -876,8 +948,35 @@ const tarifsRouter = createTRPCRouter({
 					and(eq(echeancier.niveauId, eleve.niveauId), eq(echeancier.anneeScolaireId, annee.id)),
 				);
 			const forfaitBrut = lignes.length ? lignes.reduce((t, l) => t + l.montant, 0) : null;
+			const forfait = forfaitBrut === null ? null : montantReduit(forfaitBrut, red, "forfait");
+			// Déjà versé sur le forfait (Inscription + types associés plafonnés) → reste dû
+			let resteForfait: number | null = null;
+			if (forfait !== null) {
+				const verses = await ctx.db
+					.select({
+						typeFraisId: paiements.typeFraisId,
+						nom: typesFrais.nom,
+						montant: paiements.montant,
+					})
+					.from(paiements)
+					.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
+					.where(
+						and(eq(paiements.eleveId, input.eleveId), eq(paiements.anneeScolaireId, annee.id)),
+					);
+				const parType = new Map<string, number>();
+				for (const v of verses)
+					parType.set(v.typeFraisId, (parType.get(v.typeFraisId) ?? 0) + v.montant);
+				const inscription = verses.find((v) => estForfait(v));
+				const verse = verseSurForfait(
+					associesDesLignes(lignes),
+					inscription?.typeFraisId ?? "",
+					(id) => parType.get(id) ?? 0,
+				);
+				resteForfait = Math.max(0, forfait - verse);
+			}
 			return {
-				forfait: forfaitBrut === null ? null : montantReduit(forfaitBrut, red, "forfait"),
+				forfait,
+				resteForfait,
 				forfaitBrut,
 				lignes,
 				echeancier: Object.fromEntries(

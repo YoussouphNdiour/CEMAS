@@ -135,13 +135,64 @@ test.describe("15 - Tarifs par niveau", () => {
 			true,
 		);
 		const suivi = await trpc<
-			{ typesFrais: { typeFraisNom: string; months: { mois: number; statut: string }[] }[] }[]
+			{
+				typesFrais: {
+					typeFraisNom: string;
+					montantMin: number;
+					montantMax: number;
+					months: { mois: number; statut: string }[];
+				}[];
+			}[]
 		>(page, "finance.suivi.byClasse", { classeId: classe.id, anneeScolaireId: annee.id });
+		// En-têtes au tarif du niveau (M7) : forfait 65 000, mensualités 20 000 à 24 000
+		const ins = suivi[0].typesFrais.find((t) => t.typeFraisNom === "Inscription");
+		expect([ins?.montantMin, ins?.montantMax]).toEqual([65_000, 65_000]);
+		const scoTarif = suivi[0].typesFrais.find((t) => t.typeFraisNom === "Scolarité");
+		expect([scoTarif?.montantMin, scoTarif?.montantMax]).toEqual([20_000, 24_000]);
 		const sco = suivi[0].typesFrais.find((t) => t.typeFraisNom === "Scolarité");
 		const statut = (m: number) => sco?.months.find((x) => x.mois === m)?.statut;
 		expect(statut(10)).toBe("inclus");
 		expect(statut(11)).toBe("impaye");
 		expect(statut(6)).toBe("non_du");
 		expect(statut(7)).toBe("non_du");
+	});
+	test("enregistrement : messages clairs pour un mois en double ou un niveau inconnu (M2)", async ({
+		page,
+	}) => {
+		const annee = await anneeActive(page);
+		const tarifs = await trpc<Tarif[]>(page, "finance.tarifs.list", { anneeScolaireId: annee.id });
+		const moyen = tarifs.find((t) => t.niveauNom === "Moyen") ?? tarifs[0];
+		await expect(
+			trpc(
+				page,
+				"finance.tarifs.enregistrer",
+				{
+					anneeScolaireId: annee.id,
+					niveauId: moyen.niveauId,
+					lignes: [{ libelle: "Frais", montant: 1, typeFraisId: null }],
+					echeancier: [
+						{ mois: 1, montant: 1 },
+						{ mois: 1, montant: 2 },
+					],
+				},
+				true,
+			),
+		).rejects.toThrow(/Mois en double : Janvier/i);
+		await expect(
+			trpc(
+				page,
+				"finance.tarifs.enregistrer",
+				{
+					anneeScolaireId: annee.id,
+					niveauId: "00000000-0000-4000-8000-000000000000",
+					lignes: [{ libelle: "Frais", montant: 1, typeFraisId: null }],
+					echeancier: [],
+				},
+				true,
+			),
+		).rejects.toThrow(/Niveau ou année introuvable/i);
+		// Rien n'a été modifié
+		const apres = await trpc<Tarif[]>(page, "finance.tarifs.list", { anneeScolaireId: annee.id });
+		expect(apres.find((t) => t.niveauId === moyen.niveauId)?.total).toBe(moyen.total);
 	});
 });
