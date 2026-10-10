@@ -190,6 +190,17 @@ test.describe("16 - Réductions par élève", () => {
 		await moisPaiement.selectOption("11");
 		await page.waitForTimeout(500);
 		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue("30000");
+
+		// Après l'enregistrement, un nouveau paiement du même élève propose le nouveau reste
+		await page.getByRole("button", { name: "Enregistrer le paiement" }).click();
+		await expect(page.getByText(/généré avec succès/)).toBeVisible();
+		await expect(page.getByPlaceholder("Tapez le nom de l'élève...")).toHaveValue("");
+		await page.getByPlaceholder("Tapez le nom de l'élève...").fill(nom);
+		await page.locator("button").filter({ hasText: nom }).first().click();
+		await typeSelect.selectOption((await optionInscription.getAttribute("value")) ?? "");
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(
+			String(tarif.forfait - 20_000 - 30_000),
+		);
 	});
 
 	test("fiche élève : ajouter une réduction, la retrouver dans la page Réductions", async ({
@@ -288,9 +299,19 @@ test.describe("16 - Réductions par élève", () => {
 		const typeSelect = page.getByLabel("Type de frais");
 		const option = typeSelect.locator("option", { hasText: /Inscription/ });
 		await expect(option).toContainText("soldé");
+		// Un montant proposé pour un autre type ne reste pas affiché sur le forfait soldé
+		const sco = typeSelect.locator("option", { hasText: /Scolarité/ });
+		await page
+			.locator("form")
+			.filter({ has: page.locator("#paiement-type") })
+			.locator("select")
+			.nth(1)
+			.selectOption("11");
+		await typeSelect.selectOption((await sco.getAttribute("value")) ?? "");
+		await expect(page.getByLabel("Montant (FCFA)")).not.toHaveValue("");
 		await typeSelect.selectOption((await option.getAttribute("value")) ?? "");
 		await expect(page.getByText("Forfait déjà soldé")).toBeVisible();
-		await expect(page.getByLabel("Montant (FCFA)")).not.toHaveValue("0");
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue("");
 	});
 
 	test("réduction : le tableau de bord est rafraîchi sans recharger la page (M8)", async ({

@@ -49,7 +49,7 @@ describe("montantAnnuelReduction (M4)", () => {
 				forfait: 70_000,
 				echeancier: [25_000, 30_000],
 				uniques: [],
-				mensuels: [],
+				mensuels: [25_000],
 				nbMois: 10,
 			}),
 		).toBe(7_000 + 2_500 + 3_000);
@@ -75,5 +75,30 @@ describe("montantAnnuelReduction (M4)", () => {
 				nbMois: 10,
 			}),
 		).toBe(1_000 + 10 * 1_000);
+	});
+});
+
+describe("montantAnnuelReduction — cohérence avec les impayés (relecture)", () => {
+	it("avec forfait, les autres frais uniques de la grille restent comptés", () => {
+		expect(
+			montantAnnuelReduction(r("forfait", "pourcentage", 10), {
+				forfait: 70_000,
+				echeancier: null,
+				uniques: [5_000],
+				mensuels: [],
+				nbMois: 10,
+			}),
+		).toBe(7_000 + 500);
+	});
+	it("l'échéancier s'applique à chaque frais mensuel obligatoire", () => {
+		expect(
+			montantAnnuelReduction(r("mensualites", "montant", 1_000), {
+				forfait: 70_000,
+				echeancier: [25_000, 30_000],
+				uniques: [],
+				mensuels: [25_000, 3_000],
+				nbMois: 10,
+			}),
+		).toBe(2 * 2 * 1_000);
 	});
 });

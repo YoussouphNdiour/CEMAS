@@ -434,6 +434,8 @@ const suiviRouter = createTRPCRouter({
 					montants = [lignesForfait.reduce((t, l) => t + l.montant, 0)];
 				else if (tf.mensuel && tf.obligatoire && moisEcheancier.length)
 					montants = moisEcheancier.map((m) => m.montant);
+				// Forfait sans échéancier : aucune mensualité due
+				else if (tf.mensuel && tf.obligatoire && lignesForfait.length) montants = [0];
 				else if (associees.length) montants = [associees.reduce((t, l) => t + l.montant, 0)];
 				else
 					montants = [

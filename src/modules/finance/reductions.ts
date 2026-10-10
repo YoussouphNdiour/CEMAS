@@ -54,10 +54,13 @@ export function montantAnnuelReduction(
 ): number {
 	const somme = (xs: number[], cible: "forfait" | "mensualite", fois = 1) =>
 		xs.reduce((s, x) => s + montantReduction(x, r, cible) * fois, 0);
+	// Avec forfait, `uniques` ne contient que les autres frais uniques (l'Inscription est le forfait)
 	const forfait =
-		t.forfait !== null ? montantReduction(t.forfait, r, "forfait") : somme(t.uniques, "forfait");
+		(t.forfait !== null ? montantReduction(t.forfait, r, "forfait") : 0) +
+		somme(t.uniques, "forfait");
+	// L'échéancier s'applique à chaque frais mensuel obligatoire ; forfait sans échéancier : rien
 	const mensualites = t.echeancier
-		? somme(t.echeancier, "mensualite")
+		? somme(t.echeancier, "mensualite") * t.mensuels.length
 		: t.forfait !== null
 			? 0
 			: somme(t.mensuels, "mensualite", t.nbMois);

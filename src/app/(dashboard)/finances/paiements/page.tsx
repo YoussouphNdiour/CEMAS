@@ -81,13 +81,14 @@ export default function PaiementsPage() {
 	useEffect(() => {
 		if (!tarif.data || !typeChoisi) return;
 		if (montantManuel.current === `${selectedEleveId}:${typeChoisi.id}`) return;
+		const forfait = estForfait(typeChoisi) && tarif.data.forfait !== null;
 		const parMois = typeChoisi.mensuel && !estForfait(typeChoisi);
-		const cle = `${selectedEleveId}:${typeChoisi.id}${parMois ? `:${paymentMois}` : ""}`;
+		// Le reste dû fait partie de la clé : après un paiement, le nouveau reste est proposé
+		const cle = `${selectedEleveId}:${typeChoisi.id}${parMois ? `:${paymentMois}` : ""}${forfait ? `:${tarif.data.resteForfait}` : ""}`;
 		if (derniereSuggestion.current === cle) return;
 		let propose: number | undefined;
-		// Forfait : reste dû (rien à proposer s'il est soldé)
-		if (estForfait(typeChoisi) && tarif.data.forfait !== null)
-			propose = tarif.data.resteForfait || undefined;
+		// Forfait : reste dû ; soldé → champ vidé (aucun montant proposé)
+		if (forfait) propose = tarif.data.resteForfait ?? undefined;
 		else if (typeChoisi.mensuel && typeChoisi.obligatoire)
 			propose = tarif.data.echeancier[paymentMois];
 		if (propose !== undefined) {
@@ -137,6 +138,8 @@ export default function PaiementsPage() {
 			setSelectedTypeFraisId("");
 			setMontant(0);
 			setSearchEleve("");
+			derniereSuggestion.current = "";
+			montantManuel.current = "";
 			utils.finance.paiements.listByMonth.invalidate();
 			utils.finance.tarifs.pourEleve.invalidate();
 			utils.finance.impayes.list.invalidate();
