@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { getImpayes } from "@/modules/finance/impayes-service";
-import { grilleFrais } from "@/modules/finance/schema";
+import { echeancier, forfaitLignes, grilleFrais } from "@/modules/finance/schema";
 import { eleves, inscriptions, passageDecisions } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
 import { aujourdhuiServeur, etatFenetrePassage, libelleDateFr, sauvegardeRecente } from "./fenetre";
@@ -341,6 +341,45 @@ async function executerPassageSansConcurrence(database: Db, input: EntreePassage
 				.onConflictDoNothing()
 				.returning({ id: grilleFrais.id });
 			grilleCopiee += inseres.length;
+		}
+
+		// 3b. Tarifs par niveau (forfait et échéancier), seulement pour les niveaux sans tarifs dans la cible
+		const lignesSource = await tx
+			.select()
+			.from(forfaitLignes)
+			.where(eq(forfaitLignes.anneeScolaireId, source.id));
+		const echSource = await tx
+			.select()
+			.from(echeancier)
+			.where(eq(echeancier.anneeScolaireId, source.id));
+		const niveauxAvecTarifs = new Set([
+			...(
+				await tx
+					.select({ niveauId: forfaitLignes.niveauId })
+					.from(forfaitLignes)
+					.where(eq(forfaitLignes.anneeScolaireId, cible.id))
+			).map((x) => x.niveauId),
+			...(
+				await tx
+					.select({ niveauId: echeancier.niveauId })
+					.from(echeancier)
+					.where(eq(echeancier.anneeScolaireId, cible.id))
+			).map((x) => x.niveauId),
+		]);
+		const lignesACopier = lignesSource.filter((l) => !niveauxAvecTarifs.has(l.niveauId));
+		if (lignesACopier.length) {
+			await tx.insert(forfaitLignes).values(
+				lignesACopier.map(({ id: _id, anneeScolaireId: _a, ...l }) => ({
+					...l,
+					anneeScolaireId: cible.id,
+				})),
+			);
+		}
+		const echACopier = echSource.filter((e) => !niveauxAvecTarifs.has(e.niveauId));
+		if (echACopier.length) {
+			await tx
+				.insert(echeancier)
+				.values(echACopier.map((e) => ({ ...e, anneeScolaireId: cible.id })));
 		}
 
 		// 4. Élèves

@@ -180,6 +180,16 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 		{ anneeScolaireId: cible?.id },
 	);
 	expect(grille.find((g) => g.classeId === A2?.id)?.montantMensuel).toBe(99_000);
+	// Tarifs par niveau recopiés vers la nouvelle année
+	const totaux = async (anneeId: string) =>
+		(
+			await trpc<{ niveauNom: string; total: number }[]>(page, "finance.tarifs.list", {
+				anneeScolaireId: anneeId,
+			})
+		)
+			.map((t) => `${t.niveauNom}:${t.total}`)
+			.sort();
+	expect(await totaux(cible?.id ?? "")).toEqual(await totaux(source.id));
 	expect(cible?.id).toBe(cibleExistante.id);
 	expect(classesCible.filter((c) => c.nom === A.nom)).toHaveLength(1);
 	expect(A2?.id).toBe(aExistante.id);
