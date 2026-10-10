@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, waitForLoad } from "./helpers";
+import { login, trpc, waitForLoad } from "./helpers";
 
 test.describe("02 - Module Academique", () => {
 	test.beforeEach(async ({ page }) => {
@@ -30,6 +30,9 @@ test.describe("02 - Module Academique", () => {
 		});
 
 		test("activer une annee scolaire", async ({ page }) => {
+			// L'année active d'origine est rétablie à la fin : les suites suivantes en dépendent
+			const avant = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+			const origine = avant.find((a) => a.active);
 			await page.goto("/academique/annees");
 			await waitForLoad(page);
 
@@ -39,6 +42,19 @@ test.describe("02 - Module Academique", () => {
 				await activateButton.click();
 				// Verifier que le statut change
 				await expect(page.getByText("actif").first()).toBeVisible({ timeout: 10_000 });
+			}
+			if (origine) {
+				// Attendre que l'activation déclenchée par le clic soit enregistrée avant de rétablir
+				await expect
+					.poll(
+						async () =>
+							(await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list")).find(
+								(a) => a.active,
+							)?.id,
+						{ timeout: 10_000 },
+					)
+					.not.toBe(origine.id);
+				await trpc(page, "academic.annees.setActive", { id: origine.id }, true);
 			}
 		});
 	});
