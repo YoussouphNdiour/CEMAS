@@ -175,17 +175,17 @@ Supprimées après un passage réussi.
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|
 | id | uuid | PK | |
-| niveau_id | uuid | FK → niveaux, NOT NULL | |
+| niveau_id | uuid | FK → niveaux ON DELETE CASCADE, NOT NULL | |
 | annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE, NOT NULL | |
 | libelle | varchar(60) | NOT NULL | Ex. Frais généraux, Uniforme (2), Mensualité octobre |
 | montant | integer | NOT NULL | |
 | ordre | integer | NOT NULL | Ordre d'affichage |
-| type_frais_id | uuid | FK → types_frais, nullable | Les paiements de ce type comptent pour le forfait |
+| type_frais_id | uuid | FK → types_frais, nullable | Les paiements de ce type (frais facultatif) comptent pour le forfait, plafonnés au montant des lignes de ce type |
 
 ### `echeancier`
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|
-| niveau_id | uuid | FK → niveaux | |
+| niveau_id | uuid | FK → niveaux ON DELETE CASCADE | |
 | annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE | |
 | mois | integer | 1–12, ≠ 10 | Mois absent = non dû |
 | montant | integer | NOT NULL | |
@@ -197,10 +197,10 @@ Supprimées après un passage réussi.
 | id | uuid | PK | |
 | eleve_id | uuid | FK → eleves ON DELETE CASCADE | |
 | annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE | |
-| type | varchar(20) | NOT NULL | fratrie, personnel, negociee, bourse |
-| portee | varchar(12) | NOT NULL | forfait, mensualites, les_deux |
-| mode | varchar(12) | NOT NULL | montant, pourcentage |
-| valeur | integer | NOT NULL | FCFA (par mois pour les mensualités) ou % (1–100) |
+| type | varchar(20) | NOT NULL, CHECK | fratrie, personnel, negociee, bourse |
+| portee | varchar(12) | NOT NULL, CHECK | forfait, mensualites, les_deux |
+| mode | varchar(12) | NOT NULL, CHECK | montant, pourcentage |
+| valeur | integer | NOT NULL, CHECK (≥ 1 ; ≤ 100 si pourcentage) | FCFA (par mois pour les mensualités) ou % (1–100) |
 | motif | varchar(200) | | |
 | | | UNIQUE(eleve_id, annee_scolaire_id) | Une réduction par élève et par année |
 

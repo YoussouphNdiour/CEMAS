@@ -8,6 +8,13 @@ import { PageHeader } from "@/shared/ui";
 
 const SCHOOL_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
 
+/** Tarif du niveau de la classe : montant unique ou fourchette (échéancier variable). */
+function montantEnTete(tf: { montantMin: number; montantMax: number }) {
+	return tf.montantMin === tf.montantMax
+		? formatCFA(tf.montantMin)
+		: `${formatCFA(tf.montantMin)} – ${formatCFA(tf.montantMax)}`;
+}
+
 export default function SuiviPage() {
 	const annees = trpc.academic.annees.list.useQuery();
 	const activeAnnee = annees.data?.find((a) => a.active);
@@ -118,7 +125,7 @@ export default function SuiviPage() {
 										<div key={tf.typeFraisId} className="rounded-xl bg-surface p-5 shadow-sm">
 											<div className="mb-3 flex items-center justify-between">
 												<h3 className="font-semibold">{tf.typeFraisNom}</h3>
-												<span className="text-sm text-muted">{formatCFA(tf.montantDefaut)}</span>
+												<span className="text-sm text-muted">{montantEnTete(tf)}</span>
 											</div>
 											{/* Progress bar */}
 											<div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
@@ -190,7 +197,7 @@ export default function SuiviPage() {
 								>
 									<div className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
 										<span className="text-sm font-semibold">{tf.typeFraisNom}</span>
-										<span className="text-xs text-muted">{formatCFA(tf.montantDefaut)}/mois</span>
+										<span className="text-xs text-muted">{montantEnTete(tf)}/mois</span>
 									</div>
 									<div className="overflow-x-auto">
 										<table className="w-full text-left text-sm">

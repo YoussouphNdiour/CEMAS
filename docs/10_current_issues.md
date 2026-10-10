@@ -85,3 +85,4 @@ Mis à jour le 2026-10-09.
 ---
 
 > Ce fichier est la source de vérité pour les problèmes connus du projet.
+| 2026-10-10 | Finance | Points mineurs de la relecture du forfait (M1–M9) | Fournitures plafonnées au montant des lignes, reste dû proposé à la saisie (« Forfait déjà soldé »), messages clairs sur la page Tarifs, total des réductions avec repli sur la grille, contrôles CHECK sur `reductions`, cascade des tarifs avec le niveau, en-têtes du suivi au tarif du niveau, tableau de bord rafraîchi après une réduction |

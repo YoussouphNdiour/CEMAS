@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { anneesScolaires, classes } from "@/modules/academic/schema";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
-import { calculerImpayes, type ResultatImpayes } from "./impayes";
+import { associesDesLignes, calculerImpayes, type ResultatImpayes } from "./impayes";
 import type { Reduction } from "./reductions";
 import {
 	echeancier,
@@ -87,7 +87,7 @@ export async function getImpayes(
 		return {
 			niveauId,
 			total: ls.reduce((t, l) => t + l.montant, 0),
-			typesAssocies: [...new Set(ls.flatMap((l) => (l.typeFraisId ? [l.typeFraisId] : [])))],
+			...associesDesLignes(ls),
 		};
 	});
 	const echeanciers = await database

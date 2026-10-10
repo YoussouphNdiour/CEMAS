@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { calculerImpayes, libelleMoisImpayes, moisDus } from "./impayes";
+import {
+	associesDesLignes,
+	calculerImpayes,
+	estForfait,
+	libelleMoisImpayes,
+	moisDus,
+	verseSurForfait,
+} from "./impayes";
 
 const ANNEE = { dateDebut: "2026-10-01", dateFin: "2027-07-31" };
 const SCO = { id: "sco", nom: "Scolarité", montantDefaut: 25_000, mensuel: true };
@@ -337,5 +344,61 @@ describe("forfait — robustesse (relecture)", () => {
 			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
 		});
 		expect(r.lignes).toEqual([]);
+	});
+});
+
+describe("forfait — plafond des types associés (M1)", () => {
+	const forfaits = [
+		{ niveauId: "n1", total: 67_000, typesAssocies: ["four"], plafonds: { four: 7_000 } },
+	];
+	const base5 = { ...ANNEE, grille: [], forfaits, echeanciers: [] };
+
+	it("un excédent de fournitures ne réduit pas le reste de l'inscription", () => {
+		const r = calculerImpayes({
+			...base5,
+			frais: [SCO, INS],
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [
+				{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 50_000 },
+				{ eleveId: "e1", typeFraisId: "four", mois: 10, montant: 10_000 },
+			],
+		});
+		expect(r.lignes[0]).toMatchObject({ reste: 10_000 });
+	});
+});
+
+describe("verseSurForfait / resteForfait", () => {
+	it("additionne l'inscription et les types associés plafonnés", () => {
+		const verses: Record<string, number> = { ins: 40_000, four: 9_000 };
+		expect(
+			verseSurForfait(
+				{ typesAssocies: ["four"], plafonds: { four: 7_000 } },
+				"ins",
+				(id) => verses[id] ?? 0,
+			),
+		).toBe(47_000);
+	});
+	it("sans plafond : tout compte (compatibilité)", () => {
+		const verses: Record<string, number> = { ins: 40_000, four: 9_000 };
+		expect(verseSurForfait({ typesAssocies: ["four"] }, "ins", (id) => verses[id] ?? 0)).toBe(
+			49_000,
+		);
+	});
+	it("estForfait reconnaît le type Inscription", () => {
+		expect(estForfait({ nom: "Inscription" })).toBe(true);
+		expect(estForfait({ nom: "Scolarité" })).toBe(false);
+	});
+});
+
+describe("associesDesLignes", () => {
+	it("somme les lignes par type associé", () => {
+		expect(
+			associesDesLignes([
+				{ montant: 30_000, typeFraisId: null },
+				{ montant: 7_000, typeFraisId: "four" },
+				{ montant: 3_000, typeFraisId: "four" },
+			]),
+		).toEqual({ typesAssocies: ["four"], plafonds: { four: 10_000 } });
 	});
 });

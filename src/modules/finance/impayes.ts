@@ -56,6 +56,35 @@ const MOIS_COURTS = [
 /** Le forfait d'inscription correspond au type de frais « Inscription ». */
 export const estForfait = (f: { nom: string }) => f.nom === "Inscription";
 
+/** Types associés aux lignes d'un forfait et plafond de chacun (somme de ses lignes). */
+export function associesDesLignes(lignes: { montant: number; typeFraisId: string | null }[]) {
+	const plafonds: Record<string, number> = {};
+	for (const l of lignes)
+		if (l.typeFraisId) plafonds[l.typeFraisId] = (plafonds[l.typeFraisId] ?? 0) + l.montant;
+	return { typesAssocies: Object.keys(plafonds), plafonds };
+}
+
+/**
+ * Montant versé sur le forfait : paiements « Inscription » + paiements des types associés aux lignes
+ * (ex. Fourniture), chacun plafonné au montant de ses lignes (un excédent ne réduit pas le reste).
+ */
+export function verseSurForfait(
+	forfait: { typesAssocies: string[]; plafonds?: Record<string, number> },
+	inscriptionId: string,
+	verse: (typeFraisId: string) => number,
+): number {
+	return (
+		verse(inscriptionId) +
+		forfait.typesAssocies
+			.filter((id) => id !== inscriptionId)
+			.reduce((t, id) => {
+				const v = verse(id);
+				const plafond = forfait.plafonds?.[id];
+				return t + (plafond === undefined ? v : Math.min(v, plafond));
+			}, 0)
+	);
+}
+
 const cle = (annee: number, mois: number) => annee * 100 + mois;
 const anneeMois = (date: string) => date.split("-").slice(0, 2).map(Number) as [number, number];
 
@@ -85,7 +114,13 @@ export function calculerImpayes(p: {
 	grille: { classeId: string; typeFraisId: string; montant: number }[];
 	paiements: { eleveId: string; typeFraisId: string; mois: number; montant: number }[];
 	/** Forfait d'inscription par niveau (total des lignes, types dont les paiements comptent). */
-	forfaits?: { niveauId: string; total: number; typesAssocies: string[] }[];
+	forfaits?: {
+		niveauId: string;
+		total: number;
+		typesAssocies: string[];
+		/** Plafond par type associé (somme des lignes de ce type). */
+		plafonds?: Record<string, number>;
+	}[];
 	/** Échéancier mensuel par niveau (mois absent = non dû). */
 	echeanciers?: { niveauId: string; mois: number; montant: number }[];
 	/** Réduction de l'élève pour l'année (une au plus). */
@@ -129,11 +164,7 @@ export function calculerImpayes(p: {
 			// Forfait d'inscription du niveau (frais « Inscription » uniquement) :
 			// reste = forfait − versé (Inscription + types associés, sans compter deux fois l'Inscription)
 			if (!f.mensuel && forfait && estForfait(f)) {
-				const verseForfait =
-					verse(e.id, f.id) +
-					forfait.typesAssocies
-						.filter((id) => id !== f.id)
-						.reduce((t, id) => t + verse(e.id, id), 0);
+				const verseForfait = verseSurForfait(forfait, f.id, (id) => verse(e.id, id));
 				const totalForfait = montantReduit(forfait.total, red, "forfait");
 				du += totalForfait;
 				const r = Math.max(0, totalForfait - verseForfait);

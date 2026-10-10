@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	date,
 	index,
 	integer,
@@ -153,7 +154,7 @@ export const forfaitLignes = pgTable(
 		id: uuid("id").defaultRandom().primaryKey(),
 		niveauId: uuid("niveau_id")
 			.notNull()
-			.references(() => niveaux.id),
+			.references(() => niveaux.id, { onDelete: "cascade" }),
 		anneeScolaireId: uuid("annee_scolaire_id")
 			.notNull()
 			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
@@ -170,7 +171,7 @@ export const echeancier = pgTable(
 	{
 		niveauId: uuid("niveau_id")
 			.notNull()
-			.references(() => niveaux.id),
+			.references(() => niveaux.id, { onDelete: "cascade" }),
 		anneeScolaireId: uuid("annee_scolaire_id")
 			.notNull()
 			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
@@ -198,5 +199,17 @@ export const reductions = pgTable(
 		motif: varchar("motif", { length: 200 }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 	},
-	(t) => [uniqueIndex("reductions_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId)],
+	(t) => [
+		uniqueIndex("reductions_eleve_annee_idx").on(t.eleveId, t.anneeScolaireId),
+		check(
+			"reductions_type_check",
+			sql`${t.type} in ('fratrie', 'personnel', 'negociee', 'bourse')`,
+		),
+		check("reductions_portee_check", sql`${t.portee} in ('forfait', 'mensualites', 'les_deux')`),
+		check("reductions_mode_check", sql`${t.mode} in ('montant', 'pourcentage')`),
+		check(
+			"reductions_valeur_check",
+			sql`${t.valeur} >= 1 and (${t.mode} <> 'pourcentage' or ${t.valeur} <= 100)`,
+		),
+	],
 );

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { montantReduction, montantReduit, type Reduction } from "./reductions";
+import {
+	montantAnnuelReduction,
+	montantReduction,
+	montantReduit,
+	type Reduction,
+} from "./reductions";
 
 const r = (portee: Reduction["portee"], mode: Reduction["mode"], valeur: number): Reduction => ({
 	type: "negociee",
@@ -34,5 +39,41 @@ describe("montantReduit", () => {
 	});
 	it("montant de la réduction", () => {
 		expect(montantReduction(80_000, r("forfait", "montant", 40_000), "forfait")).toBe(40_000);
+	});
+});
+
+describe("montantAnnuelReduction (M4)", () => {
+	it("niveau au forfait : forfait + échéancier", () => {
+		expect(
+			montantAnnuelReduction(r("les_deux", "pourcentage", 10), {
+				forfait: 70_000,
+				echeancier: [25_000, 30_000],
+				uniques: [],
+				mensuels: [],
+				nbMois: 10,
+			}),
+		).toBe(7_000 + 2_500 + 3_000);
+	});
+	it("forfait sans échéancier : aucune mensualité", () => {
+		expect(
+			montantAnnuelReduction(r("mensualites", "montant", 5_000), {
+				forfait: 70_000,
+				echeancier: null,
+				uniques: [],
+				mensuels: [25_000],
+				nbMois: 10,
+			}),
+		).toBe(0);
+	});
+	it("niveau en grille : frais uniques + mensualités × nombre de mois", () => {
+		expect(
+			montantAnnuelReduction(r("les_deux", "montant", 1_000), {
+				forfait: null,
+				echeancier: null,
+				uniques: [50_000],
+				mensuels: [17_000],
+				nbMois: 10,
+			}),
+		).toBe(1_000 + 10 * 1_000);
 	});
 });
