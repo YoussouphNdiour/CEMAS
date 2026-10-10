@@ -51,6 +51,8 @@ export default function SuiviPage() {
 			for (const tf of s.typesFrais) {
 				if (!tf.mensuel) continue;
 				for (const m of tf.months) {
+					// Octobre inclus dans le forfait et mois hors échéancier : non comptés
+					if (m.statut === "inclus" || m.statut === "non_du") continue;
 					totalExpected++;
 					if (m.paid) totalPaid++;
 				}
@@ -216,6 +218,10 @@ export default function SuiviPage() {
 														(f) => f.typeFraisId === tf.typeFraisId,
 													);
 													const paidCount = frais?.months.filter((m) => m.paid).length ?? 0;
+													const dueCount =
+														frais?.months.filter(
+															(m) => m.statut !== "inclus" && m.statut !== "non_du",
+														).length ?? 10;
 													return (
 														<tr key={student.id} className="border-b last:border-b-0">
 															<td className="sticky left-0 bg-white px-4 py-2 font-medium whitespace-nowrap">
@@ -223,7 +229,21 @@ export default function SuiviPage() {
 															</td>
 															{frais?.months.map((monthData) => (
 																<td key={monthData.mois} className="px-2 py-2 text-center">
-																	{monthData.paid ? (
+																	{monthData.statut === "inclus" ? (
+																		<span
+																			className="text-[10px] font-medium text-primary"
+																			title="Inclus dans le forfait d'inscription"
+																		>
+																			Inclus
+																		</span>
+																	) : monthData.statut === "non_du" ? (
+																		<span
+																			className="text-xs text-gray-300"
+																			title="Non dû selon l'échéancier"
+																		>
+																			—
+																		</span>
+																	) : monthData.paid ? (
 																		<CircleDot className="mx-auto h-5 w-5 text-green-500" />
 																	) : (
 																		<CircleDot className="mx-auto h-5 w-5 text-gray-200" />
@@ -234,14 +254,14 @@ export default function SuiviPage() {
 																<span
 																	className={cn(
 																		"inline-block min-w-[2rem] rounded-full px-2 py-0.5 text-xs font-semibold",
-																		paidCount === 10
+																		paidCount >= dueCount
 																			? "bg-green-100 text-green-700"
 																			: paidCount > 0
 																				? "bg-yellow-100 text-yellow-700"
 																				: "bg-red-50 text-red-500",
 																	)}
 																>
-																	{paidCount}/10
+																	{paidCount}/{dueCount}
 																</span>
 															</td>
 														</tr>

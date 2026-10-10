@@ -79,4 +79,52 @@ test.describe("15 - Tarifs par niveau", () => {
 		);
 		expect(r).toEqual({ lignes: 3, mois: 7 });
 	});
+
+	test("modifier un tarif depuis la page", async ({ page }) => {
+		await page.goto("/finances/tarifs");
+		await waitForLoad(page);
+		const carte = page.getByRole("region", { name: "Moyen" });
+		await expect(carte).toContainText("70 000");
+		await carte.getByLabel("Janvier", { exact: true }).fill("30500");
+		await carte.getByRole("button", { name: "Enregistrer" }).click();
+		await expect(carte.getByText("Tarifs enregistrés")).toBeVisible();
+		await carte.getByLabel("Janvier", { exact: true }).fill("30000");
+		await carte.getByRole("button", { name: "Enregistrer" }).click();
+		await expect(carte.getByText("Tarifs enregistrés")).toBeVisible();
+	});
+
+	test("suivi : octobre inclus dans le forfait, juin et juillet non dus", async ({ page }) => {
+		const annee = await anneeActive(page);
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const elem = niveaux.find((n) => n.nom === "Élémentaire") ?? niveaux[0];
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: `SUIVI-${Date.now()}`, niveauId: elem.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		await trpc(
+			page,
+			"students.create",
+			{
+				prenom: "Suivi",
+				nom: `Statut${Date.now()}`,
+				dateNaissance: "2016-01-01",
+				sexe: "M",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "S", telephone: "77 000 00 15", relation: "pere" },
+			},
+			true,
+		);
+		const suivi = await trpc<
+			{ typesFrais: { typeFraisNom: string; months: { mois: number; statut: string }[] }[] }[]
+		>(page, "finance.suivi.byClasse", { classeId: classe.id, anneeScolaireId: annee.id });
+		const sco = suivi[0].typesFrais.find((t) => t.typeFraisNom === "Scolarité");
+		const statut = (m: number) => sco?.months.find((x) => x.mois === m)?.statut;
+		expect(statut(10)).toBe("inclus");
+		expect(statut(11)).toBe("impaye");
+		expect(statut(6)).toBe("non_du");
+		expect(statut(7)).toBe("non_du");
+	});
 });

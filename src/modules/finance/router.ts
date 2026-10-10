@@ -372,14 +372,56 @@ const suiviRouter = createTRPCRouter({
 			// School year months: Oct(10), Nov(11), Dec(12), Jan(1), Feb(2), Mar(3), Apr(4), May(5), Jun(6), Jul(7)
 			const schoolMonths = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
 
+			// Échéancier et forfait du niveau de la classe : octobre inclus, mois hors échéancier non dus
+			const [classe] = await ctx.db
+				.select({ niveauId: classes.niveauId })
+				.from(classes)
+				.where(eq(classes.id, input.classeId));
+			const moisEcheancier = classe
+				? await ctx.db
+						.select({ mois: echeancier.mois })
+						.from(echeancier)
+						.where(
+							and(
+								eq(echeancier.niveauId, classe.niveauId),
+								eq(echeancier.anneeScolaireId, input.anneeScolaireId),
+							),
+						)
+				: [];
+			const [ligneForfait] = classe
+				? await ctx.db
+						.select({ id: forfaitLignes.id })
+						.from(forfaitLignes)
+						.where(
+							and(
+								eq(forfaitLignes.niveauId, classe.niveauId),
+								eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
+							),
+						)
+						.limit(1)
+				: [];
+			const dus = new Set(moisEcheancier.map((m) => m.mois));
+			const statutMois = (
+				tf: { mensuel: boolean; obligatoire: boolean },
+				mois: number,
+				paye: boolean,
+			): "paye" | "impaye" | "inclus" | "non_du" => {
+				if (paye) return "paye";
+				if (tf.mensuel && tf.obligatoire && dus.size > 0) {
+					if (mois === 10 && ligneForfait) return "inclus";
+					if (!dus.has(mois)) return "non_du";
+				}
+				return "impaye";
+			};
+
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
 				const typesFraisStatus = fraisTypes.map((tf) => {
 					const paidMonths = byType?.get(tf.id);
-					const months = schoolMonths.map((m) => ({
-						mois: m,
-						paid: paidMonths?.has(m) ?? false,
-					}));
+					const months = schoolMonths.map((m) => {
+						const paid = paidMonths?.has(m) ?? false;
+						return { mois: m, paid, statut: statutMois(tf, m, paid) };
+					});
 					return {
 						typeFraisId: tf.id,
 						typeFraisNom: tf.nom,

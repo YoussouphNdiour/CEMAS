@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA } from "@/shared/lib/utils";
@@ -98,6 +99,13 @@ export default function GrillePage() {
 					{ label: "Grille tarifaire" },
 				]}
 			/>
+			<p className="mb-4 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
+				Méthode recommandée :{" "}
+				<Link href="/finances/tarifs" className="font-medium underline">
+					Tarifs par niveau
+				</Link>
+				. Cette grille par classe n'est utilisée que pour les niveaux sans tarifs.
+			</p>
 			<p className="mb-4 text-sm text-muted">
 				Montant par classe pour chaque frais obligatoire de l'année {annee?.libelle ?? ""}. Une case
 				vide utilise le montant par défaut (affiché en gris) et est signalée sur la page Impayés.

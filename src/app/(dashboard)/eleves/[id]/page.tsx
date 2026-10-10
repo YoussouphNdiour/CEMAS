@@ -3,6 +3,7 @@
 import { ArrowLeft, Briefcase, MapPin, Phone, Plus, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { ReductionEleve } from "@/modules/finance/components/reduction-eleve";
 import {
 	CONTACT_VIDE,
 	ContactFields,
@@ -152,6 +153,10 @@ export default function EleveDetailPage() {
 						</div>
 					)}
 				</div>
+			</div>
+
+			<div className="mt-6">
+				<ReductionEleve eleveId={id} />
 			</div>
 
 			<FormModal

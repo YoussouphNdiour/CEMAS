@@ -160,4 +160,60 @@ test.describe("16 - Réductions par élève", () => {
 		await typeSelect.selectOption((await optionInscription.getAttribute("value")) ?? "");
 		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(String(tarif.forfait));
 	});
+
+	test("fiche élève : ajouter une réduction, la retrouver dans la page Réductions", async ({
+		page,
+	}) => {
+		await login(page);
+		const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+		const annee = annees.find((a) => a.active);
+		if (!annee) throw new Error("Aucune année active");
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{
+				nom: `REDUI-${Date.now()}`,
+				niveauId: niveaux[0].id,
+				capacite: 30,
+				anneeScolaireId: annee.id,
+			},
+			true,
+		);
+		const nom = `Fratrie${Date.now()}`;
+		const eleve = await trpc<{ id: string }>(
+			page,
+			"students.create",
+			{
+				prenom: "Quatrieme",
+				nom,
+				dateNaissance: "2018-01-01",
+				sexe: "M",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "F", telephone: "77 000 00 18", relation: "pere" },
+			},
+			true,
+		);
+
+		await page.goto(`/eleves/${eleve.id}`);
+		await waitForLoad(page);
+		await page.getByRole("button", { name: "Ajouter une réduction" }).click();
+		const dialog = page.getByRole("dialog");
+		await dialog.getByLabel("Type").selectOption("fratrie");
+		await dialog.getByLabel("Porte sur").selectOption("mensualites");
+		await dialog.getByLabel("Forme").selectOption("pourcentage");
+		await dialog.getByLabel("Valeur").fill("50");
+		await dialog.getByLabel("Motif").fill("4e enfant de la famille");
+		await dialog.getByRole("button", { name: "Enregistrer" }).click();
+		const section = page.getByRole("region", { name: "Réduction" });
+		await expect(section).toContainText("Fratrie (4 enfants et plus)");
+		await expect(section).toContainText("50 %");
+
+		await page.goto("/finances/reductions");
+		await waitForLoad(page);
+		await expect(page.getByRole("row", { name: new RegExp(nom) })).toContainText(
+			"4e enfant de la famille",
+		);
+	});
 });
