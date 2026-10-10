@@ -3,7 +3,7 @@ import { anneesScolaires, classes } from "@/modules/academic/schema";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
 import { calculerImpayes, type ResultatImpayes } from "./impayes";
-import { grilleFrais, paiements, typesFrais } from "./schema";
+import { echeancier, forfaitLignes, grilleFrais, paiements, typesFrais } from "./schema";
 
 const VIDE: ResultatImpayes = {
 	lignes: [],
@@ -64,7 +64,33 @@ export async function getImpayes(
 		.where(eq(typesFrais.obligatoire, true))
 		.orderBy(typesFrais.mensuel, typesFrais.nom);
 	if (frais.length === 0) return VIDE;
-	const fraisIds = frais.map((f) => f.id);
+
+	// Forfaits d'inscription et échéanciers par niveau
+	const lignesForfait = await database
+		.select({
+			niveauId: forfaitLignes.niveauId,
+			montant: forfaitLignes.montant,
+			typeFraisId: forfaitLignes.typeFraisId,
+		})
+		.from(forfaitLignes)
+		.where(eq(forfaitLignes.anneeScolaireId, anneeScolaireId));
+	const forfaits = [...new Set(lignesForfait.map((l) => l.niveauId))].map((niveauId) => {
+		const ls = lignesForfait.filter((l) => l.niveauId === niveauId);
+		return {
+			niveauId,
+			total: ls.reduce((t, l) => t + l.montant, 0),
+			typesAssocies: [...new Set(ls.flatMap((l) => (l.typeFraisId ? [l.typeFraisId] : [])))],
+		};
+	});
+	const echeanciers = await database
+		.select({ niveauId: echeancier.niveauId, mois: echeancier.mois, montant: echeancier.montant })
+		.from(echeancier)
+		.where(eq(echeancier.anneeScolaireId, anneeScolaireId));
+
+	// Paiements utiles : frais obligatoires + types associés aux forfaits (ex. fournitures)
+	const fraisIds = [
+		...new Set([...frais.map((f) => f.id), ...forfaits.flatMap((f) => f.typesAssocies)]),
+	];
 
 	const grille = await database
 		.select({
@@ -98,5 +124,7 @@ export async function getImpayes(
 		frais,
 		grille,
 		paiements: paiementsRows,
+		forfaits,
+		echeanciers,
 	});
 }
