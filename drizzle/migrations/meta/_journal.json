@@ -71,6 +71,13 @@
       "when": 1791654983063,
       "tag": "0009_last_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791656855551,
+      "tag": "0010_known_namor",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,15 @@ import { anneesScolaires, classes } from "@/modules/academic/schema";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
 import { calculerImpayes, type ResultatImpayes } from "./impayes";
-import { echeancier, forfaitLignes, grilleFrais, paiements, typesFrais } from "./schema";
+import type { Reduction } from "./reductions";
+import {
+	echeancier,
+	forfaitLignes,
+	grilleFrais,
+	paiements,
+	reductions,
+	typesFrais,
+} from "./schema";
 
 const VIDE: ResultatImpayes = {
 	lignes: [],
@@ -126,5 +134,17 @@ export async function getImpayes(
 		paiements: paiementsRows,
 		forfaits,
 		echeanciers,
+		reductions: (
+			await database
+				.select({
+					eleveId: reductions.eleveId,
+					type: reductions.type,
+					portee: reductions.portee,
+					mode: reductions.mode,
+					valeur: reductions.valeur,
+				})
+				.from(reductions)
+				.where(eq(reductions.anneeScolaireId, anneeScolaireId))
+		).map((r) => r as Reduction & { eleveId: string }),
 	});
 }

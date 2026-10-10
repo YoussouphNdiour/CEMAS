@@ -1,3 +1,5 @@
+import { montantReduit, type Reduction } from "./reductions";
+
 export interface EleveImpayeInput {
 	id: string;
 	matricule: string;
@@ -83,6 +85,8 @@ export function calculerImpayes(p: {
 	forfaits?: { niveauId: string; total: number; typesAssocies: string[] }[];
 	/** Échéancier mensuel par niveau (mois absent = non dû). */
 	echeanciers?: { niveauId: string; mois: number; montant: number }[];
+	/** Réduction de l'élève pour l'année (une au plus). */
+	reductions?: (Reduction & { eleveId: string })[];
 }): ResultatImpayes {
 	const dus = moisDus(p.dateDebut, p.dateFin, p.aujourdhui);
 	const grille = new Map(p.grille.map((g) => [`${g.classeId}:${g.typeFraisId}`, g.montant]));
@@ -94,6 +98,7 @@ export function calculerImpayes(p: {
 		payes.get(k)?.add(pa.mois);
 		sommeParType.set(k, (sommeParType.get(k) ?? 0) + pa.montant);
 	}
+	const reductionParEleve = new Map((p.reductions ?? []).map((r) => [r.eleveId, r]));
 	const forfaitParNiveau = new Map((p.forfaits ?? []).map((f) => [f.niveauId, f]));
 	const echeancierParNiveau = new Map<string, Map<number, number>>();
 	for (const e of p.echeanciers ?? []) {
@@ -115,14 +120,16 @@ export function calculerImpayes(p: {
 		const forfait = forfaitParNiveau.get(e.niveauId);
 		const ech = echeancierParNiveau.get(e.niveauId);
 		let paye = 0;
+		const red = reductionParEleve.get(e.id);
 		for (const f of p.frais) {
 			paye += verse(e.id, f.id);
 			// Forfait d'inscription du niveau : reste = forfait − versé (Inscription + types associés)
 			if (!f.mensuel && forfait) {
 				const verseForfait =
 					verse(e.id, f.id) + forfait.typesAssocies.reduce((t, id) => t + verse(e.id, id), 0);
-				du += forfait.total;
-				const r = Math.max(0, forfait.total - verseForfait);
+				const totalForfait = montantReduit(forfait.total, red, "forfait");
+				du += totalForfait;
+				const r = Math.max(0, totalForfait - verseForfait);
 				if (r > 0) {
 					reste += r;
 					moisImpayes.push({
@@ -139,8 +146,10 @@ export function calculerImpayes(p: {
 			if (f.mensuel && ech) {
 				const moisPayesEch = payes.get(`${e.id}:${f.id}`);
 				for (const { annee, mois } of dus) {
-					const montantMois = ech.get(mois);
-					if (montantMois === undefined || montantMois === 0) continue;
+					const brut = ech.get(mois);
+					if (brut === undefined) continue;
+					const montantMois = montantReduit(brut, red, "mensualite");
+					if (montantMois === 0) continue;
 					du += montantMois;
 					if (!moisPayesEch?.has(mois)) {
 						reste += montantMois;
@@ -156,7 +165,11 @@ export function calculerImpayes(p: {
 				continue;
 			}
 			const montantGrille = grille.get(`${e.classeId}:${f.id}`);
-			const montant = montantGrille ?? f.montantDefaut;
+			const montant = montantReduit(
+				montantGrille ?? f.montantDefaut,
+				red,
+				f.mensuel ? "mensualite" : "forfait",
+			);
 			// Frais gratuit pour cette classe
 			if (montant === 0) continue;
 			if (montantGrille === undefined) {

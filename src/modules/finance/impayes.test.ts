@@ -248,3 +248,51 @@ describe("forfait et échéancier", () => {
 		expect(r.lignes[0]).toMatchObject({ reste: 25_000 + 50_000 });
 	});
 });
+
+describe("réductions", () => {
+	const forfaits = [{ niveauId: "n1", total: 80_000, typesAssocies: [] }];
+	const echeanciers = [{ niveauId: "n1", mois: 11, montant: 40_000 }];
+	const base3 = { ...ANNEE, frais: [SCO, INS], grille: [], paiements: [], forfaits, echeanciers };
+
+	it("réduction de 40 000 sur le forfait : élève ayant payé 40 000 à jour", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 40_000 }],
+			reductions: [
+				{ eleveId: "e1", type: "negociee", portee: "forfait", mode: "montant", valeur: 40_000 },
+			],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+
+	it("50 % sur les mensualités : novembre dû 20 000", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2026-11-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 80_000 }],
+			reductions: [
+				{ eleveId: "e1", type: "fratrie", portee: "mensualites", mode: "pourcentage", valeur: 50 },
+			],
+		});
+		expect(r.lignes[0].moisImpayes).toEqual([
+			{ typeFraisId: "sco", typeFraisNom: "Scolarité", mois: 11, annee: 2026, montant: 20_000 },
+		]);
+		expect(r.lignes[0].du).toBe(80_000 + 20_000);
+	});
+
+	it("gratuité totale : jamais en impayé", () => {
+		const r = calculerImpayes({
+			...base3,
+			aujourdhui: "2027-05-20",
+			eleves: [eleve("e1")],
+			paiements: [],
+			reductions: [
+				{ eleveId: "e1", type: "bourse", portee: "les_deux", mode: "pourcentage", valeur: 100 },
+			],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+});

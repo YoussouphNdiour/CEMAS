@@ -85,3 +85,17 @@ export const enregistrerTarifsSchema = z.object({
 		)
 		.max(11),
 });
+
+export const enregistrerReductionSchema = z
+	.object({
+		eleveId: z.string().uuid(),
+		type: z.enum(["fratrie", "personnel", "negociee", "bourse"]),
+		portee: z.enum(["forfait", "mensualites", "les_deux"]),
+		mode: z.enum(["montant", "pourcentage"]),
+		valeur: z.number().int().min(1, "Valeur requise"),
+		motif: z.string().trim().max(200).optional(),
+	})
+	.refine((r) => r.mode !== "pourcentage" || r.valeur <= 100, {
+		message: "Un pourcentage ne peut pas dépasser 100",
+		path: ["valeur"],
+	});

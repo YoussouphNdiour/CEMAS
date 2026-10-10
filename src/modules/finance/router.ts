@@ -6,11 +6,13 @@ import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
 import { eleveParents, eleves, parents } from "@/modules/students/schema";
+import type { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber } from "@/shared/lib/utils";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
 import { getImpayes } from "./impayes-service";
+import { montantReduction, montantReduit, type Reduction } from "./reductions";
 import {
 	categoriesDepenses,
 	categoriesRecettes,
@@ -20,12 +22,14 @@ import {
 	grilleFrais,
 	paiements,
 	recettes,
+	reductions,
 	typesFrais,
 } from "./schema";
 import {
 	createDepenseSchema,
 	createPaiementSchema,
 	createRecetteSchema,
+	enregistrerReductionSchema,
 	enregistrerTarifsSchema,
 	grilleFraisSchema,
 	impayesFiltersSchema,
@@ -533,6 +537,107 @@ const impayesRouter = createTRPCRouter({
 /** Ordre scolaire des mois (octobre → septembre) pour l'affichage de l'échéancier. */
 const ORDRE_SCOLAIRE = (m: number) => (m >= 9 ? m - 9 : m + 3);
 
+async function anneeActiveId(database: typeof db) {
+	const [annee] = await database
+		.select({ id: anneesScolaires.id })
+		.from(anneesScolaires)
+		.where(eq(anneesScolaires.active, true));
+	if (!annee)
+		throw new TRPCError({ code: "BAD_REQUEST", message: "Aucune année scolaire active." });
+	return annee.id;
+}
+
+const reductionsRouter = createTRPCRouter({
+	get: protectedProcedure
+		.input(z.object({ eleveId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const anneeId = await anneeActiveId(ctx.db);
+			const [r] = await ctx.db
+				.select()
+				.from(reductions)
+				.where(and(eq(reductions.eleveId, input.eleveId), eq(reductions.anneeScolaireId, anneeId)));
+			return r ?? null;
+		}),
+
+	enregistrer: protectedProcedure
+		.input(enregistrerReductionSchema)
+		.mutation(async ({ ctx, input }) => {
+			const anneeId = await anneeActiveId(ctx.db);
+			const valeurs = {
+				type: input.type,
+				portee: input.portee,
+				mode: input.mode,
+				valeur: input.valeur,
+				motif: input.motif || null,
+			};
+			const [r] = await ctx.db
+				.insert(reductions)
+				.values({ eleveId: input.eleveId, anneeScolaireId: anneeId, ...valeurs })
+				.onConflictDoUpdate({
+					target: [reductions.eleveId, reductions.anneeScolaireId],
+					set: valeurs,
+				})
+				.returning();
+			return r;
+		}),
+
+	supprimer: protectedProcedure
+		.input(z.object({ eleveId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const anneeId = await anneeActiveId(ctx.db);
+			await ctx.db
+				.delete(reductions)
+				.where(and(eq(reductions.eleveId, input.eleveId), eq(reductions.anneeScolaireId, anneeId)));
+			return { success: true };
+		}),
+
+	/** Élèves avec réduction et montant accordé sur l'année (forfait + mensualités de l'échéancier). */
+	list: protectedProcedure
+		.input(z.object({ anneeScolaireId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const rows = await ctx.db
+				.select({
+					eleveId: reductions.eleveId,
+					type: reductions.type,
+					portee: reductions.portee,
+					mode: reductions.mode,
+					valeur: reductions.valeur,
+					motif: reductions.motif,
+					prenom: eleves.prenom,
+					nom: eleves.nom,
+					matricule: eleves.matricule,
+					classeNom: classes.nom,
+					niveauId: classes.niveauId,
+				})
+				.from(reductions)
+				.innerJoin(eleves, eq(reductions.eleveId, eleves.id))
+				.innerJoin(classes, eq(eleves.classeId, classes.id))
+				.where(eq(reductions.anneeScolaireId, input.anneeScolaireId))
+				.orderBy(eleves.nom, eleves.prenom);
+			const lignes = await ctx.db
+				.select()
+				.from(forfaitLignes)
+				.where(eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId));
+			const mois = await ctx.db
+				.select()
+				.from(echeancier)
+				.where(eq(echeancier.anneeScolaireId, input.anneeScolaireId));
+			return rows.map((r) => {
+				const red = r as unknown as Reduction;
+				const forfait = lignes
+					.filter((l) => l.niveauId === r.niveauId)
+					.reduce((t, l) => t + l.montant, 0);
+				const mensualites = mois
+					.filter((m) => m.niveauId === r.niveauId)
+					.reduce((t, m) => t + montantReduction(m.montant, red, "mensualite"), 0);
+				return {
+					...r,
+					montantAnnuel: montantReduction(forfait, red, "forfait") + mensualites,
+				};
+			});
+		}),
+});
+
 const tarifsRouter = createTRPCRouter({
 	list: protectedProcedure
 		.input(z.object({ anneeScolaireId: z.string().uuid() }))
@@ -626,7 +731,15 @@ const tarifsRouter = createTRPCRouter({
 				.from(eleves)
 				.innerJoin(classes, eq(eleves.classeId, classes.id))
 				.where(eq(eleves.id, input.eleveId));
-			if (!annee || !eleve) return { forfait: null, lignes: [], echeancier: {} };
+			if (!annee || !eleve)
+				return { forfait: null, forfaitBrut: null, lignes: [], echeancier: {}, reduction: null };
+			const [reduction] = await ctx.db
+				.select()
+				.from(reductions)
+				.where(
+					and(eq(reductions.eleveId, input.eleveId), eq(reductions.anneeScolaireId, annee.id)),
+				);
+			const red = (reduction ?? null) as Reduction | null;
 			const lignes = await ctx.db
 				.select({
 					libelle: forfaitLignes.libelle,
@@ -647,13 +760,15 @@ const tarifsRouter = createTRPCRouter({
 				.where(
 					and(eq(echeancier.niveauId, eleve.niveauId), eq(echeancier.anneeScolaireId, annee.id)),
 				);
+			const forfaitBrut = lignes.length ? lignes.reduce((t, l) => t + l.montant, 0) : null;
 			return {
-				forfait: lignes.length ? lignes.reduce((t, l) => t + l.montant, 0) : null,
+				forfait: forfaitBrut === null ? null : montantReduit(forfaitBrut, red, "forfait"),
+				forfaitBrut,
 				lignes,
-				echeancier: Object.fromEntries(mois.map((m) => [m.mois, m.montant])) as Record<
-					number,
-					number
-				>,
+				echeancier: Object.fromEntries(
+					mois.map((m) => [m.mois, montantReduit(m.montant, red, "mensualite")]),
+				) as Record<number, number>,
+				reduction: reduction ?? null,
 			};
 		}),
 });
@@ -668,4 +783,5 @@ export const financeRouter = createTRPCRouter({
 	bilan: bilanRouter,
 	impayes: impayesRouter,
 	tarifs: tarifsRouter,
+	reductions: reductionsRouter,
 });
