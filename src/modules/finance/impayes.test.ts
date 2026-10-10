@@ -296,3 +296,46 @@ describe("réductions", () => {
 		expect(r.lignes).toEqual([]);
 	});
 });
+
+describe("forfait — robustesse (relecture)", () => {
+	const forfaits = [{ niveauId: "n1", total: 67_000, typesAssocies: ["four"] }];
+	const echeanciers = [{ niveauId: "n1", mois: 11, montant: 20_000 }];
+	const ASSU = { id: "assu", nom: "Assurance", montantDefaut: 3_000, mensuel: false };
+	const base4 = { ...ANNEE, grille: [], paiements: [], forfaits, echeanciers };
+
+	it("un autre frais obligatoire unique n'est pas traité comme le forfait", () => {
+		const r = calculerImpayes({
+			...base4,
+			frais: [SCO, INS, ASSU],
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
+		});
+		expect(r.lignes[0]).toMatchObject({ du: 67_000 + 3_000, reste: 3_000 });
+		expect(r.lignes[0].moisImpayes.map((m) => m.typeFraisNom)).toEqual(["Assurance"]);
+	});
+
+	it("le type du forfait lui-même n'est pas compté deux fois s'il est aussi associé", () => {
+		const r = calculerImpayes({
+			...base4,
+			forfaits: [{ niveauId: "n1", total: 67_000, typesAssocies: ["ins", "four"] }],
+			frais: [SCO, INS],
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 40_000 }],
+		});
+		expect(r.lignes[0]).toMatchObject({ reste: 27_000 });
+	});
+
+	it("forfait sans échéancier : aucune mensualité due (pas de repli qui rendrait octobre dû)", () => {
+		const r = calculerImpayes({
+			...base4,
+			echeanciers: [],
+			frais: [SCO, INS],
+			aujourdhui: "2027-07-20",
+			eleves: [eleve("e1")],
+			paiements: [{ eleveId: "e1", typeFraisId: "ins", mois: 10, montant: 67_000 }],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+});

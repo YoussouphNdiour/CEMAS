@@ -159,6 +159,17 @@ test.describe("16 - Réductions par élève", () => {
 		await expect(optionInscription).toHaveCount(1);
 		await typeSelect.selectOption((await optionInscription.getAttribute("value")) ?? "");
 		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue(String(tarif.forfait));
+
+		// Un montant saisi à la main n'est pas écrasé quand on change le mois
+		await page.getByLabel("Montant (FCFA)").fill("30000");
+		const moisPaiement = page
+			.locator("form")
+			.filter({ has: page.locator("#paiement-type") })
+			.locator("select")
+			.nth(1);
+		await moisPaiement.selectOption("11");
+		await page.waitForTimeout(500);
+		await expect(page.getByLabel("Montant (FCFA)")).toHaveValue("30000");
 	});
 
 	test("fiche élève : ajouter une réduction, la retrouver dans la page Réductions", async ({

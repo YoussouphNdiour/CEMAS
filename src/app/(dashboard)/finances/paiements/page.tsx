@@ -38,6 +38,8 @@ export default function PaiementsPage() {
 	const [montant, setMontant] = useState(0);
 	const [lastRecu, setLastRecu] = useState<string | null>(null);
 	const derniereSuggestion = useRef("");
+	// Élève et type pour lesquels le montant a été saisi à la main : plus de suggestion automatique
+	const montantManuel = useRef("");
 	const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
 	// Tarifs de l'élève choisi (forfait et échéancier après réduction)
@@ -68,10 +70,13 @@ export default function PaiementsPage() {
 		return tf.nom;
 	}
 
-	// Montant proposé selon le tarif de l'élève (une fois par combinaison élève / type / mois)
+	// Montant proposé selon le tarif de l'élève (une fois par combinaison élève / type / mois),
+	// sauf si l'utilisateur a déjà saisi le montant pour cet élève et ce type
 	useEffect(() => {
 		if (!tarif.data || !typeChoisi) return;
-		const cle = `${selectedEleveId}:${typeChoisi.id}:${paymentMois}`;
+		if (montantManuel.current === `${selectedEleveId}:${typeChoisi.id}`) return;
+		const parMois = typeChoisi.mensuel && typeChoisi.nom !== "Inscription";
+		const cle = `${selectedEleveId}:${typeChoisi.id}${parMois ? `:${paymentMois}` : ""}`;
 		if (derniereSuggestion.current === cle) return;
 		let propose: number | undefined;
 		if (typeChoisi.nom === "Inscription" && tarif.data.forfait !== null)
@@ -291,7 +296,10 @@ export default function PaiementsPage() {
 								required
 								min={1}
 								value={montant || ""}
-								onChange={(e) => setMontant(parseInt(e.target.value, 10) || 0)}
+								onChange={(e) => {
+									montantManuel.current = `${selectedEleveId}:${selectedTypeFraisId}`;
+									setMontant(parseInt(e.target.value, 10) || 0);
+								}}
 								className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 							/>
 						</div>

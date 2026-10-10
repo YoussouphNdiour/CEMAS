@@ -20,17 +20,18 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 	const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
 	const source = annees.find((a) => a.active);
 	if (!source) throw new Error("Aucune année active");
-	const [niveau] = await trpc<{ id: string }[]>(page, "academic.niveaux.list");
+	const [niveau, niveau2] = await trpc<{ id: string }[]>(page, "academic.niveaux.list");
 	const t = Date.now();
-	const creerClasse = (nom: string) =>
+	const creerClasse = (nom: string, niveauId = niveau.id) =>
 		trpc<{ id: string; nom: string }>(
 			page,
 			"academic.classes.create",
-			{ nom, niveauId: niveau.id, capacite: 30, anneeScolaireId: source.id },
+			{ nom, niveauId, capacite: 30, anneeScolaireId: source.id },
 			true,
 		);
 	const A = await creerClasse(`PAS-A-${t}`);
-	const B = await creerClasse(`PAS-B-${t}`);
+	// B est d'un autre niveau : le promu change de niveau (et de forfait)
+	const B = await creerClasse(`PAS-B-${t}`, niveau2.id);
 	const eleve = (prenom: string, classeId: string) =>
 		trpc<{ id: string }>(
 			page,
@@ -49,7 +50,7 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 	const promu = await eleve("Promu", A.id);
 	const redoublant = await eleve("Redoublant", A.id);
 	const sortant = await eleve("Sortant", B.id);
-	const frais = await trpc<{ id: string; obligatoire: boolean; mensuel: boolean }[]>(
+	const frais = await trpc<{ id: string; nom: string; obligatoire: boolean; mensuel: boolean }[]>(
 		page,
 		"finance.typesFrais.list",
 	);
@@ -76,6 +77,28 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 		},
 		true,
 	);
+
+	const inscription = frais.find((f) => f.nom === "Inscription");
+	const { id: paiementInscription } = await trpc<{ id: string }>(
+		page,
+		"finance.paiements.create",
+		{
+			eleveId: promu.id,
+			typeFraisId: inscription?.id,
+			anneeScolaireId: source.id,
+			mois: 10,
+			montant: 1_000,
+		},
+		true,
+	);
+	const totalForfait = async (niveauId: string, anneeId: string) =>
+		(
+			await trpc<{ niveauId: string; total: number }[]>(page, "finance.tarifs.list", {
+				anneeScolaireId: anneeId,
+			})
+		).find((x) => x.niveauId === niveauId)?.total;
+	const forfaitAvant = await totalForfait(niveau.id, source.id);
+	expect(forfaitAvant).not.toBe(await totalForfait(niveau2.id, source.id));
 
 	// Toutes les autres classes en fin de cycle ; A → B ; B fin de cycle
 	const ctx = await trpc<Ctx>(page, "academic.passage.contexte");
@@ -190,6 +213,13 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 			.map((t) => `${t.niveauNom}:${t.total}`)
 			.sort();
 	expect(await totaux(cible?.id ?? "")).toEqual(await totaux(source.id));
+	// Reçu de l'inscription de l'année passée : forfait du niveau de cette année-là
+	const recu = await trpc<{ detailForfait: { montant: number }[] | null }>(
+		page,
+		"finance.paiements.getRecuData",
+		{ paiementId: paiementInscription },
+	);
+	expect(recu.detailForfait?.reduce((t, l) => t + l.montant, 0)).toBe(forfaitAvant);
 	expect(cible?.id).toBe(cibleExistante.id);
 	expect(classesCible.filter((c) => c.nom === A.nom)).toHaveLength(1);
 	expect(A2?.id).toBe(aExistante.id);

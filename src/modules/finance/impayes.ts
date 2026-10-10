@@ -53,6 +53,9 @@ const MOIS_COURTS = [
 	"Nov",
 	"Déc",
 ];
+/** Le forfait d'inscription correspond au type de frais « Inscription ». */
+export const estForfait = (f: { nom: string }) => f.nom === "Inscription";
+
 const cle = (annee: number, mois: number) => annee * 100 + mois;
 const anneeMois = (date: string) => date.split("-").slice(0, 2).map(Number) as [number, number];
 
@@ -123,10 +126,14 @@ export function calculerImpayes(p: {
 		const red = reductionParEleve.get(e.id);
 		for (const f of p.frais) {
 			paye += verse(e.id, f.id);
-			// Forfait d'inscription du niveau : reste = forfait − versé (Inscription + types associés)
-			if (!f.mensuel && forfait) {
+			// Forfait d'inscription du niveau (frais « Inscription » uniquement) :
+			// reste = forfait − versé (Inscription + types associés, sans compter deux fois l'Inscription)
+			if (!f.mensuel && forfait && estForfait(f)) {
 				const verseForfait =
-					verse(e.id, f.id) + forfait.typesAssocies.reduce((t, id) => t + verse(e.id, id), 0);
+					verse(e.id, f.id) +
+					forfait.typesAssocies
+						.filter((id) => id !== f.id)
+						.reduce((t, id) => t + verse(e.id, id), 0);
 				const totalForfait = montantReduit(forfait.total, red, "forfait");
 				du += totalForfait;
 				const r = Math.max(0, totalForfait - verseForfait);
@@ -142,6 +149,8 @@ export function calculerImpayes(p: {
 				}
 				continue;
 			}
+			// Forfait sans échéancier : aucune mensualité due (octobre est dans le forfait)
+			if (f.mensuel && forfait && !ech) continue;
 			// Échéancier du niveau : seuls ses mois sont dus, au montant du mois
 			if (f.mensuel && ech) {
 				const moisPayesEch = payes.get(`${e.id}:${f.id}`);
@@ -205,8 +214,10 @@ export function calculerImpayes(p: {
 			}
 		}
 		// Les paiements des types associés au forfait (ex. fournitures) comptent aussi dans « Payé »
-		for (const id of forfait?.typesAssocies ?? []) {
-			if (!p.frais.some((f) => f.id === id)) paye += verse(e.id, id);
+		for (const id of (forfait?.typesAssocies ?? []).filter(
+			(t) => !p.frais.some((f) => f.id === t),
+		)) {
+			paye += verse(e.id, id);
 		}
 		if (reste > 0) lignes.push({ ...e, du, paye, reste, moisImpayes });
 	}

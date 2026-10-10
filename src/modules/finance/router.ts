@@ -5,7 +5,7 @@ import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
-import { eleveParents, eleves, parents } from "@/modules/students/schema";
+import { eleveParents, eleves, inscriptions, parents } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
 import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
@@ -30,6 +30,7 @@ import {
 	reductions,
 	typesFrais,
 } from "./schema";
+import { statutMois } from "./suivi-statut";
 import {
 	createDepenseSchema,
 	createPaiementSchema,
@@ -262,12 +263,25 @@ const paiementsRouter = createTRPCRouter({
 			let detailForfait: { libelle: string; montant: number }[] | null = null;
 			let reduction: { libelle: string; montant: number } | null = null;
 			if (row.typeFraisNom === "Inscription") {
+				// Niveau de l'élève l'année du paiement (inscription), sinon celui de sa classe actuelle
+				const [insc] = await ctx.db
+					.select({ niveauId: classes.niveauId })
+					.from(inscriptions)
+					.innerJoin(classes, eq(inscriptions.classeId, classes.id))
+					.where(
+						and(
+							eq(inscriptions.eleveId, row.eleveId),
+							eq(inscriptions.anneeScolaireId, row.anneeScolaireId),
+						),
+					)
+					.limit(1);
+				const niveauId = insc?.niveauId ?? row.niveauId;
 				const lignes = await ctx.db
 					.select({ libelle: forfaitLignes.libelle, montant: forfaitLignes.montant })
 					.from(forfaitLignes)
 					.where(
 						and(
-							eq(forfaitLignes.niveauId, row.niveauId),
+							eq(forfaitLignes.niveauId, niveauId),
 							eq(forfaitLignes.anneeScolaireId, row.anneeScolaireId),
 						),
 					)
@@ -401,18 +415,7 @@ const suiviRouter = createTRPCRouter({
 						.limit(1)
 				: [];
 			const dus = new Set(moisEcheancier.map((m) => m.mois));
-			const statutMois = (
-				tf: { mensuel: boolean; obligatoire: boolean },
-				mois: number,
-				paye: boolean,
-			): "paye" | "impaye" | "inclus" | "non_du" => {
-				if (paye) return "paye";
-				if (tf.mensuel && tf.obligatoire && dus.size > 0) {
-					if (mois === 10 && ligneForfait) return "inclus";
-					if (!dus.has(mois)) return "non_du";
-				}
-				return "impaye";
-			};
+			const ctxStatut = { forfait: !!ligneForfait, dus };
 
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
@@ -420,7 +423,7 @@ const suiviRouter = createTRPCRouter({
 					const paidMonths = byType?.get(tf.id);
 					const months = schoolMonths.map((m) => {
 						const paid = paidMonths?.has(m) ?? false;
-						return { mois: m, paid, statut: statutMois(tf, m, paid) };
+						return { mois: m, paid, statut: statutMois(tf, m, paid, ctxStatut) };
 					});
 					return {
 						typeFraisId: tf.id,
@@ -766,6 +769,24 @@ const tarifsRouter = createTRPCRouter({
 	enregistrer: protectedProcedure
 		.input(enregistrerTarifsSchema)
 		.mutation(async ({ ctx, input }) => {
+			const associes = input.lignes.flatMap((l) => (l.typeFraisId ? [l.typeFraisId] : []));
+			if (associes.length) {
+				const facultatifs = new Set(
+					(
+						await ctx.db
+							.select({ id: typesFrais.id })
+							.from(typesFrais)
+							.where(eq(typesFrais.obligatoire, false))
+					).map((t) => t.id),
+				);
+				if (associes.some((id) => !facultatifs.has(id))) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Seuls les frais facultatifs (fournitures, tenue…) peuvent être associés au forfait",
+					});
+				}
+			}
 			return ctx.db.transaction(async (tx) => {
 				const cle = and(
 					eq(forfaitLignes.niveauId, input.niveauId),

@@ -61,6 +61,23 @@ test.describe("15 - Tarifs par niveau", () => {
 			),
 		).rejects.toThrow(/octobre/i);
 
+		// Refus : type associé obligatoire (ex. Scolarité) — il serait compté deux fois
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		const sco = frais.find((f) => f.nom === "Scolarité");
+		await expect(
+			trpc(
+				page,
+				"finance.tarifs.enregistrer",
+				{
+					anneeScolaireId: annee.id,
+					niveauId: elem?.niveauId,
+					lignes: [{ libelle: "Frais", montant: 1, typeFraisId: sco?.id ?? null }],
+					echeancier: [],
+				},
+				true,
+			),
+		).rejects.toThrow(/facultatif/i);
+
 		// Aller-retour : remettre les mêmes valeurs
 		const r = await trpc<{ lignes: number; mois: number }>(
 			page,

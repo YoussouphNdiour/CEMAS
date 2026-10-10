@@ -8,6 +8,9 @@ const nov_mai = (novDec: number, janMai: number) => ({
 	5: janMai,
 });
 
+/** Année scolaire des fiches d'inscription ci-dessous (le seed ne les insère que pour elle). */
+export const ANNEE_TARIFS_DEFAUT = "2026-2027";
+
 /** Fiches d'inscription 2026-2027 du CEMAS (octobre inclus dans le forfait, juin réparti sur janvier-mai). */
 export const TARIFS_DEFAUT: Record<
 	string,
