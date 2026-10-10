@@ -12,7 +12,12 @@ import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber } from "@/shared/lib/utils";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
 import { getImpayes } from "./impayes-service";
-import { montantReduction, montantReduit, type Reduction } from "./reductions";
+import {
+	LIBELLES_TYPE_REDUCTION,
+	montantReduction,
+	montantReduit,
+	type Reduction,
+} from "./reductions";
 import {
 	categoriesDepenses,
 	categoriesRecettes,
@@ -232,6 +237,8 @@ const paiementsRouter = createTRPCRouter({
 					eleveNom: eleves.nom,
 					eleveMatricule: eleves.matricule,
 					classeNom: classes.nom,
+					niveauId: classes.niveauId,
+					anneeScolaireId: paiements.anneeScolaireId,
 				})
 				.from(paiements)
 				.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
@@ -251,11 +258,50 @@ const paiementsRouter = createTRPCRouter({
 				.innerJoin(parents, eq(eleveParents.parentId, parents.id))
 				.where(and(eq(eleveParents.eleveId, row.eleveId), eq(eleveParents.principal, true)));
 
+			// Inscription : détail du forfait du niveau et réduction éventuelle
+			let detailForfait: { libelle: string; montant: number }[] | null = null;
+			let reduction: { libelle: string; montant: number } | null = null;
+			if (row.typeFraisNom === "Inscription") {
+				const lignes = await ctx.db
+					.select({ libelle: forfaitLignes.libelle, montant: forfaitLignes.montant })
+					.from(forfaitLignes)
+					.where(
+						and(
+							eq(forfaitLignes.niveauId, row.niveauId),
+							eq(forfaitLignes.anneeScolaireId, row.anneeScolaireId),
+						),
+					)
+					.orderBy(forfaitLignes.ordre);
+				if (lignes.length) {
+					detailForfait = lignes;
+					const [red] = await ctx.db
+						.select()
+						.from(reductions)
+						.where(
+							and(
+								eq(reductions.eleveId, row.eleveId),
+								eq(reductions.anneeScolaireId, row.anneeScolaireId),
+							),
+						);
+					const total = lignes.reduce((t, l) => t + l.montant, 0);
+					const montant = red ? montantReduction(total, red as unknown as Reduction, "forfait") : 0;
+					if (red && montant > 0) {
+						reduction = {
+							libelle: LIBELLES_TYPE_REDUCTION[red.type as Reduction["type"]] ?? "Réduction",
+							montant,
+						};
+					}
+				}
+			}
+
+			const { niveauId: _n, anneeScolaireId: _a, ...recu } = row;
 			return {
-				...row,
+				...recu,
 				parentPrenom: parentInfo?.parentPrenom ?? null,
 				parentNom: parentInfo?.parentNom ?? null,
 				parentTel: parentInfo?.parentTel ?? null,
+				detailForfait,
+				reduction,
 			};
 		}),
 });
@@ -732,7 +778,13 @@ const tarifsRouter = createTRPCRouter({
 				.innerJoin(classes, eq(eleves.classeId, classes.id))
 				.where(eq(eleves.id, input.eleveId));
 			if (!annee || !eleve)
-				return { forfait: null, forfaitBrut: null, lignes: [], echeancier: {}, reduction: null };
+				return {
+					forfait: null,
+					forfaitBrut: null,
+					lignes: [],
+					echeancier: {} as Record<number, number>,
+					reduction: null,
+				};
 			const [reduction] = await ctx.db
 				.select()
 				.from(reductions)
