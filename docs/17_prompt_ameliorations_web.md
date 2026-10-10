@@ -14,6 +14,7 @@
 | 7. Capacité des classes | ✅ en production | #4 | (lot borné) |
 | 8. Second contact parent | ✅ en production | #5 | (lot borné) |
 | Hors prompt : CI/CD | ✅ | #2, #7 | `docs/18_ci_cd.md` |
+| Hors prompt : forfait, échéancier, réductions | ✅ (PR en cours) | — | `superpowers/specs/2026-10-10-forfait-echeancier-design.md` |
 
 Décisions : `16_decisions.md` (D-011 à D-019). Points reportés : `10_current_issues.md`.
 

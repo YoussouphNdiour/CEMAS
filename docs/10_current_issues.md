@@ -28,7 +28,7 @@ Mis à jour le 2026-10-09.
 - La lettre de relance n'a pas de saut de page (tient sur une page aujourd'hui)
 - Les cartes « Élèves » et « Impayés » du tableau de bord ne comptent pas exactement le même ensemble
 - Élève inscrit en cours d'année : ses mois dus partent d'octobre (décision produit à prendre)
-- À vérifier en production : 149 élèves sur 150 n'ont aucun paiement de scolarité pour octobre alors que des mois suivants sont payés (saisie du mois ?)
+- ~~149 élèves sans scolarité d'octobre~~ : résolu (octobre inclus dans le forfait d'inscription, D-021)
 
 ### Passage d'année (lot 4)
 - Dates de la nouvelle année non validées côté serveur (format, début < fin, 29 février)

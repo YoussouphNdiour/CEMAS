@@ -126,6 +126,17 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Lancement seulement après la date de fin de l'année active (préparation possible avant) ; contrôles bloquants (sauvegarde < 24 h, 3 confirmations) ; sauvegarde `prepassage` automatique avant la transaction ; décisions persistées ; rappels par bandeaux du tableau de bord (15 juin, puis après la date de fin). Pas d'email ni de tâche planifiée
 - **Conséquences :** L'application a le client PostgreSQL et le volume des sauvegardes ; `PASSAGE_AUJOURDHUI` simule la date hors production (tests)
 
+### D-021 — Forfait d'inscription et échéancier par niveau
+- **Date :** 2026-10-10
+- **Contexte :** La secrétaire saisit le total de la fiche d'inscription (mensualité d'octobre comprise) en un paiement ; les fiches prévoient des mensualités différentes selon le mois et rien en juillet
+- **Décision :** Tarifs par niveau et par année : forfait (lignes, types associés comptés) et échéancier (octobre inclus dans le forfait, juin réparti sur janvier-mai). Un forfait payé en partie reste dû (précision de D-016, qui ne vaut que pour les mensualités). Saisie : un paiement « forfait », montant proposé, reçu détaillé
+- **Conséquences :** Plus de faux impayés d'octobre ; la grille par classe ne sert qu'en repli
+
+### D-022 — Réductions par élève
+- **Date :** 2026-10-10
+- **Décision :** Une réduction par élève et par année (fratrie à partir de 4 enfants, enfant du personnel, négociée, gratuité/bourse), portée au choix, montant ou pourcentage ; saisie manuelle (pas de détection des fratries, les familles ne sont pas liées)
+- **Conséquences :** Impayés, relances et montants proposés après réduction ; liste des réductions avec le total accordé ; les réductions ne sont pas recopiées au passage d'année
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

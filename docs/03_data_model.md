@@ -171,6 +171,39 @@ Supprimées après un passage réussi.
 | montant_mensuel | integer | NOT NULL | Montant mensuel ; pour un frais unique (`mensuel = false`), le montant unique |
 | | | UNIQUE(classe_id, type_frais_id, annee_scolaire_id) | |
 
+### `forfait_lignes`
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| id | uuid | PK | |
+| niveau_id | uuid | FK → niveaux, NOT NULL | |
+| annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE, NOT NULL | |
+| libelle | varchar(60) | NOT NULL | Ex. Frais généraux, Uniforme (2), Mensualité octobre |
+| montant | integer | NOT NULL | |
+| ordre | integer | NOT NULL | Ordre d'affichage |
+| type_frais_id | uuid | FK → types_frais, nullable | Les paiements de ce type comptent pour le forfait |
+
+### `echeancier`
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| niveau_id | uuid | FK → niveaux | |
+| annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE | |
+| mois | integer | 1–12, ≠ 10 | Mois absent = non dû |
+| montant | integer | NOT NULL | |
+| | | PK(niveau_id, annee_scolaire_id, mois) | |
+
+### `reductions`
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| id | uuid | PK | |
+| eleve_id | uuid | FK → eleves ON DELETE CASCADE | |
+| annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE | |
+| type | varchar(20) | NOT NULL | fratrie, personnel, negociee, bourse |
+| portee | varchar(12) | NOT NULL | forfait, mensualites, les_deux |
+| mode | varchar(12) | NOT NULL | montant, pourcentage |
+| valeur | integer | NOT NULL | FCFA (par mois pour les mensualités) ou % (1–100) |
+| motif | varchar(200) | | |
+| | | UNIQUE(eleve_id, annee_scolaire_id) | Une réduction par élève et par année |
+
 ### `paiements`
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|
