@@ -14,9 +14,24 @@ describe("construireComptabilite", () => {
 	it("regroupe par rubrique, calcule le solde et trie par date puis heure", () => {
 		const r = construireComptabilite([
 			op({ nature: "depense", montant: 4_000, rubrique: "Fournitures", date: "2026-10-14" }),
-			op({ nature: "paiement", montant: 25_000, rubrique: "Scolarité", ordre: "2026-10-13T11:00:00Z" }),
-			op({ nature: "paiement", montant: 70_000, rubrique: "Inscription", ordre: "2026-10-13T09:00:00Z" }),
-			op({ nature: "paiement", montant: 20_000, rubrique: "Scolarité", ordre: "2026-10-13T12:00:00Z" }),
+			op({
+				nature: "paiement",
+				montant: 25_000,
+				rubrique: "Scolarité",
+				ordre: "2026-10-13T11:00:00Z",
+			}),
+			op({
+				nature: "paiement",
+				montant: 70_000,
+				rubrique: "Inscription",
+				ordre: "2026-10-13T09:00:00Z",
+			}),
+			op({
+				nature: "paiement",
+				montant: 20_000,
+				rubrique: "Scolarité",
+				ordre: "2026-10-13T12:00:00Z",
+			}),
 			op({ nature: "recette", montant: 5_000, rubrique: "Location salle" }),
 			op({ nature: "salaire", montant: 60_000, rubrique: "Salaires" }),
 		]);
@@ -29,7 +44,9 @@ describe("construireComptabilite", () => {
 		expect(r.depenses).toEqual([{ rubrique: "Fournitures", montant: 4_000 }]);
 		expect(r.salaires).toEqual({ nombre: 1, montant: 60_000 });
 		expect(r.solde).toBe(115_000 + 5_000 - 4_000 - 60_000);
-		expect(r.operations.map((o) => o.montant)).toEqual([70_000, 5_000, 60_000, 25_000, 20_000, 4_000]);
+		expect(r.operations.map((o) => o.montant)).toEqual([
+			70_000, 5_000, 60_000, 25_000, 20_000, 4_000,
+		]);
 	});
 	it("période vide : tout à zéro", () => {
 		const r = construireComptabilite([]);

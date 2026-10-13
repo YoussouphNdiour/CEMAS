@@ -430,7 +430,13 @@ test.describe("16 - Réductions par élève", () => {
 			trpc(
 				page,
 				"finance.paiements.create",
-				{ eleveId: eleve.id, typeFraisId: sco?.id, anneeScolaireId: annee.id, mois, montant: 25_000 },
+				{
+					eleveId: eleve.id,
+					typeFraisId: sco?.id,
+					anneeScolaireId: annee.id,
+					mois,
+					montant: 25_000,
+				},
 				true,
 			);
 		await expect(payer(10)).rejects.toThrow(/comprise dans le forfait/);

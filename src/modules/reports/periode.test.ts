@@ -17,9 +17,7 @@ describe("bornesPeriode", () => {
 		});
 	});
 	it("semaine à cheval sur deux mois", () => {
-		expect(bornesPeriode("semaine", "2026-11-02").libelle).toBe(
-			"Semaine du 2 au 8 novembre 2026",
-		);
+		expect(bornesPeriode("semaine", "2026-11-02").libelle).toBe("Semaine du 2 au 8 novembre 2026");
 		expect(bornesPeriode("semaine", "2026-10-29")).toMatchObject({
 			du: "2026-10-26",
 			au: "2026-11-01",
