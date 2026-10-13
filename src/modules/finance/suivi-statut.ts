@@ -18,3 +18,21 @@ export function statutMois(
 	}
 	return "impaye";
 }
+
+/** Frais facultatif unique (Tenue, Fourniture) : inclus s'il est compris dans le forfait déjà réglé. */
+export function statutFraisUnique(
+	paye: boolean,
+	ctx: { associe: boolean; inscriptionPayee: boolean },
+): StatutMois {
+	if (paye) return "paye";
+	return ctx.associe && ctx.inscriptionPayee ? "inclus" : "impaye";
+}
+
+/** Carte affichée sauf si le frais n'a rien à voir avec le forfait du niveau et que personne ne l'a payé. */
+export function fraisUniqueVisible(ctx: {
+	forfait: boolean;
+	associe: boolean;
+	payeDansClasse: boolean;
+}): boolean {
+	return !ctx.forfait || ctx.associe || ctx.payeDansClasse;
+}

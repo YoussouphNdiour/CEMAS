@@ -32,7 +32,7 @@ import {
 	reductions,
 	typesFrais,
 } from "./schema";
-import { statutMois } from "./suivi-statut";
+import { fraisUniqueVisible, statutFraisUnique, statutMois } from "./suivi-statut";
 import {
 	createDepenseSchema,
 	createPaiementSchema,
@@ -444,10 +444,26 @@ const suiviRouter = createTRPCRouter({
 				return { montantMin: Math.min(...montants), montantMax: Math.max(...montants) };
 			};
 
+			// Frais facultatifs uniques : inclus dans le forfait réglé, ou masqués s'ils ne concernent pas le niveau
+			const payesDansClasse = new Set(allPaiements.map((p) => p.typeFraisId));
+			const idsForfait = fraisTypes.filter((tf) => estForfait(tf)).map((tf) => tf.id);
+			const associe = (typeFraisId: string) =>
+				lignesForfait.some((l) => l.typeFraisId === typeFraisId);
+			const visible = (tf: (typeof fraisTypes)[number]) =>
+				tf.mensuel ||
+				tf.obligatoire ||
+				fraisUniqueVisible({
+					forfait: lignesForfait.length > 0,
+					associe: associe(tf.id),
+					payeDansClasse: payesDansClasse.has(tf.id),
+				});
+
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
+				const inscriptionPayee = idsForfait.some((id) => byType?.has(id));
 				const typesFraisStatus = fraisTypes.map((tf) => {
 					const paidMonths = byType?.get(tf.id);
+					const paye = paidMonths ? paidMonths.size > 0 : false;
 					const months = schoolMonths.map((m) => {
 						const paid = paidMonths?.has(m) ?? false;
 						return { mois: m, paid, statut: statutMois(tf, m, paid, ctxStatut) };
@@ -458,7 +474,14 @@ const suiviRouter = createTRPCRouter({
 						mensuel: tf.mensuel,
 						montantDefaut: tf.montantDefaut,
 						...tarifEnTete(tf),
-						paid: paidMonths ? paidMonths.size > 0 : false,
+						paid: paye,
+						visible: visible(tf),
+						statut:
+							tf.mensuel || tf.obligatoire
+								? paye
+									? ("paye" as const)
+									: ("impaye" as const)
+								: statutFraisUnique(paye, { associe: associe(tf.id), inscriptionPayee }),
 						months,
 					};
 				});
