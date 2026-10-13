@@ -5,6 +5,7 @@ import { financeRouter } from "@/modules/finance/router";
 import { createCallerFactory, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { construireComptabilite } from "./comptabilite";
 import { anneeScolaire, effectifsAnnee, operationsPeriode, personnelEtTransport } from "./service";
+import type { RapportComptable, RapportEtablissement } from "./types";
 
 const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date AAAA-MM-JJ");
 const financeCaller = createCallerFactory(financeRouter);
@@ -13,16 +14,18 @@ export const reportsRouter = createTRPCRouter({
 	/** Synthèse et détail des opérations entre deux dates incluses. */
 	comptabilite: protectedProcedure
 		.input(z.object({ du: dateIso, au: dateIso }).refine((p) => p.du <= p.au, "Période invalide"))
-		.query(async ({ ctx, input }) => ({
-			du: input.du,
-			au: input.au,
-			...construireComptabilite(await operationsPeriode(ctx.db, input.du, input.au)),
-		})),
+		.query(
+			async ({ ctx, input }): Promise<RapportComptable> => ({
+				du: input.du,
+				au: input.au,
+				...construireComptabilite(await operationsPeriode(ctx.db, input.du, input.au)),
+			}),
+		),
 
 	/** Rapport d'ensemble d'une année scolaire. */
 	etablissement: protectedProcedure
 		.input(z.object({ anneeScolaireId: z.string().uuid() }))
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input }): Promise<RapportEtablissement> => {
 			const annee = await anneeScolaire(ctx.db, input.anneeScolaireId);
 			if (!annee) throw new TRPCError({ code: "NOT_FOUND", message: "Année scolaire introuvable" });
 			const finance = financeCaller(ctx);
