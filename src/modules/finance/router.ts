@@ -128,6 +128,27 @@ const grilleFraisRouter = createTRPCRouter({
 
 const paiementsRouter = createTRPCRouter({
 	create: protectedProcedure.input(createPaiementSchema).mutation(async ({ ctx, input }) => {
+		// Mensualité d'octobre déjà comprise dans le forfait du niveau : refusée (D-024)
+		const [tf] = await ctx.db.select().from(typesFrais).where(eq(typesFrais.id, input.typeFraisId));
+		if (tf?.mensuel && tf.obligatoire && input.mois === 10) {
+			const [forfait] = await ctx.db
+				.select({ id: forfaitLignes.id })
+				.from(forfaitLignes)
+				.innerJoin(classes, eq(classes.niveauId, forfaitLignes.niveauId))
+				.innerJoin(eleves, eq(eleves.classeId, classes.id))
+				.where(
+					and(
+						eq(eleves.id, input.eleveId),
+						eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
+					),
+				)
+				.limit(1);
+			if (forfait)
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "La mensualité d'octobre est comprise dans le forfait d'inscription",
+				});
+		}
 		// Next receipt sequence for the configured prefix and current year
 		const year = new Date().getFullYear();
 		const { prefixeRecu } = await getParametres(ctx.db);

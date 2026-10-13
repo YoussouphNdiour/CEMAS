@@ -97,6 +97,14 @@ export default function PaiementsPage() {
 		}
 	}, [tarif.data, typeChoisi, selectedEleveId, paymentMois]);
 
+	// Octobre est dans le forfait : la mensualité d'octobre ne peut pas être enregistrée
+	const octobreInclus =
+		!!typeChoisi?.mensuel &&
+		!!typeChoisi.obligatoire &&
+		paymentMois === 10 &&
+		tarif.data?.forfait !== null &&
+		tarif.data?.forfait !== undefined;
+
 	const avertissement = (() => {
 		if (!typeChoisi || !tarif.data) return null;
 		if (estForfait(typeChoisi) && tarif.data.resteForfait === 0)
@@ -149,7 +157,8 @@ export default function PaiementsPage() {
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		if (!activeAnnee || !selectedEleveId || !selectedTypeFraisId || montant <= 0) return;
+		if (!activeAnnee || !selectedEleveId || !selectedTypeFraisId || montant <= 0 || octobreInclus)
+			return;
 		createMutation.mutate({
 			eleveId: selectedEleveId,
 			typeFraisId: selectedTypeFraisId,
@@ -290,7 +299,11 @@ export default function PaiementsPage() {
 									</option>
 								))}
 							</select>
-							{avertissement && <p className="mt-1 text-xs text-orange-700">{avertissement}</p>}
+							{avertissement && (
+								<p className={`mt-1 text-xs ${octobreInclus ? "text-danger" : "text-orange-700"}`}>
+									{avertissement}
+								</p>
+							)}
 						</div>
 
 						<div>
@@ -324,7 +337,11 @@ export default function PaiementsPage() {
 						<Button
 							type="submit"
 							disabled={
-								createMutation.isPending || !selectedEleveId || !selectedTypeFraisId || montant <= 0
+								createMutation.isPending ||
+								!selectedEleveId ||
+								!selectedTypeFraisId ||
+								montant <= 0 ||
+								octobreInclus
 							}
 						>
 							<CreditCard className="h-4 w-4" />
