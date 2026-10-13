@@ -396,4 +396,66 @@ test.describe("16 - Réductions par élève", () => {
 			await sql.end();
 		}
 	});
+	test("scolarité d'octobre refusée quand elle est dans le forfait", async ({ page }) => {
+		await login(page);
+		const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+		const annee = annees.find((a) => a.active);
+		if (!annee) throw new Error("Aucune année active");
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const moyen = niveaux.find((n) => n.nom === "Moyen") ?? niveaux[0];
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: `OCT-${Date.now()}`, niveauId: moyen.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		const nom = `Octobre${Date.now()}`;
+		const eleve = await trpc<{ id: string }>(
+			page,
+			"students.create",
+			{
+				prenom: "Mbene",
+				nom,
+				dateNaissance: "2014-01-01",
+				sexe: "F",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "O", telephone: "77 000 00 22", relation: "mere" },
+			},
+			true,
+		);
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		const sco = frais.find((f) => f.nom === "Scolarité");
+		const payer = (mois: number) =>
+			trpc(
+				page,
+				"finance.paiements.create",
+				{
+					eleveId: eleve.id,
+					typeFraisId: sco?.id,
+					anneeScolaireId: annee.id,
+					mois,
+					montant: 25_000,
+				},
+				true,
+			);
+		await expect(payer(10)).rejects.toThrow(/comprise dans le forfait/);
+		await expect(payer(11)).resolves.toBeTruthy();
+
+		await page.goto("/finances/paiements");
+		await waitForLoad(page);
+		await page.getByPlaceholder("Tapez le nom de l'élève...").fill(nom);
+		await page.locator("button").filter({ hasText: nom }).first().click();
+		const typeSelect = page.getByLabel("Type de frais");
+		await typeSelect.selectOption(sco?.id ?? "");
+		await page
+			.locator("form")
+			.filter({ has: page.locator("#paiement-type") })
+			.locator("select")
+			.nth(1)
+			.selectOption("10");
+		await page.getByLabel("Montant (FCFA)").fill("25000");
+		await expect(page.getByText(/mensualité d'octobre est comprise/)).toBeVisible();
+		await expect(page.getByRole("button", { name: "Enregistrer le paiement" })).toBeDisabled();
+	});
 });

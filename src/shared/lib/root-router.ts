@@ -2,6 +2,7 @@ import { academicRouter } from "@/modules/academic/router";
 import { dashboardRouter } from "@/modules/dashboard/router";
 import { financeRouter } from "@/modules/finance/router";
 import { payrollRouter } from "@/modules/payroll/router";
+import { reportsRouter } from "@/modules/reports/router";
 import { settingsRouter } from "@/modules/settings/router";
 import { studentsRouter } from "@/modules/students/router";
 import { transportRouter } from "@/modules/transport/router";
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
 	transport: transportRouter,
 	dashboard: dashboardRouter,
 	settings: settingsRouter,
+	reports: reportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

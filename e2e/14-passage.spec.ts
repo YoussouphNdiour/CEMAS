@@ -72,7 +72,7 @@ test("14 - Passage complet à l'année suivante", async ({ page }) => {
 			eleveId: promu.id,
 			typeFraisId: sco.id,
 			anneeScolaireId: source.id,
-			mois: 10,
+			mois: 11,
 			montant: 17_000,
 		},
 		true,

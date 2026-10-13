@@ -3,6 +3,7 @@
 import {
 	Banknote,
 	Briefcase,
+	FileBarChart,
 	GraduationCap,
 	Receipt,
 	TrendingUp,
@@ -69,11 +70,20 @@ export default function DashboardPage() {
 		<div>
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold">Tableau de bord</h1>
-				{activeAnnee && (
-					<span className="rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
-						{activeAnnee.libelle}
-					</span>
-				)}
+				<div className="flex items-center gap-3">
+					<Link
+						href="/rapports"
+						className="inline-flex items-center gap-2 rounded-lg border border-primary/30 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5"
+					>
+						<FileBarChart className="h-4 w-4" />
+						Rapports
+					</Link>
+					{activeAnnee && (
+						<span className="rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
+							{activeAnnee.libelle}
+						</span>
+					)}
+				</div>
 			</div>
 
 			{!activeAnnee && (

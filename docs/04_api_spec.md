@@ -238,7 +238,7 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - Pour une inscription d'un niveau avec forfait : `detailForfait: { libelle, montant }[]` et `reduction: { libelle, montant } | null`
 
 ### `finance.suivi.byClasse`
-- Chaque mois porte `statut: "paye" | "impaye" | "inclus" | "non_du"` (octobre inclus dans le forfait ; mois hors échéancier non dus) ; chaque type porte `montantMin`/`montantMax`, tarif du niveau affiché en en-tête
+- Chaque mois porte `statut: "paye" | "impaye" | "inclus" | "non_du"` (octobre inclus dans le forfait ; mois hors échéancier non dus) ; chaque type porte `montantMin`/`montantMax`, tarif du niveau affiché en en-tête, `visible` (frais unique facultatif sans rapport avec le forfait du niveau et jamais payé dans la classe → `false`) et `statut` (`paye` | `inclus` | `impaye`)
 
 ### `finance.impayes.list`
 - **Type :** Query
@@ -250,6 +250,7 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Type :** Mutation
 - **Input :** `{ eleveId: uuid, typeFraisId: uuid, anneeScolaireId: uuid, mois: 1-12, montant: number }`
 - **Description :** Auto-génère le numéro de reçu `REC-{année}-{seq}`
+- **Refus :** frais obligatoire mensuel au mois 10 pour un élève dont le niveau a un forfait sur l'année (« La mensualité d'octobre est comprise dans le forfait d'inscription »)
 
 ### `finance.paiements.listByEleve`
 - **Type :** Query
@@ -450,6 +451,17 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Output :** `{ mois: number, total: number }[]`
 
 ---
+
+## Module Rapports (`reports`)
+
+### `reports.comptabilite`
+- **Type :** Query — `{ du: AAAA-MM-JJ, au: AAAA-MM-JJ }` (bornes incluses, `du ≤ au`)
+- **Output :** `{ du, au, encaissements: { rubrique, montant }[], totalEncaissements, recettes[], totalRecettes, depenses[], totalDepenses, salaires: { nombre, montant }, solde, operations: { date, ordre, nature: paiement|recette|depense|salaire, reference, libelle, rubrique, montant }[] }`
+- Dates : paiements `date_paiement`, recettes/dépenses `date`, salaires payés `COALESCE(date_paiement, 1er du mois du bulletin)`
+
+### `reports.etablissement`
+- **Type :** Query — `{ anneeScolaireId }`
+- **Output :** `{ annee, effectifs: { niveau, classe, capacite, garcons, filles, total }[], bilan: { lignes, totaux }, impayes: { totalDu, totalPaye, totalReste, parClasse[], top[] (10) }, reductions: { parType[], montantTotal }, personnel: { parType[], masseMensuelle, salairesPayes }, transport: { vehicules[], itineraires, eleves } }`
 
 ## Module Paramètres (`settings`)
 

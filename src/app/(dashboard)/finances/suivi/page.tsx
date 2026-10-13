@@ -36,7 +36,8 @@ export default function SuiviPage() {
 
 	// Separate fee types
 	const allFraisTypes = students[0]?.typesFrais ?? [];
-	const fraisUniques = allFraisTypes.filter((tf) => !tf.mensuel);
+	// Frais uniques : ceux qui ne concernent pas le niveau (ex. fournitures en élémentaire) sont masqués
+	const fraisUniques = allFraisTypes.filter((tf) => !tf.mensuel && tf.visible);
 	const fraisMensuels = allFraisTypes.filter((tf) => tf.mensuel);
 
 	// Stats for unique fees
@@ -45,7 +46,7 @@ export default function SuiviPage() {
 		let unpaid = 0;
 		for (const s of students) {
 			const tf = s.typesFrais.find((f) => f.typeFraisId === typeFraisId);
-			if (tf?.paid) paid++;
+			if (tf?.statut === "paye" || tf?.statut === "inclus") paid++;
 			else unpaid++;
 		}
 		return { paid, unpaid, total: paid + unpaid };
@@ -80,6 +81,7 @@ export default function SuiviPage() {
 
 			<div className="mb-6 flex items-center gap-4">
 				<select
+					aria-label="Classe"
 					value={selectedClasse}
 					onChange={(e) => setSelectedClasse(e.target.value)}
 					className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -123,7 +125,11 @@ export default function SuiviPage() {
 									const stats = computeUniqueStats(tf.typeFraisId);
 									const pct = stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
 									return (
-										<div key={tf.typeFraisId} className="rounded-xl bg-surface p-5 shadow-sm">
+										<section
+											key={tf.typeFraisId}
+											aria-label={`Frais ${tf.typeFraisNom}`}
+											className="rounded-xl bg-surface p-5 shadow-sm"
+										>
 											<div className="mb-3 flex items-center justify-between">
 												<h3 className="font-semibold">{tf.typeFraisNom}</h3>
 												<span className="text-sm text-muted">{montantEnTete(tf)}</span>
@@ -152,7 +158,8 @@ export default function SuiviPage() {
 											<div className="space-y-1.5">
 												{students.map((s) => {
 													const f = s.typesFrais.find((x) => x.typeFraisId === tf.typeFraisId);
-													const isPaid = f?.paid ?? false;
+													const inclus = f?.statut === "inclus";
+													const isPaid = f?.statut === "paye" || inclus;
 													return (
 														<div
 															key={s.id}
@@ -162,7 +169,12 @@ export default function SuiviPage() {
 																{s.prenom} {s.nom}
 															</span>
 															{isPaid ? (
-																<CheckCircle2 className="h-4 w-4 text-green-500" />
+																<CheckCircle2
+																	className="h-4 w-4 text-green-500"
+																	aria-label={inclus ? "Inclus dans l'inscription" : "Payé"}
+																>
+																	<title>{inclus ? "Inclus dans l'inscription" : "Payé"}</title>
+																</CheckCircle2>
 															) : (
 																<XCircle className="h-4 w-4 text-red-400" />
 															)}
@@ -170,7 +182,7 @@ export default function SuiviPage() {
 													);
 												})}
 											</div>
-										</div>
+										</section>
 									);
 								})}
 							</div>

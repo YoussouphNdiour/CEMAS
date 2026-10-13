@@ -162,6 +162,12 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Détail : paiements (+), recettes (+), dépenses (−), salaires (−), solde net
 - « Détail par mois » (trésorerie) : solde du mois, solde cumulé, ligne de total
 
+### Rapports (`/rapports`)
+- Menu « Rapports » (et bouton « Rapports » en haut du tableau de bord)
+- Carte « Comptabilité » : Période (Jour / Semaine / Mois / Année scolaire), date, mois ou année selon le choix (libellé de la semaine affiché) ; « Télécharger le PDF » → `rapport-comptable-<du>-<au>.pdf`
+- Carte « Rapport de l'établissement » : année scolaire (défaut l'active) ; « Télécharger le PDF » → `rapport-etablissement-<année>.pdf`
+- PDF A4 : en-tête de l'école, tableaux à en-tête répété, pied « Page n / N » et date d'édition
+
 ### Paie - Employés (`/payroll/employes`)
 - DataTable : matricule, nom, poste, type, salaire, statut
 - FormModal création employé

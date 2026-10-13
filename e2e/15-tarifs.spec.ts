@@ -195,4 +195,57 @@ test.describe("15 - Tarifs par niveau", () => {
 		const apres = await trpc<Tarif[]>(page, "finance.tarifs.list", { anneeScolaireId: annee.id });
 		expect(apres.find((t) => t.niveauId === moyen.niveauId)?.total).toBe(moyen.total);
 	});
+	test("suivi : tenue incluse dans l'inscription, pas de fournitures en élémentaire", async ({
+		page,
+	}) => {
+		const annee = await anneeActive(page);
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		const elem = niveaux.find((n) => n.nom === "Élémentaire") ?? niveaux[0];
+		const nomClasse = `INCL-${Date.now()}`;
+		const classe = await trpc<{ id: string }>(
+			page,
+			"academic.classes.create",
+			{ nom: nomClasse, niveauId: elem.id, capacite: 30, anneeScolaireId: annee.id },
+			true,
+		);
+		const eleve = await trpc<{ id: string }>(
+			page,
+			"students.create",
+			{
+				prenom: "Tenue",
+				nom: `Incluse${Date.now()}`,
+				dateNaissance: "2016-01-01",
+				sexe: "F",
+				classeId: classe.id,
+				anneeScolaireId: annee.id,
+				parent: { prenom: "P", nom: "T", telephone: "77 000 00 21", relation: "mere" },
+			},
+			true,
+		);
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		await trpc(
+			page,
+			"finance.paiements.create",
+			{
+				eleveId: eleve.id,
+				typeFraisId: frais.find((f) => f.nom === "Inscription")?.id,
+				anneeScolaireId: annee.id,
+				mois: 10,
+				montant: 65_000,
+			},
+			true,
+		);
+		const suivi = await trpc<
+			{ typesFrais: { typeFraisNom: string; visible: boolean; statut: string }[] }[]
+		>(page, "finance.suivi.byClasse", { classeId: classe.id, anneeScolaireId: annee.id });
+		const type = (nom: string) => suivi[0].typesFrais.find((t) => t.typeFraisNom === nom);
+		expect(type("Fourniture")?.visible).toBe(false);
+		expect(type("Tenue")).toMatchObject({ visible: true, statut: "inclus" });
+
+		await page.goto("/finances/suivi");
+		await waitForLoad(page);
+		await page.getByLabel("Classe").selectOption({ label: nomClasse });
+		await expect(page.getByRole("region", { name: "Frais Tenue" })).toContainText("1/1 payés");
+		await expect(page.getByRole("region", { name: "Frais Fourniture" })).toHaveCount(0);
+	});
 });

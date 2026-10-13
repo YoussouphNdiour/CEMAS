@@ -30,7 +30,7 @@ export const TARIFS_DEFAUT: Record<
 	Préscolaire: {
 		lignes: [
 			{ libelle: "Frais généraux", montant: 32_500 },
-			{ libelle: "Uniforme (2)", montant: 10_000 },
+			{ libelle: "Uniforme (2)", montant: 10_000, typeFrais: "Tenue" },
 			{ libelle: "Fournitures", montant: 7_000, typeFrais: "Fourniture" },
 			{ libelle: "Mensualité octobre", montant: 17_500 },
 		],
@@ -39,7 +39,7 @@ export const TARIFS_DEFAUT: Record<
 	Élémentaire: {
 		lignes: [
 			{ libelle: "Frais généraux", montant: 32_500 },
-			{ libelle: "Uniforme (2)", montant: 12_500 },
+			{ libelle: "Uniforme (2)", montant: 12_500, typeFrais: "Tenue" },
 			{ libelle: "Mensualité octobre", montant: 20_000 },
 		],
 		echeancier: nov_mai(20_000, 24_000),
@@ -47,7 +47,7 @@ export const TARIFS_DEFAUT: Record<
 	Moyen: {
 		lignes: [
 			{ libelle: "Frais généraux", montant: 30_000 },
-			{ libelle: "Uniforme (2)", montant: 15_000 },
+			{ libelle: "Uniforme (2)", montant: 15_000, typeFrais: "Tenue" },
 			{ libelle: "Mensualité octobre", montant: 25_000 },
 		],
 		echeancier: nov_mai(25_000, 30_000),

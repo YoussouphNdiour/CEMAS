@@ -92,11 +92,13 @@
 - Numéro de reçu auto-généré : `REC-{année}-{seq 4 chiffres}`
 - Contrainte d'unicité : un seul paiement par élève × type × année × mois
 - Paiement en espèces uniquement (pas de mode de paiement à stocker)
+- « Scolarité octobre » refusée quand le niveau a un forfait (octobre y est compris, D-024)
 
 ### Détail : Suivi
 - Année scolaire : mois d'octobre (10) à juillet (7)
 - Grille par type de frais avec pastilles colorées (vert = payé, rouge = non payé)
 - Filtrage par classe
+- Frais facultatifs compris dans le forfait du niveau (Tenue ↔ Uniforme, Fourniture ↔ Fournitures) : verts « inclus » dès que l'inscription est payée ; frais sans rapport avec le niveau (Fourniture en élémentaire et moyen) masqués, sauf si un élève de la classe l'a payé (D-024)
 
 ### Détail : Bilan
 - Calcul : Solde = paiements + recettes − dépenses − **salaires payés**
@@ -154,6 +156,14 @@
 | Graphique barres | P0 | Paiements mensuels (Recharts BarChart) |
 | Graphique camembert | P0 | Répartition élèves par niveau (Recharts PieChart) |
 | Paiements récents | P0 | Tableau des 10 derniers paiements |
+| Raccourci Rapports | P1 | Bouton « Rapports » dans l'en-tête |
+
+## Module Rapports (`reports`, page `/rapports`)
+
+| Fonctionnalité | Priorité | Description |
+|---------------|----------|-------------|
+| Rapport de comptabilité | P1 | PDF d'une période (jour, semaine lundi-dimanche, mois, année scolaire) : encaissements par type, recettes et dépenses par catégorie, salaires payés, solde ; détail chronologique des opérations |
+| Rapport de l'établissement | P1 | PDF d'une année scolaire : effectifs par classe (garçons/filles, remplissage), finances (bilan mensuel), impayés et réductions, personnel et transport |
 
 ---
 

@@ -32,7 +32,7 @@ import {
 	reductions,
 	typesFrais,
 } from "./schema";
-import { statutMois } from "./suivi-statut";
+import { fraisUniqueVisible, statutFraisUnique, statutMois } from "./suivi-statut";
 import {
 	createDepenseSchema,
 	createPaiementSchema,
@@ -128,6 +128,27 @@ const grilleFraisRouter = createTRPCRouter({
 
 const paiementsRouter = createTRPCRouter({
 	create: protectedProcedure.input(createPaiementSchema).mutation(async ({ ctx, input }) => {
+		// Mensualité d'octobre déjà comprise dans le forfait du niveau : refusée (D-024)
+		const [tf] = await ctx.db.select().from(typesFrais).where(eq(typesFrais.id, input.typeFraisId));
+		if (tf?.mensuel && tf.obligatoire && input.mois === 10) {
+			const [forfait] = await ctx.db
+				.select({ id: forfaitLignes.id })
+				.from(forfaitLignes)
+				.innerJoin(classes, eq(classes.niveauId, forfaitLignes.niveauId))
+				.innerJoin(eleves, eq(eleves.classeId, classes.id))
+				.where(
+					and(
+						eq(eleves.id, input.eleveId),
+						eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
+					),
+				)
+				.limit(1);
+			if (forfait)
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "La mensualité d'octobre est comprise dans le forfait d'inscription",
+				});
+		}
 		// Next receipt sequence for the configured prefix and current year
 		const year = new Date().getFullYear();
 		const { prefixeRecu } = await getParametres(ctx.db);
@@ -444,10 +465,26 @@ const suiviRouter = createTRPCRouter({
 				return { montantMin: Math.min(...montants), montantMax: Math.max(...montants) };
 			};
 
+			// Frais facultatifs uniques : inclus dans le forfait réglé, ou masqués s'ils ne concernent pas le niveau
+			const payesDansClasse = new Set(allPaiements.map((p) => p.typeFraisId));
+			const idsForfait = fraisTypes.filter((tf) => estForfait(tf)).map((tf) => tf.id);
+			const associe = (typeFraisId: string) =>
+				lignesForfait.some((l) => l.typeFraisId === typeFraisId);
+			const visible = (tf: (typeof fraisTypes)[number]) =>
+				tf.mensuel ||
+				tf.obligatoire ||
+				fraisUniqueVisible({
+					forfait: lignesForfait.length > 0,
+					associe: associe(tf.id),
+					payeDansClasse: payesDansClasse.has(tf.id),
+				});
+
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
+				const inscriptionPayee = idsForfait.some((id) => byType?.has(id));
 				const typesFraisStatus = fraisTypes.map((tf) => {
 					const paidMonths = byType?.get(tf.id);
+					const paye = paidMonths ? paidMonths.size > 0 : false;
 					const months = schoolMonths.map((m) => {
 						const paid = paidMonths?.has(m) ?? false;
 						return { mois: m, paid, statut: statutMois(tf, m, paid, ctxStatut) };
@@ -458,7 +495,14 @@ const suiviRouter = createTRPCRouter({
 						mensuel: tf.mensuel,
 						montantDefaut: tf.montantDefaut,
 						...tarifEnTete(tf),
-						paid: paidMonths ? paidMonths.size > 0 : false,
+						paid: paye,
+						visible: visible(tf),
+						statut:
+							tf.mensuel || tf.obligatoire
+								? paye
+									? ("paye" as const)
+									: ("impaye" as const)
+								: statutFraisUnique(paye, { associe: associe(tf.id), inscriptionPayee }),
 						months,
 					};
 				});
