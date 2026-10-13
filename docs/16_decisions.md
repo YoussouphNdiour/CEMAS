@@ -137,6 +137,17 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Une réduction par élève et par année (fratrie à partir de 4 enfants, enfant du personnel, négociée, gratuité/bourse), portée au choix, montant ou pourcentage ; saisie manuelle (pas de détection des fratries, les familles ne sont pas liées)
 - **Conséquences :** Impayés, relances et montants proposés après réduction ; liste des réductions avec le total accordé ; les réductions ne sont pas recopiées au passage d'année
 
+### D-023 — Rapports PDF
+- **Date :** 2026-10-13
+- **Décision :** Page Rapports avec deux PDF générés dans le navigateur (jsPDF) : comptabilité d'une période (jour, semaine du lundi au dimanche, mois, année scolaire ; synthèse + détail) et rapport d'ensemble d'une année scolaire (effectifs, finances, impayés et réductions, personnel et transport). Données par deux requêtes en lecture seule (`reports.*`)
+- **Conséquences :** Pas d'export Excel ni d'envoi par email ; les salaires suivent la règle de date du bilan
+
+### D-024 — Octobre et frais inclus dans le forfait
+- **Date :** 2026-10-13
+- **Contexte :** Deux « Scolarité octobre » saisies en plus du forfait (MARIEME FAYE, MBENE GUEYE) ; la tenue payée avec l'inscription apparaissait impayée
+- **Décision :** Le serveur refuse une mensualité obligatoire d'octobre pour un niveau au forfait. Dans le suivi, un frais facultatif associé à une ligne du forfait est « inclus » dès qu'une inscription est payée ; un frais facultatif sans rapport avec le niveau est masqué tant que personne ne l'a payé dans la classe. Les tarifs par défaut lient Uniforme à Tenue
+- **Conséquences :** Les deux paiements existants restent en base jusqu'à décision du directeur
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.
