@@ -117,4 +117,37 @@ test.describe("17 - Rapports", () => {
 		expect(rapport.bilan.totaux.totalPaiements).toBeGreaterThanOrEqual(12_345);
 		expect(rapport.impayes.totalReste).toBeGreaterThan(0);
 	});
+	test("page Rapports : téléchargement des deux PDF, raccourci du tableau de bord", async ({
+		page,
+	}) => {
+		const annee = await anneeActive(page);
+		await page.goto("/");
+		await waitForLoad(page);
+		await page.getByRole("main").getByRole("link", { name: "Rapports" }).click();
+		await expect(page).toHaveURL(/\/rapports$/);
+
+		const compta = page.getByRole("region", { name: "Comptabilité" });
+		await compta.getByLabel("Période").selectOption("semaine");
+		const [pdfCompta] = await Promise.all([
+			page.waitForEvent("download"),
+			compta.getByRole("button", { name: "Télécharger le PDF" }).click(),
+		]);
+		expect(pdfCompta.suggestedFilename()).toMatch(
+			/^rapport-comptable-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/,
+		);
+
+		await compta.getByLabel("Période").selectOption("annee");
+		const [pdfAnnee] = await Promise.all([
+			page.waitForEvent("download"),
+			compta.getByRole("button", { name: "Télécharger le PDF" }).click(),
+		]);
+		expect(pdfAnnee.suggestedFilename()).toMatch(/^rapport-comptable-/);
+
+		const etab = page.getByRole("region", { name: "Rapport de l'établissement" });
+		const [pdfEtab] = await Promise.all([
+			page.waitForEvent("download"),
+			etab.getByRole("button", { name: "Télécharger le PDF" }).click(),
+		]);
+		expect(pdfEtab.suggestedFilename()).toBe(`rapport-etablissement-${annee.libelle}.pdf`);
+	});
 });

@@ -12,6 +12,7 @@ import {
 	ClipboardList,
 	CreditCard,
 	DollarSign,
+	FileBarChart,
 	FileText,
 	GraduationCap,
 	History,
@@ -91,6 +92,7 @@ const navItems: NavItem[] = [
 			{ label: "Historique", href: "/payroll/historique", icon: History },
 		],
 	},
+	{ label: "Rapports", href: "/rapports", icon: FileBarChart },
 	{ label: "Paramètres", href: "/parametres", icon: Settings },
 ];
 
