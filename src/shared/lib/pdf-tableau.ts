@@ -98,7 +98,9 @@ export function tableau(
 		});
 		yy += h;
 	};
-	lignes.forEach((l, i) => imprimer(l, false, i % 2 === 1));
+	lignes.forEach((l, i) => {
+		imprimer(l, false, i % 2 === 1);
+	});
 	if (total) {
 		doc.setDrawColor(150, 150, 150);
 		doc.setLineWidth(0.3);
