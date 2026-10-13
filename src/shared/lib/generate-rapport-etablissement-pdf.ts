@@ -99,10 +99,21 @@ export function buildRapportEtablissementPdf(r: RapportEtablissement, ecole: Par
 	y = paragraphe(
 		doc,
 		y,
-		`Dû : ${cfa(imp.totalDu)} · Payé : ${cfa(imp.totalPaye)} · Reste à payer : ${cfa(imp.totalReste)}`,
+		`Élèves ayant un impayé — dû : ${cfa(imp.totalDu)} · déjà payé : ${cfa(imp.totalPaye)} · reste à payer : ${cfa(imp.totalReste)}`,
 	);
 	if (!imp.parClasse.length) y = paragraphe(doc, y, "Aucun impayé à ce jour.");
 	else {
+		y = tableau(
+			doc,
+			y,
+			[
+				{ titre: "Niveau", largeur: 0 },
+				{ titre: "Élèves concernés", largeur: 35, align: "right" },
+				{ titre: "Reste", largeur: 40, align: "right" },
+			],
+			imp.parNiveau.map((n) => [n.niveau, String(n.eleves), cfa(n.reste)]),
+			["Total", String(imp.parNiveau.reduce((s, n) => s + n.eleves, 0)), cfa(imp.totalReste)],
+		);
 		y = tableau(
 			doc,
 			y,

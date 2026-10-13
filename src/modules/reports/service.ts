@@ -18,11 +18,16 @@ import type { Operation } from "./comptabilite";
 type Db = typeof db;
 const iso = (d: Date | null) => (d ? d.toISOString() : "");
 
-/** Toutes les opérations dont la date tombe entre `du` et `au` (inclus). */
+/**
+ * Opérations d'une période : par date entre `du` et `au` (inclus), ou, pour une année scolaire,
+ * rattachées à l'année comme dans le bilan (paiements, recettes, dépenses par année ; salaires
+ * dont le mois du bulletin tombe dans l'année) pour que les deux rapports concordent.
+ */
 export async function operationsPeriode(
 	database: Db,
 	du: string,
 	au: string,
+	anneeScolaireId?: string,
 ): Promise<Operation[]> {
 	const pays = await database
 		.select({
@@ -39,7 +44,11 @@ export async function operationsPeriode(
 		.from(paiements)
 		.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
 		.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
-		.where(between(paiements.datePaiement, du, au));
+		.where(
+			anneeScolaireId
+				? eq(paiements.anneeScolaireId, anneeScolaireId)
+				: between(paiements.datePaiement, du, au),
+		);
 
 	const recs = await database
 		.select({
@@ -51,7 +60,11 @@ export async function operationsPeriode(
 		})
 		.from(recettes)
 		.innerJoin(categoriesRecettes, eq(recettes.categorieId, categoriesRecettes.id))
-		.where(between(recettes.date, du, au));
+		.where(
+			anneeScolaireId
+				? eq(recettes.anneeScolaireId, anneeScolaireId)
+				: between(recettes.date, du, au),
+		);
 
 	const deps = await database
 		.select({
@@ -63,7 +76,11 @@ export async function operationsPeriode(
 		})
 		.from(depenses)
 		.innerJoin(categoriesDepenses, eq(depenses.categorieId, categoriesDepenses.id))
-		.where(between(depenses.date, du, au));
+		.where(
+			anneeScolaireId
+				? eq(depenses.anneeScolaireId, anneeScolaireId)
+				: between(depenses.date, du, au),
+		);
 
 	// Salaires payés : date de paiement, sinon 1er jour du mois du bulletin (comme le bilan)
 	const dateSalaire = sql<string>`COALESCE(${bulletinsPaie.datePaiement}, make_date(${bulletinsPaie.annee}, ${bulletinsPaie.mois}, 1))::text`;
@@ -83,7 +100,9 @@ export async function operationsPeriode(
 		.where(
 			and(
 				eq(bulletinsPaie.paye, true),
-				sql`${dateSalaire}::date BETWEEN ${du}::date AND ${au}::date`,
+				anneeScolaireId
+					? sql`make_date(${bulletinsPaie.annee}, ${bulletinsPaie.mois}, 1) BETWEEN date_trunc('month', ${du}::date) AND ${au}::date`
+					: sql`${dateSalaire}::date BETWEEN ${du}::date AND ${au}::date`,
 			),
 		);
 
@@ -139,6 +158,7 @@ export async function operationsPeriode(
 export async function effectifsAnnee(database: Db, anneeScolaireId: string) {
 	return database
 		.select({
+			niveauId: niveaux.id,
 			niveau: niveaux.nom,
 			classe: classes.nom,
 			capacite: classes.capacite,
@@ -150,7 +170,7 @@ export async function effectifsAnnee(database: Db, anneeScolaireId: string) {
 		.innerJoin(niveaux, eq(classes.niveauId, niveaux.id))
 		.leftJoin(eleves, eq(eleves.classeId, classes.id))
 		.where(eq(classes.anneeScolaireId, anneeScolaireId))
-		.groupBy(niveaux.nom, niveaux.ordre, classes.nom, classes.capacite)
+		.groupBy(niveaux.id, niveaux.nom, niveaux.ordre, classes.id, classes.nom, classes.capacite)
 		.orderBy(niveaux.ordre, classes.nom);
 }
 

@@ -150,4 +150,47 @@ test.describe("17 - Rapports", () => {
 		]);
 		expect(pdfEtab.suggestedFilename()).toBe(`rapport-etablissement-${annee.libelle}.pdf`);
 	});
+	test("année scolaire : la comptabilité concorde avec le bilan, reste par niveau (relecture)", async ({
+		page,
+	}) => {
+		const annee = await anneeActive(page);
+		const [categorie] = await trpc<{ id: string }[]>(page, "finance.depenses.categories");
+		// Dépense rattachée à l'année mais datée avant son début (achats de rentrée)
+		const libelle = `Rentree ${Date.now()}`;
+		await trpc(
+			page,
+			"finance.depenses.create",
+			{
+				categorieId: categorie.id,
+				anneeScolaireId: annee.id,
+				libelle,
+				montant: 7_777,
+				date: "2026-09-20",
+			},
+			true,
+		);
+		const compta = await trpc<Comptabilite>(page, "reports.comptabilite", {
+			du: "2026-10-01",
+			au: "2027-07-31",
+			anneeScolaireId: annee.id,
+		});
+		expect(compta.operations.some((o) => o.libelle === libelle)).toBe(true);
+		const bilan = await trpc<{
+			totalPaiements: number;
+			totalDepenses: number;
+			totalSalaires: number;
+			totalRecettes: number;
+			solde: number;
+		}>(page, "finance.bilan.summary", { anneeScolaireId: annee.id });
+		expect(compta.totalEncaissements).toBe(bilan.totalPaiements);
+		expect(compta.totalDepenses).toBe(bilan.totalDepenses);
+		expect(compta.solde).toBe(bilan.solde);
+
+		const rapport = await trpc<{
+			impayes: { parNiveau: { niveau: string; reste: number }[]; totalReste: number };
+		}>(page, "reports.etablissement", { anneeScolaireId: annee.id });
+		expect(rapport.impayes.parNiveau.reduce((t, n) => t + n.reste, 0)).toBe(
+			rapport.impayes.totalReste,
+		);
+	});
 });

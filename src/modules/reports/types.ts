@@ -19,6 +19,7 @@ export interface RapportEtablissement {
 		totalPaye: number;
 		totalReste: number;
 		parClasse: { classe: string; reste: number; eleves: number }[];
+		parNiveau: { niveau: string; reste: number; eleves: number }[];
 		top: { eleve: string; classe: string; reste: number }[];
 	};
 	reductions: { parType: { type: string; nombre: number }[]; montantTotal: number };

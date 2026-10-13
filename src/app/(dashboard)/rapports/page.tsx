@@ -40,11 +40,19 @@ export default function RapportsPage() {
 			if (periode === "annee") {
 				const a = annees.data?.find((x) => x.id === anneeId(anneeCompta));
 				if (!a) throw new Error("Choisissez une année scolaire.");
-				bornes = { du: a.dateDebut, au: a.dateFin, libelle: `Année scolaire ${a.libelle}` };
+				bornes = {
+					du: a.dateDebut,
+					au: a.dateFin,
+					libelle: `Année scolaire ${a.libelle} (opérations rattachées à l'année)`,
+				};
 			} else {
 				bornes = bornesPeriode(periode, periode === "mois" ? `${mois}-01` : date);
 			}
-			const data = await utils.reports.comptabilite.fetch({ du: bornes.du, au: bornes.au });
+			const data = await utils.reports.comptabilite.fetch({
+				du: bornes.du,
+				au: bornes.au,
+				anneeScolaireId: periode === "annee" ? anneeId(anneeCompta) : undefined,
+			});
 			telechargerRapportComptable(data, bornes.libelle, parametres.data);
 		} catch (e) {
 			setErreur(e instanceof Error ? e.message : "Erreur lors de la génération du rapport.");
@@ -161,7 +169,8 @@ export default function RapportsPage() {
 							disabled={
 								enCours !== null ||
 								!parametres.data ||
-								(periode !== "mois" && periode !== "annee" && !date)
+								((periode === "jour" || periode === "semaine") && !date) ||
+								(periode === "mois" && !mois)
 							}
 						>
 							<Download className="h-4 w-4" />

@@ -102,6 +102,10 @@ export function tableau(
 		imprimer(l, false, i % 2 === 1);
 	});
 	if (total) {
+		// Le trait et la ligne de total restent ensemble sur la même page
+		const avant = yy;
+		yy = assurerPlace(doc, yy, 10);
+		if (yy !== avant) yy = enTete(doc, yy, colonnes, ls);
 		doc.setDrawColor(150, 150, 150);
 		doc.setLineWidth(0.3);
 		doc.line(MARGE, yy - 3, MARGE + largeurUtile(doc), yy - 3);

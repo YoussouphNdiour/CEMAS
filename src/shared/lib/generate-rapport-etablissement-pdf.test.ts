@@ -35,6 +35,7 @@ const base: RapportEtablissement = {
 		totalPaye: 900_000,
 		totalReste: 100_000,
 		parClasse: [{ classe: "CP", reste: 60_000, eleves: 2 }],
+		parNiveau: [{ niveau: "Élémentaire", reste: 60_000, eleves: 2 }],
 		top: [{ eleve: "Joshua Ngoma", classe: "Crèche", reste: 40_000 }],
 	},
 	reductions: { parType: [{ type: "negociee", nombre: 1 }], montantTotal: 40_000 },
@@ -66,7 +67,7 @@ describe("buildRapportEtablissementPdf", () => {
 		const vide: RapportEtablissement = {
 			...base,
 			effectifs: [],
-			impayes: { ...base.impayes, parClasse: [], top: [] },
+			impayes: { ...base.impayes, parClasse: [], parNiveau: [], top: [] },
 			reductions: { parType: [], montantTotal: 0 },
 			personnel: { parType: [], masseMensuelle: 0, salairesPayes: 0 },
 			transport: { vehicules: [], itineraires: 0, eleves: 0 },
@@ -74,5 +75,11 @@ describe("buildRapportEtablissementPdf", () => {
 		const texte = buildRapportEtablissementPdf(vide, PARAMETRES_DEFAUT).output();
 		expect(texte).toContain("Aucun v");
 		expect(texte).toContain("Aucun impay");
+	});
+
+	it("présente les montants des élèves en retard comme tels, avec le reste par niveau", () => {
+		const texte = buildRapportEtablissementPdf(base, PARAMETRES_DEFAUT).output();
+		expect(texte).toContain("ves ayant un impay"); // « Élèves ayant un impayé »
+		expect(texte).toContain("Niveau");
 	});
 });

@@ -107,6 +107,7 @@ export default function PaiementsPage() {
 
 	const avertissement = (() => {
 		if (!typeChoisi || !tarif.data) return null;
+		if (octobreInclus) return "La mensualité d'octobre est comprise dans le forfait d'inscription.";
 		if (estForfait(typeChoisi) && tarif.data.resteForfait === 0)
 			return "Forfait déjà soldé pour cet élève : vérifiez avant d'enregistrer un nouveau paiement.";
 		if (inclusDansForfait(typeChoisi.id))
