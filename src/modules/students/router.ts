@@ -146,11 +146,13 @@ export const studentsRouter = createTRPCRouter({
 
 			// Doublon : même prénom, nom (casse et espaces ignorés) et date de naissance cette année.
 			// Le verrou sérialise deux inscriptions identiques envoyées en même temps.
-			const normaliser = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
+			// Espaces, tabulations et espaces insécables (copier-coller) comptent comme une seule espace
+			const normaliser = (v: string) =>
+				v.normalize("NFC").replace(/\s+/g, " ").trim().toLowerCase();
 			const cle = `${input.anneeScolaireId}:${normaliser(input.prenom)}:${normaliser(input.nom)}:${input.dateNaissance}`;
 			await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${cle}))`);
 			const colonne = (c: typeof eleves.prenom | typeof eleves.nom) =>
-				sql`lower(regexp_replace(trim(${c}), '\\s+', ' ', 'g'))`;
+				sql`lower(trim(regexp_replace(${c}, '[\\s' || chr(160) || ']+', ' ', 'g')))`;
 			const [doublon] = await tx
 				.select({ matricule: eleves.matricule })
 				.from(eleves)

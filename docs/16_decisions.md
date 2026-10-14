@@ -151,7 +151,7 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 ### D-025 — Doublons d'élèves refusés
 - **Date :** 2026-10-14
 - **Contexte :** KHADIJA MARIEME KEBE inscrite deux fois la même minute (CEMAS-2026-0159 et 0160)
-- **Décision :** `students.create` refuse un élève de la même année avec les mêmes prénom, nom (casse et espaces ignorés) et date de naissance, en citant le matricule existant ; un verrou de transaction sérialise deux inscriptions identiques simultanées. Les homonymes nés un autre jour restent acceptés
+- **Décision :** `students.create` refuse un élève de la même année avec les mêmes prénom, nom (casse, espaces, tabulations et espaces insécables ignorés) et date de naissance, en citant le matricule existant — y compris s'il est inactif (rouvrir sa fiche). Les deux fiches de production avaient des matricules consécutifs : les requêtes étaient successives, c'est le contrôle qui les aurait arrêtées ; un verrou de transaction couvre en plus le cas de deux requêtes simultanées. Les homonymes nés un autre jour restent acceptés. Le passage d'année et la modification d'une fiche ne sont pas contrôlés
 - **Conséquences :** Doublon corrigé en base le 2026-10-14 après sauvegarde (fiche 0159 sans paiement supprimée)
 
 ---

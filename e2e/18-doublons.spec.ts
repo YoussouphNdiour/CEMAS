@@ -15,6 +15,7 @@ test.describe("18 - Doublons d'élèves", () => {
 		const [classe] = await trpc<{ id: string }[]>(page, "academic.classes.list", {
 			anneeScolaireId: annee.id,
 		});
+		if (!classe) throw new Error("Aucune classe dans l'année active");
 		const nom = `Kebe${Date.now()}`;
 		const eleve = (prenom: string, nomEleve: string, dateNaissance = "2018-11-24") =>
 			trpc<{ id: string; matricule: string }>(
@@ -36,6 +37,12 @@ test.describe("18 - Doublons d'élèves", () => {
 		await expect(eleve("  khadija   MARIEME ", nom.toUpperCase())).rejects.toThrow(
 			new RegExp(`déjà inscrit.*${premier.matricule}`),
 		);
+		// Nom enregistré avec une tabulation et une espace insécable (copier-coller) : même élève
+		const nom2 = `Kante${Date.now()}`;
+		const colle = await eleve("Awa\u00a0Bineta", `${nom2}\t`);
+		await expect(eleve("Awa Bineta", nom2)).rejects.toThrow(
+			new RegExp(`déjà inscrit.*${colle.matricule}`),
+		);
 		// Homonyme né un autre jour : accepté
 		await expect(eleve("Khadija Marieme", nom, "2019-01-01")).resolves.toBeTruthy();
 	});
@@ -49,6 +56,7 @@ test.describe("18 - Doublons d'élèves", () => {
 		const [classe] = await trpc<{ id: string }[]>(page, "academic.classes.list", {
 			anneeScolaireId: annee.id,
 		});
+		if (!classe) throw new Error("Aucune classe dans l'année active");
 		const nom = `Simultane${Date.now()}`;
 		const inscrire = () =>
 			trpc(
@@ -66,10 +74,12 @@ test.describe("18 - Doublons d'élèves", () => {
 				true,
 			).then(
 				() => "ok",
-				() => "refus",
+				(e: Error) => e.message,
 			);
 		const resultats = await Promise.all([inscrire(), inscrire(), inscrire()]);
 		expect(resultats.filter((r) => r === "ok")).toHaveLength(1);
+		// Les refus viennent du contrôle des doublons, pas d'un conflit de matricule
+		for (const r of resultats.filter((x) => x !== "ok")) expect(r).toMatch(/déjà inscrit/);
 		const liste = await trpc<{ nom: string }[]>(page, "students.list", {
 			anneeScolaireId: annee.id,
 			search: nom,
