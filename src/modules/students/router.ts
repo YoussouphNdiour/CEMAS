@@ -5,8 +5,9 @@ import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { getParametres } from "@/modules/settings/service";
 import { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateMatricule } from "@/shared/lib/utils";
+import { trouverDoublon } from "./noms";
 import { eleveParents, eleves, inscriptions, parents } from "./schema";
 import {
 	addParentSchema,
@@ -144,27 +145,8 @@ export const studentsRouter = createTRPCRouter({
 				.where(eq(anneesScolaires.id, input.anneeScolaireId));
 			const year = annee ? parseInt(annee.libelle.split("-")[0], 10) : new Date().getFullYear();
 
-			// Doublon : même prénom, nom (casse et espaces ignorés) et date de naissance cette année.
-			// Le verrou sérialise deux inscriptions identiques envoyées en même temps.
-			// Espaces, tabulations et espaces insécables (copier-coller) comptent comme une seule espace
-			const normaliser = (v: string) =>
-				v.normalize("NFC").replace(/\s+/g, " ").trim().toLowerCase();
-			const cle = `${input.anneeScolaireId}:${normaliser(input.prenom)}:${normaliser(input.nom)}:${input.dateNaissance}`;
-			await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${cle}))`);
-			const colonne = (c: typeof eleves.prenom | typeof eleves.nom) =>
-				sql`lower(trim(regexp_replace(${c}, '[\\s' || chr(160) || ']+', ' ', 'g')))`;
-			const [doublon] = await tx
-				.select({ matricule: eleves.matricule })
-				.from(eleves)
-				.where(
-					and(
-						eq(eleves.anneeScolaireId, input.anneeScolaireId),
-						eq(eleves.dateNaissance, input.dateNaissance),
-						sql`${colonne(eleves.prenom)} = ${normaliser(input.prenom)}`,
-						sql`${colonne(eleves.nom)} = ${normaliser(input.nom)}`,
-					),
-				)
-				.limit(1);
+			// Doublon : même prénom, nom (casse et espaces ignorés) et date de naissance cette année (D-025)
+			const doublon = await trouverDoublon(tx, input);
 			if (doublon)
 				throw new TRPCError({
 					code: "CONFLICT",
@@ -214,7 +196,7 @@ export const studentsRouter = createTRPCRouter({
 		});
 	}),
 
-	update: protectedProcedure.input(updateStudentSchema).mutation(async ({ input }) => {
+	update: adminProcedure.input(updateStudentSchema).mutation(async ({ input }) => {
 		const { id, ...data } = input;
 		const updateData: Record<string, unknown> = {};
 		if (data.prenom) updateData.prenom = data.prenom;
