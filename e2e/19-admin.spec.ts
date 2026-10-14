@@ -180,6 +180,9 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 			const [{ n }] = await sql`select count(*)::int n from parents where id = ${lien.parent_id}`;
 			expect(n).toBe(1);
 			await trpc(page, "students.delete", { id: cadet.id }, true);
+			// Le matricule de la fiche supprimée (la plus récente) n'est pas réattribué
+			const suivant = await nouvelEleve(page, classe.id, annee.id, `${nom}C`);
+			expect([aine.matricule, cadet.matricule]).not.toContain(suivant.matricule);
 			const [{ m }] = await sql`select count(*)::int m from parents where id = ${lien.parent_id}`;
 			expect(m).toBe(0);
 			const [{ j }] =
@@ -274,6 +277,9 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 			trpc(page, "finance.paiements.delete", { id: dec.id, motif: "" }, true),
 		).rejects.toThrow(/motif/i);
 		await trpc(page, "finance.paiements.delete", { id: dec.id, motif: "Saisi deux fois" }, true);
+		// Le numéro du reçu supprimé (le plus récent) n'est jamais réattribué
+		const suivant = await payer(1, 24_000);
+		expect(suivant.numeroRecu).not.toBe(dec.numeroRecu);
 
 		const sql = base();
 		try {
@@ -329,11 +335,14 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		await waitForLoad(page);
 		// Liste des paiements du mois de novembre (filtre sous le formulaire)
 		await page.getByLabel("Voir les paiements du mois").selectOption("11");
+		await page.getByPlaceholder("Rechercher un paiement...").fill(p.numeroRecu);
 		const ligne = page.getByRole("row", { name: new RegExp(p.numeroRecu) });
 		await ligne.getByRole("button", { name: "Supprimer le paiement" }).click();
 		await page.getByRole("dialog").getByLabel("Motif *").fill("Doublon");
 		await page.getByRole("dialog").getByRole("button", { name: "Supprimer" }).click();
-		await expect(page.getByRole("row", { name: new RegExp(p.numeroRecu) })).toHaveCount(0);
+		await expect(
+			page.getByRole("row", { name: new RegExp(`${p.numeroRecu} — Test ${eleve.nom}`) }),
+		).toHaveCount(0);
 	});
 	test("employé : suppression refusée avec bulletins, désactiver / réactiver, suppression sans bulletin", async ({
 		page,
@@ -378,5 +387,45 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		} finally {
 			await sql.end();
 		}
+	});
+	test("page Journal : actions listées avec détail et motif, filtre par type", async ({ page }) => {
+		await login(page);
+		const annee = await anneeActive(page);
+		const classes = await classesParNom(page, annee.id);
+		const ce1 = classes.find((c) => c.nom.trim() === "CE1") ?? classes[0];
+		const eleve = await nouvelEleve(page, ce1.id, annee.id);
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		const sco = frais.find((f) => f.nom === "Scolarité")?.id;
+		const p = await trpc<{ id: string; numeroRecu: string }>(
+			page,
+			"finance.paiements.create",
+			{ eleveId: eleve.id, typeFraisId: sco, anneeScolaireId: annee.id, mois: 11, montant: 24_000 },
+			true,
+		);
+		await trpc(
+			page,
+			"finance.paiements.update",
+			{
+				id: p.id,
+				typeFraisId: sco,
+				mois: 11,
+				montant: 20_000,
+				datePaiement: "2026-10-08",
+				motif: "Erreur de montant",
+			},
+			true,
+		);
+		await page.goto("/parametres");
+		await waitForLoad(page);
+		await page.getByRole("link", { name: "Journal des modifications" }).click();
+		await expect(page).toHaveURL(/\/parametres\/journal$/);
+		await page.getByLabel("Objet").selectOption("paiement");
+		const ligne = page.getByRole("row", { name: new RegExp(`${p.numeroRecu} — Test ${eleve.nom}`) });
+		await expect(ligne).toContainText("Montant : 24 000 FCFA → 20 000 FCFA");
+		await expect(ligne).toContainText("Erreur de montant");
+		await page.getByLabel("Objet").selectOption("employe");
+		await expect(
+			page.getByRole("row", { name: new RegExp(`${p.numeroRecu} — Test ${eleve.nom}`) }),
+		).toHaveCount(0);
 	});
 });

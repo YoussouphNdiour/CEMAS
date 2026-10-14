@@ -3,6 +3,7 @@ import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { differences, journaliser } from "@/modules/audit/journal";
+import { journalModifications } from "@/modules/audit/schema";
 import { paiements, reductions } from "@/modules/finance/schema";
 import { getParametres } from "@/modules/settings/service";
 import { affectationsTransport } from "@/modules/transport/schema";
@@ -159,12 +160,23 @@ export const studentsRouter = createTRPCRouter({
 				});
 
 			// Next sequence number for the configured prefix
-			const seq = await nextSequence(
-				tx,
-				eleves,
-				eleves.matricule,
-				`^${prefixeMatricule}-${year}-(\\d+)$`,
-			);
+			const motif = `^${prefixeMatricule}-${year}-(\\d+)$`;
+			const seqActifs = await nextSequence(tx, eleves, eleves.matricule, motif);
+			// Matricules des fiches supprimées (journal) : jamais réattribués (D-026)
+			const [{ maxSupprime }] = await tx
+				.select({
+					maxSupprime: sql<
+						number | null
+					>`MAX(substring(${journalModifications.avant}->>'matricule' from ${motif})::int)`,
+				})
+				.from(journalModifications)
+				.where(
+					and(
+						eq(journalModifications.entite, "eleve"),
+						eq(journalModifications.action, "suppression"),
+					),
+				);
+			const seq = Math.max(seqActifs, Number(maxSupprime ?? 0) + 1);
 			const matricule = generateMatricule(prefixeMatricule, year, seq);
 
 			// Insert student

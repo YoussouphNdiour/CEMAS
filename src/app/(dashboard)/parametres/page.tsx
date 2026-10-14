@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, Settings, Shield, User } from "lucide-react";
+import { Calendar, History, Settings, Shield, User } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ParametresForm } from "@/modules/settings/components/parametres-form";
 import { trpc } from "@/shared/lib/trpc-client";
@@ -12,6 +13,7 @@ export default function ParametresPage() {
 	const activeAnnee = annees.data?.find((a) => a.active);
 	const niveaux = trpc.academic.niveaux.list.useQuery();
 	const parametres = trpc.settings.get.useQuery();
+	const moi = trpc.settings.moi.useQuery();
 
 	return (
 		<div>
@@ -27,6 +29,21 @@ export default function ParametresPage() {
 
 			{/* Account section */}
 			<div className="mx-auto max-w-2xl space-y-6">
+				{moi.data?.estAdmin && (
+					<Link
+						href="/parametres/journal"
+						className="flex items-center gap-3 rounded-xl bg-surface p-5 shadow-sm hover:bg-primary/5"
+					>
+						<History className="h-5 w-5 text-primary" />
+						<span>
+							<span className="block font-semibold">Journal des modifications</span>
+							<span className="text-sm text-muted">
+								Modifications et suppressions d'élèves, de paiements et d'employés
+							</span>
+						</span>
+					</Link>
+				)}
+
 				<div className="rounded-xl bg-surface p-6 shadow-sm">
 					<h2 className="mb-4 text-lg font-semibold">Établissement</h2>
 					<ParametresForm />
@@ -46,7 +63,7 @@ export default function ParametresPage() {
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-muted">Rôle</span>
 							<span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-								Directeur
+								{moi.data?.estAdmin ? "Administrateur" : "Utilisateur"}
 							</span>
 						</div>
 					</div>

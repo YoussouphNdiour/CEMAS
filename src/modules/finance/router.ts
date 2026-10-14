@@ -4,6 +4,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { differences, journaliser } from "@/modules/audit/journal";
+import { journalModifications } from "@/modules/audit/schema";
 import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
 import { eleveParents, eleves, inscriptions, parents } from "@/modules/students/schema";
@@ -181,12 +182,28 @@ const paiementsRouter = createTRPCRouter({
 		// Next receipt sequence for the configured prefix and current year
 		const year = new Date().getFullYear();
 		const { prefixeRecu } = await getParametres(ctx.db);
-		const seq = await nextSequence(
+		const seqActifs = await nextSequence(
 			ctx.db,
 			paiements,
 			paiements.numeroRecu,
 			`^${prefixeRecu}-${year}-(\\d+)$`,
 		);
+		// Numéros des reçus supprimés (journal) : jamais réattribués (D-026)
+		const motif = `^${prefixeRecu}-${year}-(\\d+)$`;
+		const [{ maxSupprime }] = await ctx.db
+			.select({
+				maxSupprime: sql<
+					number | null
+				>`MAX(substring(${journalModifications.avant}->>'numeroRecu' from ${motif})::int)`,
+			})
+			.from(journalModifications)
+			.where(
+				and(
+					eq(journalModifications.entite, "paiement"),
+					eq(journalModifications.action, "suppression"),
+				),
+			);
+		const seq = Math.max(seqActifs, Number(maxSupprime ?? 0) + 1);
 		const numeroRecu = generateRecuNumber(prefixeRecu, year, seq);
 
 		const [created] = await ctx.db
