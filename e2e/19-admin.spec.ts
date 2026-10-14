@@ -420,7 +420,9 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		await page.getByRole("link", { name: "Journal des modifications" }).click();
 		await expect(page).toHaveURL(/\/parametres\/journal$/);
 		await page.getByLabel("Objet").selectOption("paiement");
-		const ligne = page.getByRole("row", { name: new RegExp(`${p.numeroRecu} — Test ${eleve.nom}`) });
+		const ligne = page.getByRole("row", {
+			name: new RegExp(`${p.numeroRecu} — Test ${eleve.nom}`),
+		});
 		await expect(ligne).toContainText("Montant : 24 000 FCFA → 20 000 FCFA");
 		await expect(ligne).toContainText("Erreur de montant");
 		await page.getByLabel("Objet").selectOption("employe");
