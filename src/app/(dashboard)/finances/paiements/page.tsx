@@ -2,6 +2,7 @@
 
 import { CreditCard, Download, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { ActionsPaiement } from "@/modules/finance/components/actions-paiement";
 import { estForfait } from "@/modules/finance/impayes";
 import { generateRecuPdf } from "@/shared/lib/generate-recu-pdf";
 import { trpc } from "@/shared/lib/trpc-client";
@@ -15,6 +16,7 @@ type PaiementRow = Record<string, unknown> & {
 	eleveNom: string;
 	eleveMatricule: string;
 	typeFraisNom: string;
+	typeFraisId: string;
 	mois: number;
 	montant: number;
 	datePaiement: string;
@@ -24,6 +26,7 @@ type PaiementRow = Record<string, unknown> & {
 export default function PaiementsPage() {
 	const utils = trpc.useUtils();
 	const parametres = trpc.settings.get.useQuery();
+	const moi = trpc.settings.moi.useQuery();
 
 	const { data: annees = [] } = trpc.academic.annees.list.useQuery();
 	const activeAnnee = annees.find((a) => a.active) ?? annees[0];
@@ -226,6 +229,27 @@ export default function PaiementsPage() {
 			label: "Date",
 			render: (row) => formatDate(row.datePaiement),
 		},
+		...(moi.data?.estAdmin
+			? [
+					{
+						key: "actions",
+						label: "Actions",
+						render: (row: PaiementRow) => (
+							<ActionsPaiement
+								paiement={{
+									id: row.id,
+									numeroRecu: row.numeroRecu,
+									typeFraisId: row.typeFraisId,
+									mois: row.mois,
+									montant: row.montant,
+									datePaiement: row.datePaiement,
+									libelleEleve: `${row.elevePrenom} ${row.eleveNom} (${row.eleveMatricule})`,
+								}}
+							/>
+						),
+					},
+				]
+			: []),
 	];
 
 	return (
@@ -368,10 +392,10 @@ export default function PaiementsPage() {
 			{/* Stats + month filter + type filter */}
 			<div className="mb-4 flex flex-wrap items-end gap-4">
 				<div>
-					<label className="mb-1 block text-sm font-medium text-gray-700">
+					<label htmlFor="filtre-mois" className="mb-1 block text-sm font-medium text-gray-700">
 						Voir les paiements du mois
 					</label>
-					<MonthPicker value={selectedMois} onChange={setSelectedMois} />
+					<MonthPicker id="filtre-mois" value={selectedMois} onChange={setSelectedMois} />
 				</div>
 				<div>
 					<label className="mb-1 block text-sm font-medium text-gray-700">Type de frais</label>

@@ -3,6 +3,7 @@
 import { ArrowLeft, Briefcase, MapPin, Pencil, Phone, Plus, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { PaiementsEleve } from "@/modules/finance/components/paiements-eleve";
 import { ReductionEleve } from "@/modules/finance/components/reduction-eleve";
 import {
 	CONTACT_VIDE,
@@ -203,6 +204,15 @@ export default function EleveDetailPage() {
 
 			<div className="mt-6">
 				<ReductionEleve eleveId={id} />
+			</div>
+
+			<div className="mt-6">
+				<PaiementsEleve
+					eleveId={id}
+					anneeScolaireId={s.anneeScolaireId}
+					libelleEleve={`${s.prenom} ${s.nom} (${s.matricule})`}
+					estAdmin={estAdmin}
+				/>
 			</div>
 
 			<FormModal

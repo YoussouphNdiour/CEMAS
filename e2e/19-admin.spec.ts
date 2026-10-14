@@ -221,4 +221,118 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 			page.getByRole("heading", { name: new RegExp(`Renommé ${eleve.nom}`) }),
 		).toBeVisible();
 	});
+	test("paiement : modifier avec motif, mois déjà payé et octobre refusés, supprimer avec motif", async ({
+		page,
+	}) => {
+		await login(page);
+		const annee = await anneeActive(page);
+		const classes = await classesParNom(page, annee.id);
+		const ce1 = classes.find((c) => c.nom.trim() === "CE1") ?? classes[0];
+		const eleve = await nouvelEleve(page, ce1.id, annee.id);
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		const sco = frais.find((f) => f.nom === "Scolarité")?.id;
+		const payer = (mois: number, montant: number) =>
+			trpc<{ id: string; numeroRecu: string }>(
+				page,
+				"finance.paiements.create",
+				{ eleveId: eleve.id, typeFraisId: sco, anneeScolaireId: annee.id, mois, montant },
+				true,
+			);
+		const nov = await payer(11, 24_000);
+		const dec = await payer(12, 20_000);
+		const modif = (champs: Record<string, unknown>) =>
+			trpc(
+				page,
+				"finance.paiements.update",
+				{
+					id: nov.id,
+					typeFraisId: sco,
+					mois: 11,
+					montant: 24_000,
+					datePaiement: "2026-10-08",
+					...champs,
+				},
+				true,
+			);
+
+		await expect(modif({ montant: 20_000, motif: "" })).rejects.toThrow(/motif/i);
+		await modif({ montant: 20_000, motif: "Montant de novembre corrigé" });
+		const recu = await trpc<{ montant: number; numeroRecu: string }>(
+			page,
+			"finance.paiements.getRecuData",
+			{ paiementId: nov.id },
+		);
+		expect(recu).toMatchObject({ montant: 20_000, numeroRecu: nov.numeroRecu });
+		await expect(modif({ mois: 12, montant: 20_000, motif: "Erreur" })).rejects.toThrow(
+			new RegExp(`déjà payé.*${dec.numeroRecu}`),
+		);
+		await expect(modif({ mois: 10, montant: 20_000, motif: "Erreur" })).rejects.toThrow(
+			/comprise dans le forfait/,
+		);
+
+		await expect(
+			trpc(page, "finance.paiements.delete", { id: dec.id, motif: "" }, true),
+		).rejects.toThrow(/motif/i);
+		await trpc(page, "finance.paiements.delete", { id: dec.id, motif: "Saisi deux fois" }, true);
+
+		const sql = base();
+		try {
+			const lignes =
+				await sql`select action, motif, avant, apres from journal_modifications where entite = 'paiement' and entite_id in (${nov.id}, ${dec.id}) order by created_at`;
+			expect(lignes.map((l) => l.action)).toEqual(["modification", "suppression"]);
+			expect(lignes[0]).toMatchObject({
+				motif: "Montant de novembre corrigé",
+				avant: { montant: 24_000 },
+				apres: { montant: 20_000 },
+			});
+			expect(lignes[1].motif).toBe("Saisi deux fois");
+			const [{ n }] = await sql`select count(*)::int n from paiements where id = ${dec.id}`;
+			expect(n).toBe(0);
+		} finally {
+			await sql.end();
+		}
+	});
+
+	test("paiement : actions depuis la liste du mois et la fiche élève", async ({ page }) => {
+		await login(page);
+		const annee = await anneeActive(page);
+		const classes = await classesParNom(page, annee.id);
+		const ce1 = classes.find((c) => c.nom.trim() === "CE1") ?? classes[0];
+		const eleve = await nouvelEleve(page, ce1.id, annee.id);
+		const frais = await trpc<{ id: string; nom: string }[]>(page, "finance.typesFrais.list");
+		const p = await trpc<{ id: string; numeroRecu: string }>(
+			page,
+			"finance.paiements.create",
+			{
+				eleveId: eleve.id,
+				typeFraisId: frais.find((f) => f.nom === "Scolarité")?.id,
+				anneeScolaireId: annee.id,
+				mois: 11,
+				montant: 21_000,
+			},
+			true,
+		);
+		// Fiche élève : section Paiements, modifier le montant
+		await page.goto(`/eleves/${eleve.id}`);
+		await waitForLoad(page);
+		const section = page.getByRole("region", { name: "Paiements" });
+		await expect(section).toContainText(p.numeroRecu);
+		await section.getByRole("button", { name: "Modifier le paiement" }).click();
+		const dialogue = page.getByRole("dialog");
+		await dialogue.getByLabel("Montant (FCFA)").fill("20000");
+		await dialogue.getByLabel("Motif *").fill("Correction");
+		await dialogue.getByRole("button", { name: "Enregistrer" }).click();
+		await expect(section).toContainText("20 000");
+
+		// Liste du mois : supprimer
+		await page.goto("/finances/paiements");
+		await waitForLoad(page);
+		// Liste des paiements du mois de novembre (filtre sous le formulaire)
+		await page.getByLabel("Voir les paiements du mois").selectOption("11");
+		const ligne = page.getByRole("row", { name: new RegExp(p.numeroRecu) });
+		await ligne.getByRole("button", { name: "Supprimer le paiement" }).click();
+		await page.getByRole("dialog").getByLabel("Motif *").fill("Doublon");
+		await page.getByRole("dialog").getByRole("button", { name: "Supprimer" }).click();
+		await expect(page.getByRole("row", { name: new RegExp(p.numeroRecu) })).toHaveCount(0);
+	});
 });
