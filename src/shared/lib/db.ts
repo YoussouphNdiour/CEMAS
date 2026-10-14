@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as academicSchema from "@/modules/academic/schema";
+import * as auditSchema from "@/modules/audit/schema";
 import * as authSchema from "@/modules/auth/schema";
 import * as financeSchema from "@/modules/finance/schema";
 import * as payrollSchema from "@/modules/payroll/schema";
@@ -13,6 +14,7 @@ const client = postgres(process.env.DATABASE_URL!);
 export const db = drizzle(client, {
 	schema: {
 		...authSchema,
+		...auditSchema,
 		...academicSchema,
 		...studentsSchema,
 		...financeSchema,

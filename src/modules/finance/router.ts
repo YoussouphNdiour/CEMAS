@@ -1,14 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, ne, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
+import { differences, journaliser } from "@/modules/audit/journal";
+import { journalModifications } from "@/modules/audit/schema";
 import { bulletinsPaie } from "@/modules/payroll/schema";
 import { getParametres } from "@/modules/settings/service";
 import { eleveParents, eleves, inscriptions, parents } from "@/modules/students/schema";
 import type { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber, MOIS_LABELS } from "@/shared/lib/utils";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
 import { associesDesLignes, estForfait, moisDus, verseSurForfait } from "./impayes";
@@ -41,6 +43,8 @@ import {
 	enregistrerTarifsSchema,
 	grilleFraisSchema,
 	impayesFiltersSchema,
+	supprimerPaiementSchema,
+	updatePaiementSchema,
 	upsertGrilleSchema,
 } from "./validation";
 
@@ -126,38 +130,81 @@ const grilleFraisRouter = createTRPCRouter({
 	}),
 });
 
+/** Mensualité d'octobre déjà comprise dans le forfait du niveau de l'élève : refusée (D-024). */
+async function verifierOctobre(
+	database: Pick<typeof db, "select">,
+	p: { eleveId: string; typeFraisId: string; anneeScolaireId: string; mois: number },
+) {
+	if (p.mois !== 10) return;
+	const [tf] = await database.select().from(typesFrais).where(eq(typesFrais.id, p.typeFraisId));
+	if (!tf?.mensuel || !tf.obligatoire) return;
+	const [forfait] = await database
+		.select({ id: forfaitLignes.id })
+		.from(forfaitLignes)
+		.innerJoin(classes, eq(classes.niveauId, forfaitLignes.niveauId))
+		.innerJoin(eleves, eq(eleves.classeId, classes.id))
+		.where(and(eq(eleves.id, p.eleveId), eq(forfaitLignes.anneeScolaireId, p.anneeScolaireId)))
+		.limit(1);
+	if (forfait)
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "La mensualité d'octobre est comprise dans le forfait d'inscription",
+		});
+}
+
+/** Paiement avec élève et type, pour le journal. */
+async function paiementDetaille(database: Pick<typeof db, "select">, id: string) {
+	const [p] = await database
+		.select({
+			id: paiements.id,
+			eleveId: paiements.eleveId,
+			typeFraisId: paiements.typeFraisId,
+			anneeScolaireId: paiements.anneeScolaireId,
+			mois: paiements.mois,
+			montant: paiements.montant,
+			datePaiement: paiements.datePaiement,
+			numeroRecu: paiements.numeroRecu,
+			typeFrais: typesFrais.nom,
+			prenom: eleves.prenom,
+			nom: eleves.nom,
+		})
+		.from(paiements)
+		.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
+		.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
+		.where(eq(paiements.id, id))
+		.for("update", { of: paiements });
+	if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "Paiement introuvable" });
+	return p;
+}
+
 const paiementsRouter = createTRPCRouter({
 	create: protectedProcedure.input(createPaiementSchema).mutation(async ({ ctx, input }) => {
-		// Mensualité d'octobre déjà comprise dans le forfait du niveau : refusée (D-024)
-		const [tf] = await ctx.db.select().from(typesFrais).where(eq(typesFrais.id, input.typeFraisId));
-		if (tf?.mensuel && tf.obligatoire && input.mois === 10) {
-			const [forfait] = await ctx.db
-				.select({ id: forfaitLignes.id })
-				.from(forfaitLignes)
-				.innerJoin(classes, eq(classes.niveauId, forfaitLignes.niveauId))
-				.innerJoin(eleves, eq(eleves.classeId, classes.id))
-				.where(
-					and(
-						eq(eleves.id, input.eleveId),
-						eq(forfaitLignes.anneeScolaireId, input.anneeScolaireId),
-					),
-				)
-				.limit(1);
-			if (forfait)
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "La mensualité d'octobre est comprise dans le forfait d'inscription",
-				});
-		}
+		await verifierOctobre(ctx.db, input);
 		// Next receipt sequence for the configured prefix and current year
 		const year = new Date().getFullYear();
 		const { prefixeRecu } = await getParametres(ctx.db);
-		const seq = await nextSequence(
+		const seqActifs = await nextSequence(
 			ctx.db,
 			paiements,
 			paiements.numeroRecu,
 			`^${prefixeRecu}-${year}-(\\d+)$`,
 		);
+		// Numéros des reçus supprimés (journal) : jamais réattribués (D-026)
+		const motif = `^${prefixeRecu}-${year}-(\\d+)$`;
+		const [{ maxSupprime }] = await ctx.db
+			.select({
+				maxSupprime: sql<
+					number | null
+				>`MAX(substring(${journalModifications.avant}->>'numeroRecu' from ${motif})::int)`,
+			})
+			.from(journalModifications)
+			.where(
+				and(
+					eq(journalModifications.entite, "paiement"),
+					eq(journalModifications.action, "suppression"),
+				),
+			);
+		const seq = Math.max(seqActifs, Number(maxSupprime ?? 0) + 1);
 		const numeroRecu = generateRecuNumber(prefixeRecu, year, seq);
 
 		const [created] = await ctx.db
@@ -173,6 +220,88 @@ const paiementsRouter = createTRPCRouter({
 			.returning();
 
 		return created;
+	}),
+
+	/** Modification par l'administrateur, motif obligatoire ; le numéro de reçu ne change pas (D-026). */
+	update: adminProcedure.input(updatePaiementSchema).mutation(async ({ ctx, input }) => {
+		return await ctx.db.transaction(async (tx) => {
+			const avant = await paiementDetaille(tx, input.id);
+			// Règle d'octobre seulement si le type ou le mois change (un ancien paiement reste corrigeable)
+			if (input.typeFraisId !== avant.typeFraisId || input.mois !== avant.mois)
+				await verifierOctobre(tx, { ...avant, typeFraisId: input.typeFraisId, mois: input.mois });
+			const [deja] = await tx
+				.select({ numeroRecu: paiements.numeroRecu })
+				.from(paiements)
+				.where(
+					and(
+						eq(paiements.eleveId, avant.eleveId),
+						eq(paiements.typeFraisId, input.typeFraisId),
+						eq(paiements.anneeScolaireId, avant.anneeScolaireId),
+						eq(paiements.mois, input.mois),
+						ne(paiements.id, input.id),
+					),
+				);
+			if (deja)
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Ce mois est déjà payé pour ce type (reçu ${deja.numeroRecu}).`,
+				});
+			const champs = {
+				typeFraisId: input.typeFraisId,
+				mois: input.mois,
+				montant: input.montant,
+				datePaiement: input.datePaiement,
+			};
+			const diff = differences(avant, champs);
+			if (!diff) return avant;
+			const [tf] = await tx
+				.select({ nom: typesFrais.nom })
+				.from(typesFrais)
+				.where(eq(typesFrais.id, input.typeFraisId));
+			const { typeFraisId: _a, ...diffAvant } = diff.avant;
+			const { typeFraisId: _b, ...diffApres } = diff.apres;
+			if (diff.apres.typeFraisId) {
+				Object.assign(diffAvant, { typeFrais: avant.typeFrais });
+				Object.assign(diffApres, { typeFrais: tf?.nom ?? "" });
+			}
+			const [modifie] = await tx
+				.update(paiements)
+				.set(champs)
+				.where(eq(paiements.id, input.id))
+				.returning();
+			await journaliser(tx, {
+				userId: ctx.admin.id,
+				userNom: ctx.admin.nom,
+				entite: "paiement",
+				entiteId: input.id,
+				action: "modification",
+				libelle: `${avant.numeroRecu} — ${avant.prenom} ${avant.nom}`,
+				avant: diffAvant,
+				apres: diffApres,
+				motif: input.motif,
+			});
+			return modifie;
+		});
+	}),
+
+	/** Suppression par l'administrateur, motif obligatoire ; le numéro de reçu n'est pas réutilisé. */
+	delete: adminProcedure.input(supprimerPaiementSchema).mutation(async ({ ctx, input }) => {
+		return await ctx.db.transaction(async (tx) => {
+			const avant = await paiementDetaille(tx, input.id);
+			await tx.delete(paiements).where(eq(paiements.id, input.id));
+			await journaliser(tx, {
+				userId: ctx.admin.id,
+				userNom: ctx.admin.nom,
+				entite: "paiement",
+				entiteId: input.id,
+				action: "suppression",
+				libelle: `${avant.numeroRecu} — ${avant.prenom} ${avant.nom}`,
+				avant,
+				apres: null,
+				motif: input.motif,
+			});
+			return { success: true };
+		});
 	}),
 
 	listByEleve: protectedProcedure

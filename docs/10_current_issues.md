@@ -88,3 +88,4 @@ Mis à jour le 2026-10-09.
 | 2026-10-10 | Finance | Points mineurs de la relecture du forfait (M1–M9) | Fournitures plafonnées au montant des lignes, reste dû proposé à la saisie (« Forfait déjà soldé »), messages clairs sur la page Tarifs, total des réductions avec repli sur la grille, contrôles CHECK sur `reductions`, cascade des tarifs avec le niveau, en-têtes du suivi au tarif du niveau, tableau de bord rafraîchi après une réduction |
 | 2026-10-13 | Finance | « Scolarité octobre » saisie en plus du forfait ; tenue incluse affichée impayée ; fournitures affichées en élémentaire et moyen | Refus serveur d'octobre (D-024), suivi « inclus » et cartes masquées |
 | 2026-10-14 | Élèves | Élève inscrit deux fois (KHADIJA MARIEME KEBE) | Fiche en double supprimée ; doublons refusés à l'inscription (D-025) |
+| 2026-10-14 | Général | Corrections d'élèves, de paiements et d'employés impossibles dans l'application | Actions d'administration avec journal (D-026) |

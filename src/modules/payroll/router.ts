@@ -1,9 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { differences, journaliser } from "@/modules/audit/journal";
+import { journalModifications } from "@/modules/audit/schema";
 import { getParametres } from "@/modules/settings/service";
 import { nextSequence } from "@/shared/lib/sequence";
-import { createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateEmployeMatricule } from "@/shared/lib/utils";
 import { bulletinsPaie, employes } from "./schema";
 import {
@@ -41,12 +43,23 @@ const employesRouter = createTRPCRouter({
 	create: protectedProcedure.input(createEmployeSchema).mutation(async ({ ctx, input }) => {
 		// Next sequence number for the configured prefix
 		const { prefixeEmploye } = await getParametres(ctx.db);
-		const seq = await nextSequence(
-			ctx.db,
-			employes,
-			employes.matricule,
-			`^${prefixeEmploye}-(\\d+)$`,
-		);
+		const motif = `^${prefixeEmploye}-(\\d+)$`;
+		const seqActifs = await nextSequence(ctx.db, employes, employes.matricule, motif);
+		// Matricules des employés supprimés (journal) : jamais réattribués (D-026)
+		const [{ maxSupprime }] = await ctx.db
+			.select({
+				maxSupprime: sql<
+					number | null
+				>`MAX(substring(${journalModifications.avant}->>'matricule' from ${motif})::int)`,
+			})
+			.from(journalModifications)
+			.where(
+				and(
+					eq(journalModifications.entite, "employe"),
+					eq(journalModifications.action, "suppression"),
+				),
+			);
+		const seq = Math.max(seqActifs, Number(maxSupprime ?? 0) + 1);
 		const matricule = generateEmployeMatricule(prefixeEmploye, seq);
 
 		const [created] = await ctx.db
@@ -66,32 +79,63 @@ const employesRouter = createTRPCRouter({
 		return created;
 	}),
 
-	update: protectedProcedure.input(updateEmployeSchema).mutation(async ({ ctx, input }) => {
+	/** Modification (y compris désactiver / réactiver) par l'administrateur, avec journal (D-026). */
+	update: adminProcedure.input(updateEmployeSchema).mutation(async ({ ctx, input }) => {
 		const { id, ...data } = input;
-
-		const [updated] = await ctx.db
-			.update(employes)
-			.set({ ...data, updatedAt: new Date() })
-			.where(eq(employes.id, id))
-			.returning();
-
-		if (!updated) {
-			throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
-		}
-
-		return updated;
+		return await ctx.db.transaction(async (tx) => {
+			const [avant] = await tx.select().from(employes).where(eq(employes.id, id)).for("update");
+			if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
+			const diff = differences(avant, data);
+			if (!diff) return avant;
+			const [updated] = await tx
+				.update(employes)
+				.set({ ...data, updatedAt: new Date() })
+				.where(eq(employes.id, id))
+				.returning();
+			await journaliser(tx, {
+				userId: ctx.admin.id,
+				userNom: ctx.admin.nom,
+				entite: "employe",
+				entiteId: id,
+				action: "modification",
+				libelle: `${avant.matricule} — ${updated.prenom} ${updated.nom}`,
+				avant: diff.avant,
+				apres: diff.apres,
+			});
+			return updated;
+		});
 	}),
 
-	delete: protectedProcedure
+	/** Suppression d'un employé sans bulletin ; sinon le désactiver pour garder l'historique. */
+	delete: adminProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const [deleted] = await ctx.db.delete(employes).where(eq(employes.id, input.id)).returning();
-
-			if (!deleted) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
-			}
-
-			return deleted;
+			return await ctx.db.transaction(async (tx) => {
+				const [avant] = await tx.select().from(employes).where(eq(employes.id, input.id));
+				if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
+				const [{ nb }] = await tx
+					.select({ nb: count() })
+					.from(bulletinsPaie)
+					.where(eq(bulletinsPaie.employeId, input.id));
+				if (nb > 0)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Cet employé a des bulletins de paie : désactivez-le pour garder l'historique.",
+					});
+				await tx.delete(employes).where(eq(employes.id, input.id));
+				await journaliser(tx, {
+					userId: ctx.admin.id,
+					userNom: ctx.admin.nom,
+					entite: "employe",
+					entiteId: input.id,
+					action: "suppression",
+					libelle: `${avant.matricule} — ${avant.prenom} ${avant.nom}`,
+					avant,
+					apres: null,
+				});
+				return avant;
+			});
 		}),
 });
 

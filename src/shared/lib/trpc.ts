@@ -1,5 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { ZodError, z } from "zod";
+import { users } from "@/modules/auth/schema";
 import { auth } from "./auth";
 import { db } from "./db";
 
@@ -74,4 +76,19 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "Non autorisé" });
 	}
 	return next({ ctx: { ...ctx, session: ctx.session } });
+});
+
+/** Rôles autorisés à modifier et supprimer (D-026). */
+export const ROLES_ADMIN = ["directeur", "admin"];
+
+/** Utilisateur connecté et administrateur ; le rôle est lu en base (le jeton peut être périmé). */
+export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+	const [user] = await ctx.db
+		.select({ id: users.id, nom: users.nom, role: users.role })
+		.from(users)
+		.where(eq(users.id, ctx.session.user?.id ?? ""));
+	if (!user || !ROLES_ADMIN.includes(user.role)) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Action réservée à l'administrateur" });
+	}
+	return next({ ctx: { ...ctx, admin: { id: user.id, nom: user.nom } } });
 });

@@ -25,6 +25,7 @@ async function seed() {
 			email: "admin@cemas.online",
 			passwordHash: hash,
 			nom: "Administrateur",
+			role: "directeur",
 		});
 		console.log("✅ Compte admin créé (admin@cemas.online)");
 	}

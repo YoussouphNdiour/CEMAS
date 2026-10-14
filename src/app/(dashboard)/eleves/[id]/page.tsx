@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, Briefcase, MapPin, Phone, Plus, User } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, Pencil, Phone, Plus, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { PaiementsEleve } from "@/modules/finance/components/paiements-eleve";
 import { ReductionEleve } from "@/modules/finance/components/reduction-eleve";
 import {
 	CONTACT_VIDE,
@@ -11,6 +12,7 @@ import {
 	contactComplet,
 	RELATION_LABELS,
 } from "@/modules/students/components/contact-fields";
+import { GestionEleve } from "@/modules/students/components/gestion-eleve";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatDate } from "@/shared/lib/utils";
 import { Button, FormModal, PageHeader, StatusBadge } from "@/shared/ui";
@@ -24,6 +26,21 @@ export default function EleveDetailPage() {
 	const utils = trpc.useUtils();
 	const student = trpc.students.getById.useQuery({ id });
 	const [nouveauContact, setNouveauContact] = useState<ContactForm | null>(null);
+	const moi = trpc.settings.moi.useQuery();
+	const estAdmin = moi.data?.estAdmin ?? false;
+	const [contactEdite, setContactEdite] = useState<(ContactForm & { parentId: string }) | null>(
+		null,
+	);
+	const [infoContact, setInfoContact] = useState<string | null>(null);
+	const updateParent = trpc.students.updateParent.useMutation({
+		onSuccess: (r) => {
+			setContactEdite(null);
+			setInfoContact(
+				r.partage > 1 ? `Contact modifié pour les ${r.partage} enfants qui le partagent.` : null,
+			);
+			utils.students.getById.invalidate({ id });
+		},
+	});
 	const addParent = trpc.students.addParent.useMutation({
 		onSuccess: () => {
 			setNouveauContact(null);
@@ -65,6 +82,12 @@ export default function EleveDetailPage() {
 					</Button>
 				}
 			/>
+
+			{estAdmin && (
+				<div className="mb-6">
+					<GestionEleve eleve={s} />
+				</div>
+			)}
 
 			<div className="grid gap-6 md:grid-cols-2">
 				{/* Info élève */}
@@ -128,6 +151,28 @@ export default function EleveDetailPage() {
 												Principal
 											</span>
 										)}
+										{estAdmin && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="ml-auto"
+												aria-label="Modifier le contact"
+												onClick={() =>
+													setContactEdite({
+														parentId: p.id,
+														prenom: p.prenom,
+														nom: p.nom,
+														telephone: p.telephone,
+														telephone2: p.telephone2 ?? "",
+														profession: p.profession ?? "",
+														adresse: p.adresse ?? "",
+														relation: p.relation as ContactForm["relation"],
+													})
+												}
+											>
+												<Pencil className="h-4 w-4" />
+											</Button>
+										)}
 									</div>
 									<div className="space-y-1.5 text-sm">
 										<div className="flex items-center gap-2 text-muted">
@@ -155,9 +200,57 @@ export default function EleveDetailPage() {
 				</div>
 			</div>
 
+			{infoContact && <p className="mt-4 text-sm text-primary">{infoContact}</p>}
+
 			<div className="mt-6">
 				<ReductionEleve eleveId={id} />
 			</div>
+
+			<div className="mt-6">
+				<PaiementsEleve
+					eleveId={id}
+					anneeScolaireId={s.anneeScolaireId}
+					libelleEleve={`${s.prenom} ${s.nom} (${s.matricule})`}
+					estAdmin={estAdmin}
+				/>
+			</div>
+
+			<FormModal
+				open={contactEdite !== null}
+				onClose={() => setContactEdite(null)}
+				title="Modifier le contact"
+			>
+				{contactEdite && (
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							const { parentId, ...champs } = contactEdite;
+							updateParent.mutate({ parentId, eleveId: id, ...champs });
+						}}
+						className="space-y-4"
+					>
+						<ContactFields
+							idPrefix="contact-edite"
+							value={contactEdite}
+							onChange={(v) => setContactEdite({ ...contactEdite, ...v })}
+						/>
+						{updateParent.error && (
+							<p className="text-sm text-danger">{updateParent.error.message}</p>
+						)}
+						<div className="flex justify-end gap-2">
+							<Button type="button" variant="ghost" onClick={() => setContactEdite(null)}>
+								Annuler
+							</Button>
+							<Button
+								type="submit"
+								disabled={!contactComplet(contactEdite) || updateParent.isPending}
+							>
+								{updateParent.isPending ? "Enregistrement..." : "Enregistrer"}
+							</Button>
+						</div>
+					</form>
+				)}
+			</FormModal>
 
 			<FormModal
 				open={nouveauContact !== null}

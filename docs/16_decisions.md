@@ -154,6 +154,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** `students.create` refuse un élève de la même année avec les mêmes prénom, nom (casse, espaces, tabulations et espaces insécables ignorés) et date de naissance, en citant le matricule existant — y compris s'il est inactif (rouvrir sa fiche). Les deux fiches de production avaient des matricules consécutifs : les requêtes étaient successives, c'est le contrôle qui les aurait arrêtées ; un verrou de transaction couvre en plus le cas de deux requêtes simultanées. Les homonymes nés un autre jour restent acceptés. Le passage d'année et la modification d'une fiche ne sont pas contrôlés
 - **Conséquences :** Doublon corrigé en base le 2026-10-14 après sauvegarde (fiche 0159 sans paiement supprimée)
 
+### D-026 — Droits d'administration et journal des modifications
+- **Date :** 2026-10-14
+- **Contexte :** Les corrections (doublons, montants, classes) devaient être faites directement en base
+- **Décision :** Seul l'administrateur (rôle `directeur` ou `admin`, lu en base à chaque action) modifie et supprime élèves, contacts, paiements et employés. Élève avec paiements : suppression refusée, « Retirer de l'école » (inactif/transféré). Employé avec bulletins : suppression refusée, « Désactiver ». Paiement : modification et suppression avec motif obligatoire, mêmes règles qu'à la saisie, numéro de reçu inchangé. Toute action écrit une ligne dans `journal_modifications` (même transaction) ; page Paramètres → Journal. Les numéros de reçu et matricules supprimés ne sont jamais réattribués (le journal en garde la trace)
+- **Conséquences :** Pas d'annulation depuis le journal ; pas encore d'écran de gestion des comptes (un compte « secrétaire » se crée en base). Le rôle par défaut d'un compte est `secretaire` (non administrateur) ; les paramètres de l'école sont aussi réservés à l'administrateur
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.

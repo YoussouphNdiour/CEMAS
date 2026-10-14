@@ -19,6 +19,7 @@ export const updateEmployeSchema = z.object({
 	type: z.enum(["enseignant", "administratif", "entretien"]).optional(),
 	salaireBase: z.number().int().positive().optional(),
 	dateEmbauche: z.string().min(1).optional(),
+	statut: z.enum(["actif", "inactif"]).optional(),
 });
 
 export const generateBulletinsSchema = z.object({

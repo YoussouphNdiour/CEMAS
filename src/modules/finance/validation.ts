@@ -8,6 +8,19 @@ export const createPaiementSchema = z.object({
 	montant: z.number().int().positive("Le montant doit être positif"),
 });
 
+const motif = z.string().trim().min(1, "Motif requis").max(300, "Motif trop long (300 caractères)");
+
+export const updatePaiementSchema = z.object({
+	id: z.string().uuid(),
+	typeFraisId: z.string().uuid("Type de frais requis"),
+	mois: z.number().int().min(1).max(12),
+	montant: z.number().int().positive("Le montant doit être positif"),
+	datePaiement: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
+	motif,
+});
+
+export const supprimerPaiementSchema = z.object({ id: z.string().uuid(), motif });
+
 export const createDepenseSchema = z.object({
 	categorieId: z.string().uuid("Catégorie requise"),
 	anneeScolaireId: z.string().uuid("Année scolaire requise"),

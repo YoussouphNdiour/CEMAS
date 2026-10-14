@@ -1,4 +1,5 @@
 import { academicRouter } from "@/modules/academic/router";
+import { auditRouter } from "@/modules/audit/router";
 import { dashboardRouter } from "@/modules/dashboard/router";
 import { financeRouter } from "@/modules/finance/router";
 import { payrollRouter } from "@/modules/payroll/router";
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
 	dashboard: dashboardRouter,
 	settings: settingsRouter,
 	reports: reportsRouter,
+	audit: auditRouter,
 });
 
 export type AppRouter = typeof appRouter;

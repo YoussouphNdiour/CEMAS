@@ -53,6 +53,7 @@ COPY --from=builder /app/src/shared/lib/seed.ts ./src/shared/lib/seed.ts
 COPY --from=builder /app/src/shared/lib/db.ts ./src/shared/lib/db.ts
 COPY --from=builder /app/src/shared/lib/utils.ts ./src/shared/lib/utils.ts
 COPY --from=builder /app/src/modules/auth/schema.ts ./src/modules/auth/schema.ts
+COPY --from=builder /app/src/modules/audit/schema.ts ./src/modules/audit/schema.ts
 COPY --from=builder /app/src/modules/academic/schema.ts ./src/modules/academic/schema.ts
 COPY --from=builder /app/src/modules/finance/schema.ts ./src/modules/finance/schema.ts
 COPY --from=builder /app/src/modules/students/schema.ts ./src/modules/students/schema.ts
