@@ -41,6 +41,8 @@ export const updateStudentSchema = z.object({
 	adresse: z.string().optional(),
 	classeId: z.string().uuid().optional(),
 	statut: z.enum(["actif", "inactif", "transfere"]).optional(),
+	/** Motif facultatif (retrait de l'école), noté dans le journal. */
+	motif: z.string().trim().max(300).optional(),
 });
 
 export const studentFiltersSchema = z.object({

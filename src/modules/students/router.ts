@@ -215,7 +215,7 @@ export const studentsRouter = createTRPCRouter({
 
 	/** Modification par l'administrateur : doublons, classe de la même année, inscription, journal (D-026). */
 	update: adminProcedure.input(updateStudentSchema).mutation(async ({ ctx, input }) => {
-		const { id, ...data } = input;
+		const { id, motif, ...data } = input;
 		return await db.transaction(async (tx) => {
 			const [avant] = await tx
 				.select({
@@ -235,7 +235,8 @@ export const studentsRouter = createTRPCRouter({
 				})
 				.from(eleves)
 				.innerJoin(classes, eq(eleves.classeId, classes.id))
-				.where(eq(eleves.id, id));
+				.where(eq(eleves.id, id))
+				.for("update", { of: eleves });
 			if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Élève non trouvé" });
 
 			const champs = {
@@ -322,6 +323,7 @@ export const studentsRouter = createTRPCRouter({
 				libelle: `${avant.matricule} — ${champs.prenom} ${champs.nom}`,
 				avant: diffAvant,
 				apres: diffApres,
+				motif,
 			});
 			const niveauChange = classe.niveauId !== avant.niveauId;
 			let niveauNom: string | null = null;

@@ -73,9 +73,67 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		await page.getByRole("button", { name: "Se connecter" }).click();
 		await page.waitForURL("/", { timeout: 15_000 });
 		expect((await trpc<{ estAdmin: boolean }>(page, "settings.moi")).estAdmin).toBe(false);
+		const refuse = /réservée à l'administrateur/;
+		const uuid = "00000000-0000-4000-8000-000000000000";
 		await expect(
 			trpc(page, "students.update", { id: eleve.id, prenom: "Pirate" }, true),
-		).rejects.toThrow(/réservée à l'administrateur/);
+		).rejects.toThrow(refuse);
+		await expect(trpc(page, "students.delete", { id: eleve.id }, true)).rejects.toThrow(refuse);
+		await expect(
+			trpc(
+				page,
+				"students.updateParent",
+				{
+					parentId: uuid,
+					eleveId: eleve.id,
+					prenom: "a",
+					nom: "b",
+					telephone: "1",
+					relation: "pere",
+				},
+				true,
+			),
+		).rejects.toThrow(refuse);
+		await expect(
+			trpc(page, "finance.paiements.delete", { id: uuid, motif: "x" }, true),
+		).rejects.toThrow(refuse);
+		await expect(
+			trpc(
+				page,
+				"finance.paiements.update",
+				{
+					id: uuid,
+					typeFraisId: uuid,
+					mois: 11,
+					montant: 1,
+					datePaiement: "2026-10-01",
+					motif: "x",
+				},
+				true,
+			),
+		).rejects.toThrow(refuse);
+		await expect(trpc(page, "payroll.employes.delete", { id: uuid }, true)).rejects.toThrow(refuse);
+		await expect(trpc(page, "audit.list", { page: 1 })).rejects.toThrow(refuse);
+		await expect(
+			trpc(page, "settings.update", { nom: "Piratage", sigle: "P" }, true),
+		).rejects.toThrow(refuse);
+	});
+
+	test("droits : un compte créé sans rôle n'est pas administrateur", async ({ page }) => {
+		const sql = base();
+		const email = `sansrole${Date.now()}@test.local`;
+		try {
+			const hash = await bcrypt.hash("secret-123", 10);
+			await sql`insert into users (email, password_hash, nom) values (${email}, ${hash}, 'Sans Rôle')`;
+		} finally {
+			await sql.end();
+		}
+		await page.goto("/login");
+		await page.getByLabel("Email").fill(email);
+		await page.getByLabel("Mot de passe").fill("secret-123");
+		await page.getByRole("button", { name: "Se connecter" }).click();
+		await page.waitForURL("/", { timeout: 15_000 });
+		expect((await trpc<{ estAdmin: boolean }>(page, "settings.moi")).estAdmin).toBe(false);
 	});
 	test("élève : modifier nom et classe, doublon refusé, autre année refusée", async ({ page }) => {
 		await login(page);
@@ -204,11 +262,20 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		await page.getByRole("button", { name: "Retirer de l'école" }).click();
 		const dialogue = page.getByRole("dialog");
 		await dialogue.getByLabel("Transféré").check();
+		await dialogue.getByLabel("Motif").fill("Départ à Dakar");
 		await dialogue.getByRole("button", { name: "Retirer" }).click();
 		await expect(page.getByRole("button", { name: "Réintégrer" })).toBeVisible();
 		expect(
 			(await trpc<{ statut: string }>(page, "students.getById", { id: eleve.id })).statut,
 		).toBe("transfere");
+		const sqlRetrait = base();
+		try {
+			const [j] =
+				await sqlRetrait`select motif from journal_modifications where entite_id = ${eleve.id} order by created_at desc limit 1`;
+			expect(j.motif).toBe("Départ à Dakar");
+		} finally {
+			await sqlRetrait.end();
+		}
 		await page.getByRole("button", { name: "Réintégrer" }).click();
 		await expect(page.getByRole("button", { name: "Retirer de l'école" })).toBeVisible();
 

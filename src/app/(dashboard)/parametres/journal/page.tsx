@@ -64,7 +64,10 @@ export default function JournalPage() {
 						type="date"
 						className={CHAMP}
 						value={du}
-						onChange={(e) => setDu(e.target.value)}
+						onChange={(e) => {
+							setDu(e.target.value);
+							setPage(1);
+						}}
 					/>
 				</div>
 				<div>
@@ -76,7 +79,10 @@ export default function JournalPage() {
 						type="date"
 						className={CHAMP}
 						value={au}
-						onChange={(e) => setAu(e.target.value)}
+						onChange={(e) => {
+							setAu(e.target.value);
+							setPage(1);
+						}}
 					/>
 				</div>
 			</div>

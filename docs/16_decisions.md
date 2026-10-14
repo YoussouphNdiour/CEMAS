@@ -158,7 +158,7 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Date :** 2026-10-14
 - **Contexte :** Les corrections (doublons, montants, classes) devaient être faites directement en base
 - **Décision :** Seul l'administrateur (rôle `directeur` ou `admin`, lu en base à chaque action) modifie et supprime élèves, contacts, paiements et employés. Élève avec paiements : suppression refusée, « Retirer de l'école » (inactif/transféré). Employé avec bulletins : suppression refusée, « Désactiver ». Paiement : modification et suppression avec motif obligatoire, mêmes règles qu'à la saisie, numéro de reçu inchangé. Toute action écrit une ligne dans `journal_modifications` (même transaction) ; page Paramètres → Journal. Les numéros de reçu et matricules supprimés ne sont jamais réattribués (le journal en garde la trace)
-- **Conséquences :** Pas d'annulation depuis le journal ; pas encore d'écran de gestion des comptes (un compte « secrétaire » se crée en base)
+- **Conséquences :** Pas d'annulation depuis le journal ; pas encore d'écran de gestion des comptes (un compte « secrétaire » se crée en base). Le rôle par défaut d'un compte est `secretaire` (non administrateur) ; les paramètres de l'école sont aussi réservés à l'administrateur
 
 ---
 

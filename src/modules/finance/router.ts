@@ -171,7 +171,8 @@ async function paiementDetaille(database: Pick<typeof db, "select">, id: string)
 		.from(paiements)
 		.innerJoin(typesFrais, eq(paiements.typeFraisId, typesFrais.id))
 		.innerJoin(eleves, eq(paiements.eleveId, eleves.id))
-		.where(eq(paiements.id, id));
+		.where(eq(paiements.id, id))
+		.for("update", { of: paiements });
 	if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "Paiement introuvable" });
 	return p;
 }
@@ -225,7 +226,9 @@ const paiementsRouter = createTRPCRouter({
 	update: adminProcedure.input(updatePaiementSchema).mutation(async ({ ctx, input }) => {
 		return await ctx.db.transaction(async (tx) => {
 			const avant = await paiementDetaille(tx, input.id);
-			await verifierOctobre(tx, { ...avant, typeFraisId: input.typeFraisId, mois: input.mois });
+			// Règle d'octobre seulement si le type ou le mois change (un ancien paiement reste corrigeable)
+			if (input.typeFraisId !== avant.typeFraisId || input.mois !== avant.mois)
+				await verifierOctobre(tx, { ...avant, typeFraisId: input.typeFraisId, mois: input.mois });
 			const [deja] = await tx
 				.select({ numeroRecu: paiements.numeroRecu })
 				.from(paiements)

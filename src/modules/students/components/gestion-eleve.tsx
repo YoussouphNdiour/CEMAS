@@ -30,6 +30,7 @@ export function GestionEleve({ eleve }: { eleve: EleveFiche }) {
 	const classes = trpc.academic.classes.list.useQuery({ anneeScolaireId: eleve.anneeScolaireId });
 	const [edition, setEdition] = useState<EleveFiche | null>(null);
 	const [retrait, setRetrait] = useState<"inactif" | "transfere" | null>(null);
+	const [motifRetrait, setMotifRetrait] = useState("");
 	const [suppression, setSuppression] = useState(false);
 	const [info, setInfo] = useState<string | null>(null);
 
@@ -221,6 +222,16 @@ export function GestionEleve({ eleve }: { eleve: EleveFiche }) {
 								</label>
 							))}
 						</div>
+						<Champ id="retrait-motif" label="Motif">
+							<input
+								id="retrait-motif"
+								className={CHAMP}
+								maxLength={300}
+								placeholder="Facultatif"
+								value={motifRetrait}
+								onChange={(e) => setMotifRetrait(e.target.value)}
+							/>
+						</Champ>
 						{modifier.error && <p className="text-sm text-danger">{modifier.error.message}</p>}
 						<div className="flex justify-end gap-2">
 							<Button variant="ghost" onClick={() => setRetrait(null)}>
@@ -228,7 +239,13 @@ export function GestionEleve({ eleve }: { eleve: EleveFiche }) {
 							</Button>
 							<Button
 								disabled={modifier.isPending}
-								onClick={() => modifier.mutate({ id: eleve.id, statut: retrait })}
+								onClick={() =>
+									modifier.mutate({
+										id: eleve.id,
+										statut: retrait,
+										motif: motifRetrait || undefined,
+									})
+								}
 							>
 								Retirer
 							</Button>

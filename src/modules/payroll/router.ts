@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { differences, journaliser } from "@/modules/audit/journal";
+import { journalModifications } from "@/modules/audit/schema";
 import { getParametres } from "@/modules/settings/service";
 import { nextSequence } from "@/shared/lib/sequence";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
@@ -42,12 +43,23 @@ const employesRouter = createTRPCRouter({
 	create: protectedProcedure.input(createEmployeSchema).mutation(async ({ ctx, input }) => {
 		// Next sequence number for the configured prefix
 		const { prefixeEmploye } = await getParametres(ctx.db);
-		const seq = await nextSequence(
-			ctx.db,
-			employes,
-			employes.matricule,
-			`^${prefixeEmploye}-(\\d+)$`,
-		);
+		const motif = `^${prefixeEmploye}-(\\d+)$`;
+		const seqActifs = await nextSequence(ctx.db, employes, employes.matricule, motif);
+		// Matricules des employés supprimés (journal) : jamais réattribués (D-026)
+		const [{ maxSupprime }] = await ctx.db
+			.select({
+				maxSupprime: sql<
+					number | null
+				>`MAX(substring(${journalModifications.avant}->>'matricule' from ${motif})::int)`,
+			})
+			.from(journalModifications)
+			.where(
+				and(
+					eq(journalModifications.entite, "employe"),
+					eq(journalModifications.action, "suppression"),
+				),
+			);
+		const seq = Math.max(seqActifs, Number(maxSupprime ?? 0) + 1);
 		const matricule = generateEmployeMatricule(prefixeEmploye, seq);
 
 		const [created] = await ctx.db
@@ -71,7 +83,7 @@ const employesRouter = createTRPCRouter({
 	update: adminProcedure.input(updateEmployeSchema).mutation(async ({ ctx, input }) => {
 		const { id, ...data } = input;
 		return await ctx.db.transaction(async (tx) => {
-			const [avant] = await tx.select().from(employes).where(eq(employes.id, id));
+			const [avant] = await tx.select().from(employes).where(eq(employes.id, id)).for("update");
 			if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Employé introuvable" });
 			const diff = differences(avant, data);
 			if (!diff) return avant;

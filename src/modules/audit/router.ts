@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lte, type SQL, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, lt, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/shared/lib/trpc";
 import { journalModifications } from "./schema";
@@ -28,7 +28,7 @@ export const auditRouter = createTRPCRouter({
 			if (input.du) conditions.push(gte(journalModifications.createdAt, sql`${input.du}::date`));
 			if (input.au)
 				conditions.push(
-					lte(journalModifications.createdAt, sql`(${input.au}::date + interval '1 day')`),
+					lt(journalModifications.createdAt, sql`(${input.au}::date + interval '1 day')`),
 				);
 			const where = conditions.length ? and(...conditions) : undefined;
 			const lignes = await ctx.db

@@ -14,5 +14,6 @@ CREATE TABLE "journal_modifications" (
 	CONSTRAINT "journal_action_check" CHECK ("journal_modifications"."action" in ('modification', 'suppression'))
 );
 --> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "role" SET DEFAULT 'secretaire';--> statement-breakpoint
 ALTER TABLE "journal_modifications" ADD CONSTRAINT "journal_modifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "journal_created_idx" ON "journal_modifications" USING btree ("created_at");

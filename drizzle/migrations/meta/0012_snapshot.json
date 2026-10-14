@@ -1,5 +1,5 @@
 {
-  "id": "3b004c16-90aa-49fc-80ec-e80d923d3131",
+  "id": "25c97232-0bda-4b7d-952c-cb2d167ec31e",
   "prevId": "5762ab2d-e8cc-4411-ac2b-680d2e5aeb3b",
   "version": "7",
   "dialect": "postgresql",
@@ -452,7 +452,7 @@
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'directeur'"
+          "default": "'secretaire'"
         },
         "created_at": {
           "name": "created_at",

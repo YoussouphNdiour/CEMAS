@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { users } from "@/modules/auth/schema";
 import {
+	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
@@ -27,7 +28,7 @@ export const settingsRouter = createTRPCRouter({
 		return { nom, sigle };
 	}),
 
-	update: protectedProcedure.input(updateParametresSchema).mutation(async ({ ctx, input }) => {
+	update: adminProcedure.input(updateParametresSchema).mutation(async ({ ctx, input }) => {
 		const values = { ...input, updatedAt: new Date() };
 		const [row] = await ctx.db
 			.insert(parametresEcole)
