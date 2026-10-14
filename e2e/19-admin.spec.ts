@@ -335,4 +335,48 @@ test.describe("19 - Administration : droits, modifications, journal", () => {
 		await page.getByRole("dialog").getByRole("button", { name: "Supprimer" }).click();
 		await expect(page.getByRole("row", { name: new RegExp(p.numeroRecu) })).toHaveCount(0);
 	});
+	test("employé : suppression refusée avec bulletins, désactiver / réactiver, suppression sans bulletin", async ({
+		page,
+	}) => {
+		await login(page);
+		const creer = (prenom: string) =>
+			trpc<{ id: string; matricule: string }>(
+				page,
+				"payroll.employes.create",
+				{
+					prenom,
+					nom: `Emp${Date.now()}`,
+					poste: "Enseignant",
+					type: "enseignant",
+					salaireBase: 100_000,
+					dateEmbauche: "2026-10-01",
+				},
+				true,
+			);
+		const avecBulletin = await creer("Paye");
+		await trpc(page, "payroll.bulletins.generate", { mois: 1, annee: 2031 }, true);
+		await expect(
+			trpc(page, "payroll.employes.delete", { id: avecBulletin.id }, true),
+		).rejects.toThrow(/désactivez-le/);
+
+		await page.goto("/payroll/employes");
+		await waitForLoad(page);
+		const ligne = page.getByRole("row", { name: new RegExp(avecBulletin.matricule) });
+		await ligne.getByRole("button", { name: "Désactiver" }).click();
+		await expect(ligne.getByRole("button", { name: "Réactiver" })).toBeVisible();
+		await ligne.getByRole("button", { name: "Réactiver" }).click();
+		await expect(ligne.getByRole("button", { name: "Désactiver" })).toBeVisible();
+
+		const sansBulletin = await creer("Nouveau");
+		await trpc(page, "payroll.employes.delete", { id: sansBulletin.id }, true);
+
+		const sql = base();
+		try {
+			const lignes =
+				await sql`select action from journal_modifications where entite = 'employe' and entite_id in (${avecBulletin.id}, ${sansBulletin.id}) order by created_at`;
+			expect(lignes.map((l) => l.action)).toEqual(["modification", "modification", "suppression"]);
+		} finally {
+			await sql.end();
+		}
+	});
 });

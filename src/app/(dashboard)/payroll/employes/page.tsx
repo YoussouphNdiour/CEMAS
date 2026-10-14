@@ -64,6 +64,10 @@ export default function EmployesPage() {
 		},
 	});
 
+	const moi = trpc.settings.moi.useQuery();
+	const statutMutation = trpc.payroll.employes.update.useMutation({
+		onSuccess: () => utils.payroll.employes.list.invalidate(),
+	});
 	const deleteMutation = trpc.payroll.employes.delete.useMutation({
 		onSuccess: () => {
 			utils.payroll.employes.list.invalidate();
@@ -153,7 +157,21 @@ export default function EmployesPage() {
 			key: "actions",
 			label: "Actions",
 			render: (row) => (
-				<div className="flex items-center gap-2">
+				<div className={moi.data?.estAdmin ? "flex items-center gap-2" : "hidden"}>
+					<Button
+						variant="ghost"
+						size="sm"
+						disabled={statutMutation.isPending}
+						onClick={(e) => {
+							e.stopPropagation();
+							statutMutation.mutate({
+								id: row.id,
+								statut: row.statut === "actif" ? "inactif" : "actif",
+							});
+						}}
+					>
+						{row.statut === "actif" ? "Désactiver" : "Réactiver"}
+					</Button>
 					<button
 						onClick={(e) => {
 							e.stopPropagation();
@@ -299,15 +317,19 @@ export default function EmployesPage() {
 
 			<ConfirmDialog
 				open={!!deleteTarget}
-				onClose={() => setDeleteTarget(null)}
+				onClose={() => {
+					setDeleteTarget(null);
+					deleteMutation.reset();
+				}}
 				onConfirm={() => {
 					if (deleteTarget) deleteMutation.mutate({ id: deleteTarget.id });
 				}}
-				title="Supprimer l'employe"
+				title="Supprimer l'employé"
 				message={
-					deleteTarget
-						? `Voulez-vous vraiment supprimer ${deleteTarget.prenom} ${deleteTarget.nom} ? Cette action est irreversible.`
-						: ""
+					deleteMutation.error?.message ??
+					(deleteTarget
+						? `Voulez-vous vraiment supprimer ${deleteTarget.prenom} ${deleteTarget.nom} ? Cette action est irréversible.`
+						: "")
 				}
 				loading={deleteMutation.isPending}
 			/>
