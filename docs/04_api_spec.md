@@ -175,6 +175,7 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - **Type :** Mutation
 - **Input :** `createStudentSchema` — données élève + `parent` (contact principal) + `parent2` optionnel (même schéma `parentSchema`)
 - **Description :** Transaction : génère matricule → insère élève → insère et lie le contact principal (`principal = true`) puis le 2e contact (`principal = false`) → crée inscription
+- **Refus (`CONFLICT`) :** élève de la même année avec les mêmes prénom, nom (casse et espaces ignorés) et date de naissance — « Cet élève est déjà inscrit cette année (matricule …) »
 - **Output :** `Eleve`
 
 ### `students.addParent`

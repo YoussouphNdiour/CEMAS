@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
 import { getParametres } from "@/modules/settings/service";
@@ -143,6 +143,31 @@ export const studentsRouter = createTRPCRouter({
 				.from(anneesScolaires)
 				.where(eq(anneesScolaires.id, input.anneeScolaireId));
 			const year = annee ? parseInt(annee.libelle.split("-")[0], 10) : new Date().getFullYear();
+
+			// Doublon : même prénom, nom (casse et espaces ignorés) et date de naissance cette année.
+			// Le verrou sérialise deux inscriptions identiques envoyées en même temps.
+			const normaliser = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
+			const cle = `${input.anneeScolaireId}:${normaliser(input.prenom)}:${normaliser(input.nom)}:${input.dateNaissance}`;
+			await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${cle}))`);
+			const colonne = (c: typeof eleves.prenom | typeof eleves.nom) =>
+				sql`lower(regexp_replace(trim(${c}), '\\s+', ' ', 'g'))`;
+			const [doublon] = await tx
+				.select({ matricule: eleves.matricule })
+				.from(eleves)
+				.where(
+					and(
+						eq(eleves.anneeScolaireId, input.anneeScolaireId),
+						eq(eleves.dateNaissance, input.dateNaissance),
+						sql`${colonne(eleves.prenom)} = ${normaliser(input.prenom)}`,
+						sql`${colonne(eleves.nom)} = ${normaliser(input.nom)}`,
+					),
+				)
+				.limit(1);
+			if (doublon)
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Cet élève est déjà inscrit cette année (matricule ${doublon.matricule}). Ouvrez sa fiche au lieu de le réinscrire.`,
+				});
 
 			// Next sequence number for the configured prefix
 			const seq = await nextSequence(

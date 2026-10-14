@@ -148,6 +148,12 @@ Chaque décision est numérotée chronologiquement avec date, contexte, décisio
 - **Décision :** Le serveur refuse une mensualité obligatoire d'octobre pour un niveau au forfait. Dans le suivi, un frais facultatif associé à une ligne du forfait est « inclus » dès qu'une inscription est payée ; un frais facultatif sans rapport avec le niveau est masqué tant que personne ne l'a payé dans la classe. Les tarifs par défaut lient Uniforme à Tenue
 - **Conséquences :** Les deux paiements existants restent en base jusqu'à décision du directeur
 
+### D-025 — Doublons d'élèves refusés
+- **Date :** 2026-10-14
+- **Contexte :** KHADIJA MARIEME KEBE inscrite deux fois la même minute (CEMAS-2026-0159 et 0160)
+- **Décision :** `students.create` refuse un élève de la même année avec les mêmes prénom, nom (casse et espaces ignorés) et date de naissance, en citant le matricule existant ; un verrou de transaction sérialise deux inscriptions identiques simultanées. Les homonymes nés un autre jour restent acceptés
+- **Conséquences :** Doublon corrigé en base le 2026-10-14 après sauvegarde (fiche 0159 sans paiement supprimée)
+
 ---
 
 > Ce fichier est la source de vérité pour le journal des décisions du projet CEMAS.
