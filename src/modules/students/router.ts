@@ -2,18 +2,22 @@ import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
+import { differences, journaliser } from "@/modules/audit/journal";
+import { paiements, reductions } from "@/modules/finance/schema";
 import { getParametres } from "@/modules/settings/service";
+import { affectationsTransport } from "@/modules/transport/schema";
 import { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateMatricule } from "@/shared/lib/utils";
 import { trouverDoublon } from "./noms";
-import { eleveParents, eleves, inscriptions, parents } from "./schema";
+import { eleveParents, eleves, inscriptions, parents, passageDecisions } from "./schema";
 import {
 	addParentSchema,
 	createStudentSchema,
 	type ParentInput,
 	studentFiltersSchema,
+	updateParentSchema,
 	updateStudentSchema,
 } from "./validation";
 
@@ -102,6 +106,7 @@ export const studentsRouter = createTRPCRouter({
 					photoUrl: eleves.photoUrl,
 					statut: eleves.statut,
 					classeId: eleves.classeId,
+					anneeScolaireId: eleves.anneeScolaireId,
 					classeNom: classes.nom,
 					niveauNom: niveaux.nom,
 					createdAt: eleves.createdAt,
@@ -196,21 +201,168 @@ export const studentsRouter = createTRPCRouter({
 		});
 	}),
 
-	update: adminProcedure.input(updateStudentSchema).mutation(async ({ input }) => {
+	/** Modification par l'administrateur : doublons, classe de la même année, inscription, journal (D-026). */
+	update: adminProcedure.input(updateStudentSchema).mutation(async ({ ctx, input }) => {
 		const { id, ...data } = input;
-		const updateData: Record<string, unknown> = {};
-		if (data.prenom) updateData.prenom = data.prenom;
-		if (data.nom) updateData.nom = data.nom;
-		if (data.dateNaissance) updateData.dateNaissance = data.dateNaissance;
-		if (data.lieuNaissance !== undefined) updateData.lieuNaissance = data.lieuNaissance;
-		if (data.sexe) updateData.sexe = data.sexe;
-		if (data.adresse !== undefined) updateData.adresse = data.adresse;
-		if (data.classeId) updateData.classeId = data.classeId;
-		if (data.statut) updateData.statut = data.statut;
-		updateData.updatedAt = new Date();
+		return await db.transaction(async (tx) => {
+			const [avant] = await tx
+				.select({
+					id: eleves.id,
+					matricule: eleves.matricule,
+					prenom: eleves.prenom,
+					nom: eleves.nom,
+					dateNaissance: eleves.dateNaissance,
+					lieuNaissance: eleves.lieuNaissance,
+					sexe: eleves.sexe,
+					adresse: eleves.adresse,
+					statut: eleves.statut,
+					classeId: eleves.classeId,
+					anneeScolaireId: eleves.anneeScolaireId,
+					classeNom: classes.nom,
+					niveauId: classes.niveauId,
+				})
+				.from(eleves)
+				.innerJoin(classes, eq(eleves.classeId, classes.id))
+				.where(eq(eleves.id, id));
+			if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Élève non trouvé" });
 
-		const [updated] = await db.update(eleves).set(updateData).where(eq(eleves.id, id)).returning();
-		return updated;
+			const champs = {
+				prenom: data.prenom?.trim() || avant.prenom,
+				nom: data.nom?.trim() || avant.nom,
+				dateNaissance: data.dateNaissance || avant.dateNaissance,
+				lieuNaissance:
+					data.lieuNaissance !== undefined ? data.lieuNaissance || null : avant.lieuNaissance,
+				sexe: data.sexe ?? avant.sexe,
+				adresse: data.adresse !== undefined ? data.adresse || null : avant.adresse,
+				statut: data.statut ?? avant.statut,
+				classeId: data.classeId ?? avant.classeId,
+			};
+
+			// Classe : uniquement une classe de l'année de l'élève
+			let classe = { nom: avant.classeNom, niveauId: avant.niveauId };
+			if (champs.classeId !== avant.classeId) {
+				const [cible] = await tx
+					.select({
+						nom: classes.nom,
+						niveauId: classes.niveauId,
+						anneeScolaireId: classes.anneeScolaireId,
+					})
+					.from(classes)
+					.where(eq(classes.id, champs.classeId));
+				if (!cible || cible.anneeScolaireId !== avant.anneeScolaireId)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "La nouvelle classe doit appartenir à la même année scolaire que l'élève.",
+					});
+				classe = cible;
+			}
+
+			// Identité changée : même contrôle des doublons qu'à l'inscription (D-025)
+			const identiteChangee =
+				champs.prenom !== avant.prenom ||
+				champs.nom !== avant.nom ||
+				champs.dateNaissance !== avant.dateNaissance;
+			if (identiteChangee) {
+				const doublon = await trouverDoublon(tx, {
+					anneeScolaireId: avant.anneeScolaireId,
+					prenom: champs.prenom,
+					nom: champs.nom,
+					dateNaissance: champs.dateNaissance,
+					exclureId: id,
+				});
+				if (doublon)
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Cet élève est déjà inscrit cette année (matricule ${doublon.matricule}).`,
+					});
+			}
+
+			const diff = differences(
+				{ ...avant, classe: avant.classeNom },
+				{ ...champs, classe: classe.nom },
+			);
+			if (!diff) return { eleve: avant, niveauChange: false, niveauNom: null };
+			const { classeId: _a, ...diffAvant } = diff.avant;
+			const { classeId: _b, ...diffApres } = diff.apres;
+
+			const [eleve] = await tx
+				.update(eleves)
+				.set({ ...champs, updatedAt: new Date() })
+				.where(eq(eleves.id, id))
+				.returning();
+			if (champs.classeId !== avant.classeId) {
+				await tx
+					.update(inscriptions)
+					.set({ classeId: champs.classeId })
+					.where(
+						and(
+							eq(inscriptions.eleveId, id),
+							eq(inscriptions.anneeScolaireId, avant.anneeScolaireId),
+						),
+					);
+			}
+			await journaliser(tx, {
+				userId: ctx.admin.id,
+				userNom: ctx.admin.nom,
+				entite: "eleve",
+				entiteId: id,
+				action: "modification",
+				libelle: `${avant.matricule} — ${champs.prenom} ${champs.nom}`,
+				avant: diffAvant,
+				apres: diffApres,
+			});
+			const niveauChange = classe.niveauId !== avant.niveauId;
+			let niveauNom: string | null = null;
+			if (niveauChange) {
+				const [n] = await tx
+					.select({ nom: niveaux.nom })
+					.from(niveaux)
+					.where(eq(niveaux.id, classe.niveauId));
+				niveauNom = n?.nom ?? null;
+			}
+			return { eleve, niveauChange, niveauNom };
+		});
+	}),
+
+	/** Modification d'un contact (parent) par l'administrateur ; renvoie le nombre d'enfants liés. */
+	updateParent: adminProcedure.input(updateParentSchema).mutation(async ({ ctx, input }) => {
+		const { parentId, eleveId, ...champs } = input;
+		return await db.transaction(async (tx) => {
+			const [avant] = await tx
+				.select()
+				.from(parents)
+				.innerJoin(eleveParents, eq(eleveParents.parentId, parents.id))
+				.where(and(eq(parents.id, parentId), eq(eleveParents.eleveId, eleveId)));
+			if (!avant) throw new TRPCError({ code: "NOT_FOUND", message: "Contact introuvable" });
+			const p = avant.parents;
+			const apres = {
+				prenom: champs.prenom,
+				nom: champs.nom,
+				telephone: champs.telephone,
+				telephone2: champs.telephone2 || null,
+				profession: champs.profession || null,
+				adresse: champs.adresse || null,
+				relation: champs.relation,
+			};
+			const [{ partage }] = await tx
+				.select({ partage: count() })
+				.from(eleveParents)
+				.where(eq(eleveParents.parentId, parentId));
+			const diff = differences(p as unknown as Record<string, unknown>, apres);
+			if (!diff) return { partage };
+			await tx.update(parents).set(apres).where(eq(parents.id, parentId));
+			await journaliser(tx, {
+				userId: ctx.admin.id,
+				userNom: ctx.admin.nom,
+				entite: "contact",
+				entiteId: parentId,
+				action: "modification",
+				libelle: `${apres.prenom} ${apres.nom} (${apres.telephone})`,
+				avant: diff.avant,
+				apres: diff.apres,
+			});
+			return { partage };
+		});
 	}),
 
 	/** Ajoute le 2e contact d'un élève existant (2 contacts au maximum). */
@@ -237,11 +389,53 @@ export const studentsRouter = createTRPCRouter({
 		});
 	}),
 
-	delete: protectedProcedure
+	/** Suppression d'une fiche sans paiement (doublon) ; sinon « Retirer de l'école » (D-026). */
+	delete: adminProcedure
 		.input(z.object({ id: z.string().uuid() }))
-		.mutation(async ({ input }) => {
-			await db.delete(eleves).where(eq(eleves.id, input.id));
-			return { success: true };
+		.mutation(async ({ ctx, input }) => {
+			return await db.transaction(async (tx) => {
+				const [eleve] = await tx.select().from(eleves).where(eq(eleves.id, input.id));
+				if (!eleve) throw new TRPCError({ code: "NOT_FOUND", message: "Élève non trouvé" });
+				const [{ nb }] = await tx
+					.select({ nb: count() })
+					.from(paiements)
+					.where(eq(paiements.eleveId, input.id));
+				if (nb > 0)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Cet élève a des paiements : utilisez « Retirer de l'école » pour garder la comptabilité.",
+					});
+				const liens = await tx
+					.select({ parentId: eleveParents.parentId })
+					.from(eleveParents)
+					.where(eq(eleveParents.eleveId, input.id));
+				await tx.delete(affectationsTransport).where(eq(affectationsTransport.eleveId, input.id));
+				await tx.delete(reductions).where(eq(reductions.eleveId, input.id));
+				await tx.delete(passageDecisions).where(eq(passageDecisions.eleveId, input.id));
+				await tx.delete(inscriptions).where(eq(inscriptions.eleveId, input.id));
+				await tx.delete(eleveParents).where(eq(eleveParents.eleveId, input.id));
+				await tx.delete(eleves).where(eq(eleves.id, input.id));
+				// Parents qui n'ont plus d'enfant
+				for (const { parentId } of liens) {
+					const [{ reste }] = await tx
+						.select({ reste: count() })
+						.from(eleveParents)
+						.where(eq(eleveParents.parentId, parentId));
+					if (reste === 0) await tx.delete(parents).where(eq(parents.id, parentId));
+				}
+				await journaliser(tx, {
+					userId: ctx.admin.id,
+					userNom: ctx.admin.nom,
+					entite: "eleve",
+					entiteId: input.id,
+					action: "suppression",
+					libelle: `${eleve.matricule} — ${eleve.prenom} ${eleve.nom}`,
+					avant: eleve,
+					apres: null,
+				});
+				return { success: true };
+			});
 		}),
 
 	count: protectedProcedure

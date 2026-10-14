@@ -50,3 +50,8 @@ export const studentFiltersSchema = z.object({
 	statut: z.string().optional(),
 	search: z.string().optional(),
 });
+
+export const updateParentSchema = parentSchema.extend({
+	parentId: z.string().uuid(),
+	eleveId: z.string().uuid(),
+});
