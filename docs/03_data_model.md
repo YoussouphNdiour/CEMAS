@@ -204,6 +204,20 @@ Supprimées après un passage réussi.
 | motif | varchar(200) | | |
 | | | UNIQUE(eleve_id, annee_scolaire_id) | Une réduction par élève et par année |
 
+### `journal_modifications`
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| id | uuid | PK | |
+| created_at | timestamptz | NOT NULL, défaut now() | |
+| user_id | uuid | FK → users ON DELETE SET NULL | Auteur |
+| user_nom | varchar(100) | NOT NULL | Nom de l'auteur au moment de l'action |
+| entite | varchar(20) | CHECK eleve, contact, paiement, employe | |
+| entite_id | uuid | NOT NULL | Ligne concernée (sans FK : elle peut être supprimée) |
+| action | varchar(20) | CHECK modification, suppression | |
+| libelle | varchar(200) | NOT NULL | Ex. « REC-2026-0150 — MARIEME FAYE » |
+| avant / apres | jsonb | | Champs modifiés (ligne entière avant une suppression ; `apres` null) |
+| motif | varchar(300) | | Obligatoire pour un paiement |
+
 ### `paiements`
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|

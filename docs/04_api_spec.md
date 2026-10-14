@@ -453,6 +453,19 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 
 ---
 
+## Administration (D-026)
+
+`adminProcedure` : utilisateur connecté dont `users.role` vaut `directeur` ou `admin` (lu en base), sinon `FORBIDDEN` « Action réservée à l'administrateur ».
+
+- `settings.moi` → `{ nom, estAdmin }`
+- `students.update` (admin) : champs de l'élève ; doublon refusé (`CONFLICT`, autre fiche exclue de soi) ; classe de la même année (met à jour l'inscription) ; renvoie `{ eleve, niveauChange, niveauNom }`
+- `students.updateParent({ parentId, eleveId, …contact })` (admin) → `{ partage }`
+- `students.delete` (admin) : refusé si paiements ; sinon supprime transport, réductions, décisions, inscriptions, liens et parents orphelins
+- `finance.paiements.update({ id, typeFraisId, mois, montant, datePaiement, motif })` (admin) : octobre (D-024), mois déjà payé (« Ce mois est déjà payé pour ce type (reçu …) ») ; `finance.paiements.delete({ id, motif })` (admin)
+- `payroll.employes.update` (admin, dont `statut` actif/inactif) ; `payroll.employes.delete` (admin) refusé si bulletins
+- `audit.list({ entite?, du?, au?, page })` (admin) → `{ lignes, total, pages }` (50 par page)
+- Création : numéros de reçu et matricules toujours supérieurs aux numéros supprimés (journal)
+
 ## Module Rapports (`reports`)
 
 ### `reports.comptabilite`

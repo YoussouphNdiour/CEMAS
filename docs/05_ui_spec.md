@@ -162,6 +162,12 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Détail : paiements (+), recettes (+), dépenses (−), salaires (−), solde net
 - « Détail par mois » (trésorerie) : solde du mois, solde cumulé, ligne de total
 
+### Administration (administrateur seulement)
+- Fiche élève : « Modifier l'élève », « Retirer de l'école » (Inactif / Transféré) ou « Réintégrer », « Supprimer » (refusé avec paiements) ; crayon « Modifier le contact » par parent ; section « Paiements » de l'année avec Modifier / Supprimer
+- Paiements du mois : colonne Actions (Modifier / Supprimer, motif obligatoire) ; filtre « Voir les paiements du mois » libellé
+- Employés : « Désactiver » / « Réactiver », Modifier, Supprimer (refus expliqué si bulletins)
+- Paramètres → « Journal des modifications » (`/parametres/journal`) : date, utilisateur, objet, action, détail « champ : avant → après », motif ; filtres objet et période ; 50 lignes par page
+
 ### Rapports (`/rapports`)
 - Menu « Rapports » (et bouton « Rapports » en haut du tableau de bord)
 - Carte « Comptabilité » : Période (Jour / Semaine / Mois / Année scolaire), date, mois ou année selon le choix (libellé de la semaine affiché) ; « Télécharger le PDF » → `rapport-comptable-<du>-<au>.pdf`

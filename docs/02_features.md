@@ -158,6 +158,14 @@
 | Paiements récents | P0 | Tableau des 10 derniers paiements |
 | Raccourci Rapports | P1 | Bouton « Rapports » dans l'en-tête |
 
+## Administration
+| Fonctionnalité | Priorité | Description |
+|---------------|----------|-------------|
+| Modifier / retirer / supprimer un élève | P0 | Administrateur ; suppression seulement sans paiement ; contacts modifiables |
+| Modifier / supprimer un paiement | P0 | Administrateur, motif obligatoire, reçu inchangé |
+| Désactiver / supprimer un employé | P1 | Suppression seulement sans bulletin |
+| Journal des modifications | P0 | Qui, quand, avant → après, motif (Paramètres → Journal) |
+
 ## Module Rapports (`reports`, page `/rapports`)
 
 | Fonctionnalité | Priorité | Description |
