@@ -27,6 +27,7 @@ import {
 	UserCheck,
 	UserPlus,
 	Users,
+	Utensils,
 	X,
 } from "lucide-react";
 import Link from "next/link";
@@ -68,6 +69,7 @@ const navItems: NavItem[] = [
 			{ label: "Impayés", href: "/finances/impayes", icon: TriangleAlert },
 			{ label: "Tarifs par niveau", href: "/finances/tarifs", icon: Table },
 			{ label: "Réductions", href: "/finances/reductions", icon: BadgePercent },
+			{ label: "Services", href: "/finances/services", icon: Utensils },
 			{ label: "Dépenses", href: "/finances/depenses", icon: Receipt },
 			{ label: "Recettes", href: "/finances/recettes", icon: DollarSign },
 			{ label: "Bilan", href: "/finances/bilan", icon: FileText },

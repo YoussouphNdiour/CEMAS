@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { PaiementsEleve } from "@/modules/finance/components/paiements-eleve";
 import { ReductionEleve } from "@/modules/finance/components/reduction-eleve";
+import { ServicesEleve } from "@/modules/finance/components/services-eleve";
 import {
 	CONTACT_VIDE,
 	ContactFields,
@@ -204,6 +205,10 @@ export default function EleveDetailPage() {
 
 			<div className="mt-6">
 				<ReductionEleve eleveId={id} />
+			</div>
+
+			<div className="mt-6">
+				<ServicesEleve eleveId={id} estAdmin={estAdmin} />
 			</div>
 
 			<div className="mt-6">

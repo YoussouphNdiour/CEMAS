@@ -466,6 +466,14 @@ Le middleware `protectedProcedure` vérifie `ctx.session?.user` et renvoie `UNAU
 - `audit.list({ entite?, du?, au?, page })` (admin) → `{ lignes, total, pages }` (50 par page)
 - Création : numéros de reçu et matricules toujours supérieurs aux numéros supprimés (journal)
 
+## Services à abonnement (D-027)
+- `finance.services.list` → services (`types_frais.abonnement`) ; `finance.services.modifierMontant({ typeFraisId, montant })` (admin, journalisé)
+- `finance.abonnements.parEleve({ eleveId })` ; `abonner({ eleveId, typeFraisId, moisDebut })`, `arreter({ …, moisFin })` (entre le début et juin), `reprendre`, `supprimer` (refusé s'il existe un paiement du service) — admin, journalisés
+- `finance.abonnements.listParService({ anneeScolaireId })` : abonnés, classe, mois, mois payés / dus à ce jour
+- `finance.tarifs.pourEleve` renvoie aussi `services: { typeFraisId, nom, montant, abonne, moisDebut, moisFin }[]`
+- `finance.impayes.list` : mois de service dus non payés des abonnés ; `finance.suivi.byClasse` : statut `non_du` hors abonnement, `visible` si un élève de la classe est abonné ou a payé
+- `reports.comptabilite` : `fournitures` / `totalFournitures` (paiements « Fourniture ») à part des `encaissements`
+
 ## Module Rapports (`reports`)
 
 ### `reports.comptabilite`

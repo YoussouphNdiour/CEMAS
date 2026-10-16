@@ -62,4 +62,23 @@ describe("buildRapportComptablePdf", () => {
 		const doc = buildRapportComptablePdf(rapport([]), "Mardi 13 octobre 2026", PARAMETRES_DEFAUT);
 		expect(doc.output()).toContain("Aucune op");
 	});
+
+	it("affiche les fournitures dans leur propre rubrique", () => {
+		const doc = buildRapportComptablePdf(
+			rapport([
+				op(1, { montant: 65_000, rubrique: "Inscription" }),
+				op(2, {
+					nature: "fourniture",
+					montant: 7_000,
+					rubrique: "Fourniture",
+					libelle: "Awa — Fourniture",
+				}),
+			]),
+			"Mardi 13 octobre 2026",
+			PARAMETRES_DEFAUT,
+		);
+		const texte = doc.output();
+		expect(texte).toContain("Fournitures");
+		expect(texte).toContain("72 000 FCFA"); // solde
+	});
 });

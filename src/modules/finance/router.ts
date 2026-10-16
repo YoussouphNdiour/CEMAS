@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ne, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { anneesScolaires, classes, niveaux } from "@/modules/academic/schema";
@@ -12,6 +12,7 @@ import type { db } from "@/shared/lib/db";
 import { nextSequence } from "@/shared/lib/sequence";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "@/shared/lib/trpc";
 import { generateRecuNumber, MOIS_LABELS } from "@/shared/lib/utils";
+import { abonnementsRouter, servicesRouter } from "./abonnements-router";
 import { buildBilanMensuel, totauxBilan } from "./bilan";
 import { associesDesLignes, estForfait, moisDus, verseSurForfait } from "./impayes";
 import { getImpayes } from "./impayes-service";
@@ -23,6 +24,7 @@ import {
 	type Reduction,
 } from "./reductions";
 import {
+	abonnements,
 	categoriesDepenses,
 	categoriesRecettes,
 	depenses,
@@ -34,7 +36,7 @@ import {
 	reductions,
 	typesFrais,
 } from "./schema";
-import { fraisUniqueVisible, statutFraisUnique, statutMois } from "./suivi-statut";
+import { fraisUniqueVisible, statutFraisUnique, statutMois, statutService } from "./suivi-statut";
 import {
 	createDepenseSchema,
 	createPaiementSchema,
@@ -599,14 +601,32 @@ const suiviRouter = createTRPCRouter({
 			const idsForfait = fraisTypes.filter((tf) => estForfait(tf)).map((tf) => tf.id);
 			const associe = (typeFraisId: string) =>
 				lignesForfait.some((l) => l.typeFraisId === typeFraisId);
+			// Services à abonnement : grille visible si un élève de la classe est abonné ou a payé
+			const abonnementsClasse = await ctx.db
+				.select()
+				.from(abonnements)
+				.where(
+					and(
+						eq(abonnements.anneeScolaireId, input.anneeScolaireId),
+						inArray(
+							abonnements.eleveId,
+							studentsList.map((s) => s.id),
+						),
+					),
+				);
+			const abonnementDe = (eleveId: string, typeFraisId: string) =>
+				abonnementsClasse.find((a) => a.eleveId === eleveId && a.typeFraisId === typeFraisId) ??
+				null;
 			const visible = (tf: (typeof fraisTypes)[number]) =>
-				tf.mensuel ||
-				tf.obligatoire ||
-				fraisUniqueVisible({
-					forfait: lignesForfait.length > 0,
-					associe: associe(tf.id),
-					payeDansClasse: payesDansClasse.has(tf.id),
-				});
+				tf.abonnement
+					? payesDansClasse.has(tf.id) || abonnementsClasse.some((a) => a.typeFraisId === tf.id)
+					: tf.mensuel ||
+						tf.obligatoire ||
+						fraisUniqueVisible({
+							forfait: lignesForfait.length > 0,
+							associe: associe(tf.id),
+							payeDansClasse: payesDansClasse.has(tf.id),
+						});
 
 			return studentsList.map((student) => {
 				const byType = paidLookup.get(student.id);
@@ -616,12 +636,16 @@ const suiviRouter = createTRPCRouter({
 					const paye = paidMonths ? paidMonths.size > 0 : false;
 					const months = schoolMonths.map((m) => {
 						const paid = paidMonths?.has(m) ?? false;
-						return { mois: m, paid, statut: statutMois(tf, m, paid, ctxStatut) };
+						const statut = tf.abonnement
+							? statutService(m, paid, abonnementDe(student.id, tf.id))
+							: statutMois(tf, m, paid, ctxStatut);
+						return { mois: m, paid, statut };
 					});
 					return {
 						typeFraisId: tf.id,
 						typeFraisNom: tf.nom,
 						mensuel: tf.mensuel,
+						abonnement: tf.abonnement,
 						montantDefaut: tf.montantDefaut,
 						...tarifEnTete(tf),
 						paid: paye,
@@ -1020,7 +1044,7 @@ const tarifsRouter = createTRPCRouter({
 						await ctx.db
 							.select({ id: typesFrais.id })
 							.from(typesFrais)
-							.where(eq(typesFrais.obligatoire, false))
+							.where(and(eq(typesFrais.obligatoire, false), eq(typesFrais.abonnement, false)))
 					).map((t) => t.id),
 				);
 				if (associes.some((id) => !facultatifs.has(id))) {
@@ -1087,6 +1111,14 @@ const tarifsRouter = createTRPCRouter({
 			if (!annee || !eleve)
 				return {
 					forfait: null,
+					services: [] as {
+						typeFraisId: string;
+						nom: string;
+						montant: number;
+						abonne: boolean;
+						moisDebut: number | null;
+						moisFin: number | null;
+					}[],
 					resteForfait: null,
 					forfaitBrut: null,
 					lignes: [],
@@ -1147,8 +1179,41 @@ const tarifsRouter = createTRPCRouter({
 				);
 				resteForfait = Math.max(0, forfait - verse);
 			}
+			// Services à abonnement : montant et abonnement de l'élève sur l'année
+			const lesServices = await ctx.db
+				.select({ id: typesFrais.id, nom: typesFrais.nom, montant: typesFrais.montantDefaut })
+				.from(typesFrais)
+				.where(eq(typesFrais.abonnement, true))
+				.orderBy(typesFrais.nom);
+			// Abonnements de l'année de l'élève (comme abonner / parEleve)
+			const sesAbonnements = await ctx.db
+				.select({
+					typeFraisId: abonnements.typeFraisId,
+					moisDebut: abonnements.moisDebut,
+					moisFin: abonnements.moisFin,
+				})
+				.from(abonnements)
+				.innerJoin(eleves, eq(abonnements.eleveId, eleves.id))
+				.where(
+					and(
+						eq(abonnements.eleveId, input.eleveId),
+						eq(abonnements.anneeScolaireId, eleves.anneeScolaireId),
+					),
+				);
+			const services = lesServices.map((s) => {
+				const a = sesAbonnements.find((x) => x.typeFraisId === s.id);
+				return {
+					typeFraisId: s.id,
+					nom: s.nom,
+					montant: s.montant,
+					abonne: !!a,
+					moisDebut: a?.moisDebut ?? null,
+					moisFin: a?.moisFin ?? null,
+				};
+			});
 			return {
 				forfait,
+				services,
 				resteForfait,
 				forfaitBrut,
 				lignes,
@@ -1170,5 +1235,7 @@ export const financeRouter = createTRPCRouter({
 	bilan: bilanRouter,
 	impayes: impayesRouter,
 	tarifs: tarifsRouter,
+	services: servicesRouter,
+	abonnements: abonnementsRouter,
 	reductions: reductionsRouter,
 });

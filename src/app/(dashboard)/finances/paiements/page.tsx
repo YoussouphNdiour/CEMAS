@@ -2,6 +2,7 @@
 
 import { CreditCard, Download, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { moisDusAbonnement } from "@/modules/finance/abonnements";
 import { ActionsPaiement } from "@/modules/finance/components/actions-paiement";
 import { estForfait } from "@/modules/finance/impayes";
 import { generateRecuPdf } from "@/shared/lib/generate-recu-pdf";
@@ -56,6 +57,16 @@ export default function PaiementsPage() {
 		!!tarif.data?.lignes.some((l) => l.typeFraisId === typeFraisId);
 	const aEcheancier = !!tarif.data && Object.keys(tarif.data.echeancier).length > 0;
 
+	/** Service à abonnement (garderie, renforcement, cantine) de l'élève choisi. */
+	const serviceDe = (typeFraisId: string) =>
+		tarif.data?.services.find((s) => s.typeFraisId === typeFraisId);
+	const moisDansAbonnement = (
+		s: { moisDebut: number | null; moisFin: number | null },
+		mois: number,
+	) =>
+		s.moisDebut !== null &&
+		moisDusAbonnement({ moisDebut: s.moisDebut, moisFin: s.moisFin }, [{ mois }]).length > 0;
+
 	/** Libellé adapté à l'élève : montant de son niveau, sinon aucun montant (pas de valeur par défaut trompeuse). */
 	function libelleType(tf: (typeof typesFraisList)[number]): string {
 		if (!selectedEleveId || !tarif.data) return tf.nom;
@@ -76,6 +87,9 @@ export default function PaiementsPage() {
 				: `${tf.nom} — ${formatCFA(m)} (${MOIS_LABELS[paymentMois]})`;
 		}
 		if (inclusDansForfait(tf.id)) return `${tf.nom} — inclus dans le forfait`;
+		const service = serviceDe(tf.id);
+		if (service)
+			return `${tf.nom} — ${formatCFA(service.montant)}${service.abonne ? "" : " (non abonné)"}`;
 		return tf.nom;
 	}
 
@@ -94,6 +108,8 @@ export default function PaiementsPage() {
 		if (forfait) propose = tarif.data.resteForfait ?? undefined;
 		else if (typeChoisi.mensuel && typeChoisi.obligatoire)
 			propose = tarif.data.echeancier[paymentMois];
+		else if (typeChoisi.abonnement)
+			propose = tarif.data.services.find((sv) => sv.typeFraisId === typeChoisi.id)?.montant;
 		if (propose !== undefined) {
 			derniereSuggestion.current = cle;
 			setMontant(propose);
@@ -113,6 +129,11 @@ export default function PaiementsPage() {
 		if (octobreInclus) return "La mensualité d'octobre est comprise dans le forfait d'inscription.";
 		if (estForfait(typeChoisi) && tarif.data.resteForfait === 0)
 			return "Forfait déjà soldé pour cet élève : vérifiez avant d'enregistrer un nouveau paiement.";
+		const service = serviceDe(typeChoisi.id);
+		if (service && !service.abonne)
+			return "Cet élève n'est pas abonné à ce service : abonnez-le depuis sa fiche (section « Services ») pour suivre ses mois dus.";
+		if (service && !moisDansAbonnement(service, paymentMois))
+			return `${MOIS_LABELS[paymentMois]} est en dehors de l'abonnement de cet élève.`;
 		if (inclusDansForfait(typeChoisi.id))
 			return "Déjà compris dans le forfait d'inscription de cet élève : ne l'enregistrez à part que s'il n'a pas été payé avec l'inscription.";
 		if (typeChoisi.mensuel && typeChoisi.obligatoire && aEcheancier) {

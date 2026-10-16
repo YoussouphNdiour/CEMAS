@@ -22,6 +22,8 @@ export const typesFrais = pgTable("types_frais", {
 	montantDefaut: integer("montant_defaut").notNull().default(0),
 	obligatoire: boolean("obligatoire").notNull().default(true),
 	mensuel: boolean("mensuel").notNull().default(true),
+	/** Dû seulement pour les élèves abonnés (garderie, renforcement, cantine). */
+	abonnement: boolean("abonnement").notNull().default(false),
 });
 
 export const grilleFrais = pgTable(
@@ -211,5 +213,30 @@ export const reductions = pgTable(
 			"reductions_valeur_check",
 			sql`${t.valeur} >= 1 and (${t.mode} <> 'pourcentage' or ${t.valeur} <= 100)`,
 		),
+	],
+);
+
+/** Abonnement d'un élève à un service mensuel pour une année (D-027). */
+export const abonnements = pgTable(
+	"abonnements",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		eleveId: uuid("eleve_id")
+			.notNull()
+			.references(() => eleves.id, { onDelete: "cascade" }),
+		typeFraisId: uuid("type_frais_id")
+			.notNull()
+			.references(() => typesFrais.id),
+		anneeScolaireId: uuid("annee_scolaire_id")
+			.notNull()
+			.references(() => anneesScolaires.id, { onDelete: "cascade" }),
+		moisDebut: integer("mois_debut").notNull(),
+		moisFin: integer("mois_fin"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("abonnements_unique_idx").on(t.eleveId, t.typeFraisId, t.anneeScolaireId),
+		check("abonnements_mois_debut_check", sql`${t.moisDebut} BETWEEN 1 AND 12`),
+		check("abonnements_mois_fin_check", sql`${t.moisFin} IS NULL OR ${t.moisFin} BETWEEN 1 AND 12`),
 	],
 );

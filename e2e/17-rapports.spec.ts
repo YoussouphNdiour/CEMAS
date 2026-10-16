@@ -4,6 +4,9 @@ import { login, trpc, waitForLoad } from "./helpers";
 type Comptabilite = {
 	solde: number;
 	totalEncaissements: number;
+	totalFournitures: number;
+	fournitures: { rubrique: string; montant: number }[];
+	encaissements: { rubrique: string; montant: number }[];
 	totalDepenses: number;
 	operations: { nature: string; reference: string; libelle: string; montant: number }[];
 };
@@ -84,8 +87,24 @@ test.describe("17 - Rapports", () => {
 			true,
 		);
 
+		// Fourniture : rubrique à part, hors encaissements élèves
+		await trpc(
+			page,
+			"finance.paiements.create",
+			{
+				eleveId: eleve.id,
+				typeFraisId: frais.find((f) => f.nom === "Fourniture")?.id,
+				anneeScolaireId: annee.id,
+				mois: 10,
+				montant: 3_333,
+			},
+			true,
+		);
+
 		const apres = await trpc<Comptabilite>(page, "reports.comptabilite", { du: jour, au: jour });
-		expect(apres.solde - avant.solde).toBe(12_345 - 4_321);
+		expect(apres.totalFournitures - avant.totalFournitures).toBe(3_333);
+		expect(apres.encaissements.some((e) => e.rubrique === "Fourniture")).toBe(false);
+		expect(apres.solde - avant.solde).toBe(12_345 + 3_333 - 4_321);
 		expect(apres.totalEncaissements - avant.totalEncaissements).toBe(12_345);
 		const opPaiement = apres.operations.find((o) => o.reference === paiement.numeroRecu);
 		expect(opPaiement).toMatchObject({ nature: "paiement", montant: 12_345 });
@@ -182,7 +201,7 @@ test.describe("17 - Rapports", () => {
 			totalRecettes: number;
 			solde: number;
 		}>(page, "finance.bilan.summary", { anneeScolaireId: annee.id });
-		expect(compta.totalEncaissements).toBe(bilan.totalPaiements);
+		expect(compta.totalEncaissements + compta.totalFournitures).toBe(bilan.totalPaiements);
 		expect(compta.totalDepenses).toBe(bilan.totalDepenses);
 		expect(compta.solde).toBe(bilan.solde);
 

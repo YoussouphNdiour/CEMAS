@@ -89,3 +89,4 @@ Mis à jour le 2026-10-09.
 | 2026-10-13 | Finance | « Scolarité octobre » saisie en plus du forfait ; tenue incluse affichée impayée ; fournitures affichées en élémentaire et moyen | Refus serveur d'octobre (D-024), suivi « inclus » et cartes masquées |
 | 2026-10-14 | Élèves | Élève inscrit deux fois (KHADIJA MARIEME KEBE) | Fiche en double supprimée ; doublons refusés à l'inscription (D-025) |
 | 2026-10-14 | Général | Corrections d'élèves, de paiements et d'employés impossibles dans l'application | Actions d'administration avec journal (D-026) |
+| 2026-10-16 | Finance | Fournitures comptées dans les encaissements élèves du rapport ; pas de garderie/renforcement/cantine | Rubrique Fournitures ; services à abonnement (D-027) |

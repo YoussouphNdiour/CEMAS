@@ -38,7 +38,8 @@ export default function SuiviPage() {
 	const allFraisTypes = students[0]?.typesFrais ?? [];
 	// Frais uniques : ceux qui ne concernent pas le niveau (ex. fournitures en élémentaire) sont masqués
 	const fraisUniques = allFraisTypes.filter((tf) => !tf.mensuel && tf.visible);
-	const fraisMensuels = allFraisTypes.filter((tf) => tf.mensuel);
+	// Services (garderie, renforcement, cantine) affichés seulement s'ils concernent la classe
+	const fraisMensuels = allFraisTypes.filter((tf) => tf.mensuel && tf.visible);
 
 	// Stats for unique fees
 	const computeUniqueStats = (typeFraisId: string) => {
@@ -204,8 +205,9 @@ export default function SuiviPage() {
 							</div>
 
 							{fraisMensuels.map((tf) => (
-								<div
+								<section
 									key={tf.typeFraisId}
+									aria-label={`Suivi ${tf.typeFraisNom}`}
 									className="mb-4 overflow-hidden rounded-xl bg-surface shadow-sm"
 								>
 									<div className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
@@ -262,7 +264,11 @@ export default function SuiviPage() {
 																	) : monthData.statut === "non_du" ? (
 																		<span
 																			className="text-xs text-gray-300"
-																			title="Non dû selon l'échéancier"
+																			title={
+																				tf.abonnement
+																					? "Hors abonnement"
+																					: "Non dû selon l'échéancier"
+																			}
 																		>
 																			—
 																		</span>
@@ -293,7 +299,7 @@ export default function SuiviPage() {
 											</tbody>
 										</table>
 									</div>
-								</div>
+								</section>
 							))}
 						</div>
 					)}

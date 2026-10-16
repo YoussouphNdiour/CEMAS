@@ -10,7 +10,9 @@ export const auditRouter = createTRPCRouter({
 	list: adminProcedure
 		.input(
 			z.object({
-				entite: z.enum(["eleve", "contact", "paiement", "employe"]).optional(),
+				entite: z
+					.enum(["eleve", "contact", "paiement", "employe", "abonnement", "service"])
+					.optional(),
 				du: z
 					.string()
 					.regex(/^\d{4}-\d{2}-\d{2}$/)

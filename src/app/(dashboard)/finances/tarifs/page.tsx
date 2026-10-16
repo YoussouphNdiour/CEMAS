@@ -243,7 +243,8 @@ export default function TarifsPage() {
 		{ enabled: !!annee },
 	);
 	const types = trpc.finance.typesFrais.list.useQuery();
-	const typesAssociables = (types.data ?? []).filter((t) => !t.obligatoire);
+	// Frais facultatifs uniques (fournitures, tenue) ; jamais les services à abonnement
+	const typesAssociables = (types.data ?? []).filter((t) => !t.obligatoire && !t.abonnement);
 
 	return (
 		<div>

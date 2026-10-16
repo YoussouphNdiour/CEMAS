@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fraisUniqueVisible, statutFraisUnique, statutMois } from "./suivi-statut";
+import { fraisUniqueVisible, statutFraisUnique, statutMois, statutService } from "./suivi-statut";
 
 const sco = { mensuel: true, obligatoire: true };
 const cantine = { mensuel: true, obligatoire: false };
@@ -52,4 +52,18 @@ describe("fraisUniqueVisible", () => {
 		));
 	it("non associé mais payé dans la classe : visible", () =>
 		expect(fraisUniqueVisible({ forfait: true, associe: false, payeDansClasse: true })).toBe(true));
+});
+
+describe("statutService", () => {
+	const ab = { moisDebut: 11, moisFin: 2 };
+	it("payé l'emporte", () => expect(statutService(10, true, null)).toBe("paye"));
+	it("dans l'abonnement et non payé : impayé", () =>
+		expect(statutService(12, false, ab)).toBe("impaye"));
+	it("hors abonnement : non dû", () => {
+		expect(statutService(10, false, ab)).toBe("non_du");
+		expect(statutService(3, false, ab)).toBe("non_du");
+	});
+	it("sans abonnement : non dû", () => expect(statutService(11, false, null)).toBe("non_du"));
+	it("juillet n'est jamais dû", () =>
+		expect(statutService(7, false, { moisDebut: 10, moisFin: null })).toBe("non_du"));
 });

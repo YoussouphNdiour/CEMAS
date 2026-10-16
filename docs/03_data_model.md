@@ -204,6 +204,19 @@ Supprimées après un passage réussi.
 | motif | varchar(200) | | |
 | | | UNIQUE(eleve_id, annee_scolaire_id) | Une réduction par élève et par année |
 
+### `abonnements`
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| id | uuid | PK | |
+| eleve_id | uuid | FK → eleves ON DELETE CASCADE | |
+| type_frais_id | uuid | FK → types_frais | Service à abonnement |
+| annee_scolaire_id | uuid | FK → annees_scolaires ON DELETE CASCADE | |
+| mois_debut | integer | CHECK 1–12 | Premier mois dû |
+| mois_fin | integer | CHECK 1–12, nullable | Dernier mois dû (null = juin) |
+| | | UNIQUE(eleve_id, type_frais_id, annee_scolaire_id) | |
+
+`types_frais.abonnement` (boolean, défaut false) : dû seulement pour les élèves abonnés (Garderie, Cours de renforcement, Cantine, créés par le seed). Le journal accepte aussi les entités `abonnement` et `service`.
+
 ### `journal_modifications`
 | Colonne | Type | Contraintes | Description |
 |---------|------|-------------|-------------|

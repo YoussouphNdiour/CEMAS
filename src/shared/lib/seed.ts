@@ -175,6 +175,21 @@ async function seed() {
 		}
 	}
 
+	// 6b. Services mensuels à abonnement (D-027), créés s'ils manquent
+	const fraisActuels = await db.select({ nom: typesFrais.nom }).from(typesFrais);
+	for (const nom of ["Garderie", "Cours de renforcement", "Cantine"]) {
+		if (!fraisActuels.some((f) => f.nom === nom)) {
+			await db.insert(typesFrais).values({
+				nom,
+				montantDefaut: 10000,
+				obligatoire: false,
+				mensuel: true,
+				abonnement: true,
+			});
+			console.log(`✅ Service ${nom} ajouté`);
+		}
+	}
+
 	// 7. Catégories de dépenses
 	const existingCatDep = await db.select().from(categoriesDepenses);
 	if (existingCatDep.length === 0) {
