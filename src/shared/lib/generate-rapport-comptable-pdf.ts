@@ -7,6 +7,7 @@ import { paginer, paragraphe, tableau, titreRapport, titreSection } from "./pdf-
 
 const NATURES: Record<NatureOperation, string> = {
 	paiement: "Paiement",
+	fourniture: "Fourniture",
 	recette: "Recette",
 	depense: "Dépense",
 	salaire: "Salaire",
@@ -43,6 +44,7 @@ export function buildRapportComptablePdf(
 			: paragraphe(doc, y, "Aucun mouvement.");
 	};
 	rubriques("Encaissements élèves", r.encaissements, r.totalEncaissements);
+	rubriques("Fournitures", r.fournitures, r.totalFournitures);
 	rubriques("Recettes diverses", r.recettes, r.totalRecettes);
 	rubriques("Dépenses", r.depenses, r.totalDepenses);
 
@@ -56,6 +58,7 @@ export function buildRapportComptablePdf(
 		],
 		[
 			["Encaissements élèves", cfa(r.totalEncaissements)],
+			["Fournitures", cfa(r.totalFournitures)],
 			["Recettes diverses", cfa(r.totalRecettes)],
 			["Dépenses", `- ${cfa(r.totalDepenses)}`],
 			[
@@ -70,7 +73,7 @@ export function buildRapportComptablePdf(
 	if (!r.operations.length) {
 		paragraphe(doc, y, "Aucune opération sur la période.");
 	} else {
-		const entrees = r.totalEncaissements + r.totalRecettes;
+		const entrees = r.totalEncaissements + r.totalFournitures + r.totalRecettes;
 		const sorties = r.totalDepenses + r.salaires.montant;
 		const sortie = (n: NatureOperation) => n === "depense" || n === "salaire";
 		tableau(

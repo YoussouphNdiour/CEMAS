@@ -15,6 +15,9 @@ import type { db } from "@/shared/lib/db";
 import { MOIS_LABELS } from "@/shared/lib/utils";
 import type { Operation } from "./comptabilite";
 
+/** Type de frais présenté à part des encaissements élèves dans le rapport. */
+export const TYPE_FOURNITURE = "Fourniture";
+
 type Db = typeof db;
 const iso = (d: Date | null) => (d ? d.toISOString() : "");
 
@@ -111,7 +114,7 @@ export async function operationsPeriode(
 			(p): Operation => ({
 				date: p.date,
 				ordre: iso(p.createdAt),
-				nature: "paiement",
+				nature: p.type === TYPE_FOURNITURE ? "fourniture" : "paiement",
 				reference: p.numeroRecu,
 				libelle: `${p.prenom} ${p.nom} — ${p.type}${p.mensuel ? ` ${MOIS_LABELS[p.mois].toLowerCase()}` : ""}`,
 				rubrique: p.type,

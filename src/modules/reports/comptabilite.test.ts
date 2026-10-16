@@ -60,4 +60,17 @@ describe("construireComptabilite", () => {
 			operations: [],
 		});
 	});
+
+	it("fournitures : rubrique à part, hors encaissements élèves, comptées dans le solde", () => {
+		const r = construireComptabilite([
+			op({ nature: "paiement", montant: 65_000, rubrique: "Inscription" }),
+			op({ nature: "fourniture", montant: 7_000, rubrique: "Fourniture" }),
+			op({ nature: "depense", montant: 2_000, rubrique: "Divers" }),
+		]);
+		expect(r.encaissements).toEqual([{ rubrique: "Inscription", montant: 65_000 }]);
+		expect(r.totalEncaissements).toBe(65_000);
+		expect(r.fournitures).toEqual([{ rubrique: "Fourniture", montant: 7_000 }]);
+		expect(r.totalFournitures).toBe(7_000);
+		expect(r.solde).toBe(65_000 + 7_000 - 2_000);
+	});
 });
