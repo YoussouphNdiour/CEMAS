@@ -168,6 +168,12 @@ Props : `columns`, `data`, `searchPlaceholder`, `pageSize`, `onRowClick`
 - Employés : « Désactiver » / « Réactiver », Modifier, Supprimer (refus expliqué si bulletins)
 - Paramètres → « Journal des modifications » (`/parametres/journal`) : date, utilisateur, objet, action, détail « champ : avant → après », motif ; filtres objet et période ; 50 lignes par page
 
+### Services (`/finances/services`) et fiche élève
+- Fiche élève, section « Services » : par service, état (« Non abonné », « Abonné depuis Novembre », « Abonné de Novembre à Février ») ; S'abonner (« À partir de »), Arrêter (« Dernier mois »), Reprendre, Supprimer (administrateur)
+- Page Services : montant mensuel modifiable (administrateur) ; abonnés par service avec mois payés / dus
+- Paiements : option « Cantine — 10 000 FCFA » (« (non abonné) » sinon), montant proposé, avertissement hors abonnement
+- Suivi : grille par service visible si la classe a un abonné ou un paiement ; « — » hors abonnement
+
 ### Rapports (`/rapports`)
 - Menu « Rapports » (et bouton « Rapports » en haut du tableau de bord)
 - Carte « Comptabilité » : Période (Jour / Semaine / Mois / Année scolaire), date, mois ou année selon le choix (libellé de la semaine affiché) ; « Télécharger le PDF » → `rapport-comptable-<du>-<au>.pdf`

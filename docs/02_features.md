@@ -166,6 +166,12 @@
 | Désactiver / supprimer un employé | P1 | Suppression seulement sans bulletin |
 | Journal des modifications | P0 | Qui, quand, avant → après, motif (Paramètres → Journal) |
 
+## Services à abonnement
+| Fonctionnalité | Priorité | Description |
+|---------------|----------|-------------|
+| Garderie, renforcement, cantine | P0 | 10 000 FCFA/mois par défaut (modifiable), dus du mois d'abonnement à juin pour les abonnés ; paiements, suivi, impayés, relances |
+| Abonnements | P0 | Depuis la fiche élève (début, arrêt, reprise) ; liste par service |
+
 ## Module Rapports (`reports`, page `/rapports`)
 
 | Fonctionnalité | Priorité | Description |
