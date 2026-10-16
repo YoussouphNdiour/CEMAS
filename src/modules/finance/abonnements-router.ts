@@ -76,7 +76,10 @@ export const servicesRouter = createTRPCRouter({
 	/** Montant mensuel d'un service (administrateur, journalisé). */
 	modifierMontant: adminProcedure
 		.input(
-			z.object({ typeFraisId: z.string().uuid(), montant: z.number().int().min(0).max(1_000_000) }),
+			z.object({
+				typeFraisId: z.string().uuid(),
+				montant: z.number().int().min(1, "Montant requis").max(1_000_000),
+			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			return ctx.db.transaction(async (tx) => {
@@ -152,7 +155,14 @@ export const abonnementsRouter = createTRPCRouter({
 						anneeScolaireId: c.eleve.anneeScolaireId,
 						moisDebut: input.moisDebut,
 					})
+					.onConflictDoNothing()
 					.returning();
+				// Abonnement créé entre-temps par une autre demande
+				if (!a)
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "L'élève est déjà abonné à ce service",
+					});
 				await journaliser(tx, {
 					userId: ctx.admin.id,
 					userNom: ctx.admin.nom,

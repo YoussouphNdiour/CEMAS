@@ -42,7 +42,7 @@ function parRubrique(ops: Operation[]): Rubrique[] {
 		.sort((a, b) => b.montant - a.montant || a.rubrique.localeCompare(b.rubrique, "fr"));
 }
 
-/** Synthèse et détail chronologique d'une période. Solde = encaissements + recettes − dépenses − salaires. */
+/** Synthèse et détail chronologique d'une période. Solde = encaissements + fournitures + recettes − dépenses − salaires. */
 export function construireComptabilite(ops: Operation[]): Comptabilite {
 	const de = (n: NatureOperation) => ops.filter((o) => o.nature === n);
 	const [paiements, fournitures, recettes, depenses, salaires] = (

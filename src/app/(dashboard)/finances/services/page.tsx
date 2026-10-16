@@ -23,6 +23,7 @@ function Montant({
 			utils.finance.services.list.invalidate();
 			utils.finance.tarifs.pourEleve.invalidate();
 			utils.finance.impayes.list.invalidate();
+			utils.dashboard.stats.invalidate();
 		},
 	});
 	if (!estAdmin)
@@ -46,7 +47,7 @@ function Montant({
 				value={valeur}
 				onChange={(e) => setValeur(e.target.value)}
 			/>
-			<Button size="sm" type="submit" disabled={modifier.isPending}>
+			<Button size="sm" type="submit" disabled={modifier.isPending || !(Number(valeur) > 0)}>
 				Enregistrer
 			</Button>
 			{modifier.isSuccess && <span className="text-xs text-green-700">Enregistré</span>}

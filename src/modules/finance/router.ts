@@ -1044,7 +1044,7 @@ const tarifsRouter = createTRPCRouter({
 						await ctx.db
 							.select({ id: typesFrais.id })
 							.from(typesFrais)
-							.where(eq(typesFrais.obligatoire, false))
+							.where(and(eq(typesFrais.obligatoire, false), eq(typesFrais.abonnement, false)))
 					).map((t) => t.id),
 				);
 				if (associes.some((id) => !facultatifs.has(id))) {
@@ -1185,11 +1185,20 @@ const tarifsRouter = createTRPCRouter({
 				.from(typesFrais)
 				.where(eq(typesFrais.abonnement, true))
 				.orderBy(typesFrais.nom);
+			// Abonnements de l'année de l'élève (comme abonner / parEleve)
 			const sesAbonnements = await ctx.db
-				.select()
+				.select({
+					typeFraisId: abonnements.typeFraisId,
+					moisDebut: abonnements.moisDebut,
+					moisFin: abonnements.moisFin,
+				})
 				.from(abonnements)
+				.innerJoin(eleves, eq(abonnements.eleveId, eleves.id))
 				.where(
-					and(eq(abonnements.eleveId, input.eleveId), eq(abonnements.anneeScolaireId, annee.id)),
+					and(
+						eq(abonnements.eleveId, input.eleveId),
+						eq(abonnements.anneeScolaireId, eleves.anneeScolaireId),
+					),
 				);
 			const services = lesServices.map((s) => {
 				const a = sesAbonnements.find((x) => x.typeFraisId === s.id);

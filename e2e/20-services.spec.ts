@@ -62,7 +62,11 @@ async function nouvelEleve(page: Page, classeId: string, anneeId: string) {
 	);
 }
 
-const moisCourant = () => new Date().getMonth() + 1;
+/** Mois courant s'il peut ouvrir un abonnement (octobre → juin), sinon octobre. */
+const moisCourant = () => {
+	const m = new Date().getMonth() + 1;
+	return m >= 7 && m <= 9 ? 10 : m;
+};
 
 test.describe("20 - Services mensuels (garderie, renforcement, cantine)", () => {
 	test("API : abonner, impayés, payer, arrêter, reprendre, supprimer, montant, droits", async ({
@@ -233,5 +237,24 @@ test.describe("20 - Services mensuels (garderie, renforcement, cantine)", () => 
 		await expect(grille).toBeVisible();
 		const ligne = grille.getByRole("row", { name: new RegExp(abonne.nom) });
 		await expect(ligne.getByRole("cell").nth(1)).toHaveText("—");
+	});
+
+	test("un service ne peut pas être rattaché au forfait d'inscription", async ({ page }) => {
+		await login(page);
+		const { annee, cantine } = await contexte(page);
+		const niveaux = await trpc<{ id: string; nom: string }[]>(page, "academic.niveaux.list");
+		await expect(
+			trpc(
+				page,
+				"finance.tarifs.enregistrer",
+				{
+					anneeScolaireId: annee.id,
+					niveauId: niveaux[0].id,
+					lignes: [{ libelle: "Cantine", montant: 10_000, typeFraisId: cantine.id }],
+					echeancier: [],
+				},
+				true,
+			),
+		).rejects.toThrow(/facultatifs/);
 	});
 });

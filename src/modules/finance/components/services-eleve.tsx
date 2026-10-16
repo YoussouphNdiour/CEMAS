@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/shared/lib/trpc-client";
 import { formatCFA, MOIS_LABELS } from "@/shared/lib/utils";
-import { Button, FormModal } from "@/shared/ui";
+import { Button, ConfirmDialog, FormModal } from "@/shared/ui";
 import { DERNIER_MOIS_SERVICE, ordreScolaire } from "../abonnements";
 
 const CHAMP =
@@ -28,9 +28,11 @@ export function ServicesEleve({ eleveId, estAdmin }: { eleveId: string; estAdmin
 	const tarif = trpc.finance.tarifs.pourEleve.useQuery({ eleveId });
 	const [dialogue, setDialogue] = useState<Dialogue | null>(null);
 	const [erreur, setErreur] = useState<string | null>(null);
+	const [aSupprimer, setASupprimer] = useState<{ typeFraisId: string; nom: string } | null>(null);
 	const options = {
 		onSuccess: () => {
 			setDialogue(null);
+			setASupprimer(null);
 			setErreur(null);
 			utils.finance.tarifs.pourEleve.invalidate({ eleveId });
 			utils.finance.impayes.list.invalidate();
@@ -115,7 +117,7 @@ export function ServicesEleve({ eleveId, estAdmin }: { eleveId: string; estAdmin
 												size="sm"
 												variant="ghost"
 												disabled={enCours}
-												onClick={() => supprimer.mutate({ eleveId, typeFraisId: s.typeFraisId })}
+												onClick={() => setASupprimer({ typeFraisId: s.typeFraisId, nom: s.nom })}
 											>
 												Supprimer
 											</Button>
@@ -127,6 +129,25 @@ export function ServicesEleve({ eleveId, estAdmin }: { eleveId: string; estAdmin
 					))}
 				</tbody>
 			</table>
+
+			<ConfirmDialog
+				open={aSupprimer !== null}
+				onClose={() => {
+					setASupprimer(null);
+					setErreur(null);
+				}}
+				onConfirm={() =>
+					aSupprimer && supprimer.mutate({ eleveId, typeFraisId: aSupprimer.typeFraisId })
+				}
+				title="Supprimer l'abonnement ?"
+				message={
+					erreur ??
+					`L'abonnement à « ${aSupprimer?.nom ?? ""} » sera supprimé (saisie par erreur). Pour un élève qui arrête, utilisez plutôt « Arrêter ».`
+				}
+				confirmLabel="Supprimer"
+				loadingLabel="Suppression..."
+				loading={supprimer.isPending}
+			/>
 
 			<FormModal
 				open={dialogue !== null}

@@ -12,6 +12,8 @@ const OBJETS = {
 	contact: "Contact",
 	paiement: "Paiement",
 	employe: "Employé",
+	abonnement: "Abonnement",
+	service: "Service",
 } as const;
 type Objet = keyof typeof OBJETS;
 

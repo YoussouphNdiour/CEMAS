@@ -21,6 +21,8 @@ const LIBELLES: Record<string, string> = {
 	type: "Type",
 	salaireBase: "Salaire de base",
 	dateEmbauche: "Date d'embauche",
+	abonnement: "Abonnement",
+	finAbonnement: "Fin d'abonnement",
 };
 const VALEURS: Record<string, string> = {
 	actif: "Actif",

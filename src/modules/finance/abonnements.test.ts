@@ -32,3 +32,11 @@ describe("moisDusAbonnement", () => {
 		expect(moisDusAbonnement({ moisDebut: 1, moisFin: null }, dus("2026-11-05"))).toEqual([]);
 	});
 });
+
+describe("moisDusAbonnement — fin après juin", () => {
+	it("un mois de fin en août s'arrête en juin", () => {
+		expect(mois(moisDusAbonnement({ moisDebut: 4, moisFin: 8 }, dus("2027-09-10")))).toEqual([
+			4, 5, 6,
+		]);
+	});
+});
