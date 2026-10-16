@@ -5,6 +5,7 @@ import type { db } from "@/shared/lib/db";
 import { associesDesLignes, calculerImpayes, type ResultatImpayes } from "./impayes";
 import type { Reduction } from "./reductions";
 import {
+	abonnements,
 	echeancier,
 	forfaitLignes,
 	grilleFrais,
@@ -95,9 +96,33 @@ export async function getImpayes(
 		.from(echeancier)
 		.where(eq(echeancier.anneeScolaireId, anneeScolaireId));
 
-	// Paiements utiles : frais obligatoires + types associés aux forfaits (ex. fournitures)
+	// Services à abonnement (garderie, renforcement, cantine) et abonnements de l'année
+	const services = await database
+		.select({
+			id: typesFrais.id,
+			nom: typesFrais.nom,
+			montantDefaut: typesFrais.montantDefaut,
+			mensuel: typesFrais.mensuel,
+		})
+		.from(typesFrais)
+		.where(eq(typesFrais.abonnement, true));
+	const lesAbonnements = await database
+		.select({
+			eleveId: abonnements.eleveId,
+			typeFraisId: abonnements.typeFraisId,
+			moisDebut: abonnements.moisDebut,
+			moisFin: abonnements.moisFin,
+		})
+		.from(abonnements)
+		.where(eq(abonnements.anneeScolaireId, anneeScolaireId));
+
+	// Paiements utiles : frais obligatoires + types associés aux forfaits (ex. fournitures) + services
 	const fraisIds = [
-		...new Set([...frais.map((f) => f.id), ...forfaits.flatMap((f) => f.typesAssocies)]),
+		...new Set([
+			...frais.map((f) => f.id),
+			...forfaits.flatMap((f) => f.typesAssocies),
+			...services.map((s) => s.id),
+		]),
 	];
 
 	const grille = await database
@@ -134,6 +159,8 @@ export async function getImpayes(
 		paiements: paiementsRows,
 		forfaits,
 		echeanciers,
+		services,
+		abonnements: lesAbonnements,
 		reductions: (
 			await database
 				.select({

@@ -1,3 +1,5 @@
+import { moisDusAbonnement } from "./abonnements";
+
 export type StatutMois = "paye" | "impaye" | "inclus" | "non_du";
 
 /**
@@ -35,4 +37,15 @@ export function fraisUniqueVisible(ctx: {
 	payeDansClasse: boolean;
 }): boolean {
 	return !ctx.forfait || ctx.associe || ctx.payeDansClasse;
+}
+
+/** Mois d'un service à abonnement dans le suivi : dû seulement entre le début et la fin (ou juin). */
+export function statutService(
+	mois: number,
+	paye: boolean,
+	abonnement: { moisDebut: number; moisFin: number | null } | null,
+): StatutMois {
+	if (paye) return "paye";
+	if (!abonnement) return "non_du";
+	return moisDusAbonnement(abonnement, [{ mois }]).length ? "impaye" : "non_du";
 }
