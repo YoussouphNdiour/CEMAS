@@ -1,3 +1,4 @@
+import { moisDusAbonnement } from "./abonnements";
 import { montantReduit, type Reduction } from "./reductions";
 
 export interface EleveImpayeInput {
@@ -125,6 +126,14 @@ export function calculerImpayes(p: {
 	echeanciers?: { niveauId: string; mois: number; montant: number }[];
 	/** Réduction de l'élève pour l'année (une au plus). */
 	reductions?: (Reduction & { eleveId: string })[];
+	/** Services à abonnement (garderie, renforcement, cantine) : dus pour les abonnés seulement. */
+	services?: FraisInput[];
+	abonnements?: {
+		eleveId: string;
+		typeFraisId: string;
+		moisDebut: number;
+		moisFin: number | null;
+	}[];
 }): ResultatImpayes {
 	const dus = moisDus(p.dateDebut, p.dateFin, p.aujourdhui);
 	const grille = new Map(p.grille.map((g) => [`${g.classeId}:${g.typeFraisId}`, g.montant]));
@@ -249,6 +258,25 @@ export function calculerImpayes(p: {
 			(t) => !p.frais.some((f) => f.id === t),
 		)) {
 			paye += verse(e.id, id);
+		}
+		// Services à abonnement : montant du service (sans réduction ni grille), mois de l'abonnement
+		for (const ab of (p.abonnements ?? []).filter((a) => a.eleveId === e.id)) {
+			const service = (p.services ?? []).find((s) => s.id === ab.typeFraisId);
+			if (!service || service.montantDefaut <= 0) continue;
+			paye += verse(e.id, service.id);
+			const moisPayes = payes.get(`${e.id}:${service.id}`);
+			for (const { annee, mois } of moisDusAbonnement(ab, dus)) {
+				du += service.montantDefaut;
+				if (moisPayes?.has(mois)) continue;
+				reste += service.montantDefaut;
+				moisImpayes.push({
+					typeFraisId: service.id,
+					typeFraisNom: service.nom,
+					mois,
+					annee,
+					montant: service.montantDefaut,
+				});
+			}
 		}
 		if (reste > 0) lignes.push({ ...e, du, paye, reste, moisImpayes });
 	}

@@ -20,7 +20,10 @@ export const journalModifications = pgTable(
 	},
 	(t) => [
 		index("journal_created_idx").on(t.createdAt),
-		check("journal_entite_check", sql`${t.entite} in ('eleve', 'contact', 'paiement', 'employe')`),
+		check(
+			"journal_entite_check",
+			sql`${t.entite} in ('eleve', 'contact', 'paiement', 'employe', 'abonnement', 'service')`,
+		),
 		check("journal_action_check", sql`${t.action} in ('modification', 'suppression')`),
 	],
 );

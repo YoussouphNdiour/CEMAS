@@ -2,7 +2,7 @@ import type { db } from "@/shared/lib/db";
 import { journalModifications } from "./schema";
 
 type Executeur = Pick<typeof db, "insert">;
-export type EntiteJournal = "eleve" | "contact" | "paiement" | "employe";
+export type EntiteJournal = "eleve" | "contact" | "paiement" | "employe" | "abonnement" | "service";
 
 const vide = (v: unknown) => v === null || v === undefined || v === "";
 const egaux = (a: unknown, b: unknown) => {

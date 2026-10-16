@@ -402,3 +402,47 @@ describe("associesDesLignes", () => {
 		).toEqual({ typesAssocies: ["four"], plafonds: { four: 10_000 } });
 	});
 });
+
+describe("services à abonnement", () => {
+	const CANTINE = { id: "cant", nom: "Cantine", montantDefaut: 10_000, mensuel: true };
+	const base6 = {
+		...ANNEE,
+		frais: [SCO],
+		grille: [{ classeId: "c1", typeFraisId: "sco", montant: 20_000 }],
+		services: [CANTINE],
+	};
+	it("abonné non payé : mois dus au montant du service, sans réduction", () => {
+		const r = calculerImpayes({
+			...base6,
+			aujourdhui: "2026-12-10",
+			eleves: [eleve("e1")],
+			paiements: [
+				{ eleveId: "e1", typeFraisId: "sco", mois: 10, montant: 20_000 },
+				{ eleveId: "e1", typeFraisId: "sco", mois: 11, montant: 20_000 },
+				{ eleveId: "e1", typeFraisId: "sco", mois: 12, montant: 20_000 },
+				{ eleveId: "e1", typeFraisId: "cant", mois: 11, montant: 10_000 },
+			],
+			abonnements: [{ eleveId: "e1", typeFraisId: "cant", moisDebut: 11, moisFin: null }],
+			reductions: [
+				{ eleveId: "e1", type: "bourse", portee: "les_deux", mode: "pourcentage", valeur: 50 },
+			],
+		});
+		const cantine = r.lignes[0].moisImpayes.filter((m) => m.typeFraisNom === "Cantine");
+		expect(cantine).toEqual([
+			{ typeFraisId: "cant", typeFraisNom: "Cantine", mois: 12, annee: 2026, montant: 10_000 },
+		]);
+	});
+	it("non abonné : un paiement de cantine n'ajoute ni dû ni reste", () => {
+		const r = calculerImpayes({
+			...base6,
+			aujourdhui: "2026-10-20",
+			eleves: [eleve("e1")],
+			paiements: [
+				{ eleveId: "e1", typeFraisId: "sco", mois: 10, montant: 20_000 },
+				{ eleveId: "e1", typeFraisId: "cant", mois: 10, montant: 10_000 },
+			],
+			abonnements: [],
+		});
+		expect(r.lignes).toEqual([]);
+	});
+});
