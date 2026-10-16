@@ -15,7 +15,10 @@ function base() {
 }
 
 async function contexte(page: Page) {
-	const annees = await trpc<{ id: string; active: boolean }[]>(page, "academic.annees.list");
+	const annees = await trpc<{ id: string; active: boolean; dateDebut: string }[]>(
+		page,
+		"academic.annees.list",
+	);
 	const annee = annees.find((a) => a.active);
 	if (!annee) throw new Error("Aucune année active");
 	const classes = await trpc<{ id: string; nom: string }[]>(page, "academic.classes.list", {
@@ -91,7 +94,9 @@ test.describe("20 - Services mensuels (garderie, renforcement, cantine)", () => 
 			).lignes
 				.find((l) => l.id === eleve.id)
 				?.moisImpayes.filter((x) => x.typeFraisNom === "Cantine") ?? [];
-		expect((await impayesCantine()).map((x) => x.mois)).toEqual([m]);
+		// Mois courant dû, sauf si l'année active n'a pas encore commencé (après le passage du test 14)
+		const anneeCommencee = new Date().toISOString().slice(0, 10) >= annee.dateDebut;
+		expect((await impayesCantine()).map((x) => x.mois)).toEqual(anneeCommencee ? [m] : []);
 
 		await trpc(
 			page,

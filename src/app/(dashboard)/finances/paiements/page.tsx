@@ -108,7 +108,8 @@ export default function PaiementsPage() {
 		if (forfait) propose = tarif.data.resteForfait ?? undefined;
 		else if (typeChoisi.mensuel && typeChoisi.obligatoire)
 			propose = tarif.data.echeancier[paymentMois];
-		else if (serviceDe(typeChoisi.id)) propose = serviceDe(typeChoisi.id)?.montant;
+		else if (typeChoisi.abonnement)
+			propose = tarif.data.services.find((sv) => sv.typeFraisId === typeChoisi.id)?.montant;
 		if (propose !== undefined) {
 			derniereSuggestion.current = cle;
 			setMontant(propose);
